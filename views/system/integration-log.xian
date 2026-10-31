@@ -1,0 +1,21 @@
+{{#> page-header heading=title subtitle=(concat log.systemName " · " log.operation)}}{{/page-header}}
+<div class="grid gap-6 lg:grid-cols-3">
+  <div class="card">
+    <div class="card-header"><h3 class="card-title">Call</h3>{{statusBadge log.status}}</div>
+    <dl class="card-body dl">
+      <dt>Time</dt><dd>{{datetime log.createdAt}}</dd>
+      <dt>Duration</dt><dd>{{log.durationMs}} ms</dd>
+      <dt>HTTP status</dt><dd>{{default log.httpStatus "—"}}</dd>
+      <dt>Adapter</dt><dd>{{#if log.isMock}}MOCK{{else}}Live{{/if}}</dd>
+      <dt>Reference</dt><dd>{{log.referenceType}} {{log.referenceId}}</dd>
+      <dt>Correlation</dt><dd class="break-all font-mono text-xs">{{log.correlationId}}</dd>
+      <dt>Idempotency</dt><dd class="break-all font-mono text-xs">{{default log.idempotencyKey "—"}}</dd>
+      <dt>User</dt><dd>{{default log.user.fullName "—"}}</dd>
+      {{#if log.errorMessage}}<dt>Error</dt><dd class="text-rose-700">{{log.errorMessage}}</dd>{{/if}}
+    </dl>
+  </div>
+  <div class="space-y-6 lg:col-span-2">
+    <div class="card"><div class="card-header"><h3 class="card-title">Request</h3></div><pre class="card-body overflow-x-auto whitespace-pre-wrap break-all text-xs">{{json log.requestPayload}}</pre></div>
+    <div class="card"><div class="card-header"><h3 class="card-title">Response</h3></div><pre class="card-body overflow-x-auto whitespace-pre-wrap break-all text-xs">{{json log.responsePayload}}</pre></div>
+  </div>
+</div>

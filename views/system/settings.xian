@@ -1,0 +1,64 @@
+{{#> page-header heading="Settings" subtitle="POS-specific configuration. Credentials and connection details live in environment variables, never in the database."}}{{/page-header}}
+<div class="grid gap-6 lg:grid-cols-3">
+  <form class="card lg:col-span-2" method="POST" action="/settings">
+    <input type="hidden" name="_csrf" value="{{csrfToken}}">
+    <div class="card-header"><h3 class="card-title">POS settings</h3></div>
+    <div class="card-body space-y-5">
+      {{#each posSettings}}
+      <div>
+        {{#if (eq valueType "boolean")}}
+          <label class="flex items-start gap-3 text-sm"><input type="checkbox" name="{{settingKey}}" value="1" class="mt-0.5 h-4 w-4 rounded border-slate-300" {{#if (eq settingValue "true")}}checked{{/if}}><span><span class="font-medium text-slate-800">{{label}}</span><span class="block text-xs text-slate-500">{{description}}</span></span></label>
+        {{else}}
+          <label class="label" for="s-{{settingKey}}">{{label}}</label>
+          {{#if (eq valueType "text")}}
+            <textarea class="input" id="s-{{settingKey}}" name="{{settingKey}}" rows="2">{{settingValue}}</textarea>
+          {{else}}
+            <input class="input" id="s-{{settingKey}}" name="{{settingKey}}" value="{{settingValue}}" {{#if (eq valueType "number")}}type="number" min="1" max="100"{{/if}}>
+          {{/if}}
+          <p class="help">{{description}}</p>
+        {{/if}}
+      </div>
+      {{/each}}
+    </div>
+    <div class="flex justify-end border-t border-slate-100 px-5 py-4"><button class="btn btn-primary" type="submit">Save settings</button></div>
+  </form>
+  <div class="card h-fit">
+    <div class="card-header"><h3 class="card-title">Environment</h3></div>
+    <dl class="card-body dl">
+      <dt>Application</dt><dd>{{env.appName}}</dd>
+      <dt>Hotel name</dt><dd>{{env.hotelName}}</dd>
+      <dt>Timezone</dt><dd>{{env.timezone}}</dd>
+      <dt>Currency</dt><dd>{{env.currency}}</dd>
+      <dt>Environment</dt><dd>{{env.environment}}</dd>
+      <dt>Database</dt><dd>{{env.database}}</dd>
+    </dl>
+    <p class="border-t border-slate-100 px-5 py-3 text-xs text-slate-500">Change these in <code>.env</code> and restart the server.</p>
+  </div>
+</div>
+
+<div class="card mt-6" id="payment-methods">
+  <div class="card-header"><h3 class="card-title">Payment methods</h3><span class="text-xs text-slate-500">Card / e-wallet methods use the payment gateway adapter</span></div>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Code</th><th>Name</th><th>Type</th><th>Requires reference</th><th>Order</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+        {{#each methods}}
+        <tr>
+          <td class="font-mono text-xs">{{code}}</td>
+          <td colspan="6">
+            <form class="grid grid-cols-6 items-center gap-3" method="POST" action="/settings/payment-methods/{{id}}">
+              <input type="hidden" name="_csrf" value="{{../csrfToken}}">
+              <input class="input" name="name" value="{{name}}" maxlength="60" aria-label="Name">
+              <span class="text-sm text-slate-600">{{#if isCash}}Cash drawer{{else}}{{#if usesGateway}}Gateway{{else}}Manual{{/if}}{{/if}}</span>
+              <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="requiresReference" value="1" {{checked requiresReference}}>Required</label>
+              <input class="input w-20" name="sortOrder" type="number" min="0" value="{{sortOrder}}" aria-label="Display order">
+              <select class="input" name="status" aria-label="Status"><option value="ACTIVE" {{selected "ACTIVE" status}}>Active</option><option value="INACTIVE" {{selected "INACTIVE" status}}>Inactive</option></select>
+              <button class="btn btn-secondary btn-sm justify-self-end" type="submit">Save</button>
+            </form>
+          </td>
+        </tr>
+        {{/each}}
+      </tbody>
+    </table>
+  </div>
+</div>

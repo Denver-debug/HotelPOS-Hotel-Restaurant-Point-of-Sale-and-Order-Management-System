@@ -1,0 +1,49 @@
+{{#> page-header heading="Audit Logs" subtitle="Read-only trail of security-relevant and financial activity. Records cannot be edited or deleted."}}{{/page-header}}
+<div class="card">
+  <form class="grid gap-3 border-b border-slate-100 p-4 sm:grid-cols-3 lg:grid-cols-7" method="GET">
+    <select class="input" name="userId" data-autosubmit>
+      <option value="">All users</option>
+      {{#each users}}<option value="{{id}}" {{selected id ../filters.userId}}>{{fullName}}</option>{{/each}}
+    </select>
+    <input class="input" name="action" value="{{filters.action}}" placeholder="Action (e.g. REFUND)">
+    <select class="input" name="entityType" data-autosubmit>
+      <option value="">All modules</option>
+      {{#each entityTypes}}<option value="{{this}}" {{selected this ../filters.entityType}}>{{humanize this}}</option>{{/each}}
+    </select>
+    <input class="input" name="entityId" value="{{filters.entityId}}" placeholder="Record ID">
+    <input class="input" type="date" name="from" value="{{filters.from}}" aria-label="From">
+    <input class="input" type="date" name="to" value="{{filters.to}}" aria-label="To">
+    <button class="btn btn-secondary" type="submit">Filter</button>
+  </form>
+  {{#if logs.length}}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Time</th><th>User</th><th>Action</th><th>Module</th><th>Record</th><th>IP</th><th>Changes</th></tr></thead>
+      <tbody>
+        {{#each logs}}
+        <tr class="align-top">
+          <td class="whitespace-nowrap text-xs">{{datetime createdAt}}</td>
+          <td class="text-sm">{{#if user}}{{user.fullName}}{{else}}<span class="text-slate-400">System / anonymous</span>{{/if}}</td>
+          <td><span class="font-mono text-xs font-medium">{{action}}</span></td>
+          <td>{{humanize entityType}}</td>
+          <td class="font-mono text-xs">{{#if (eq entityType "order")}}<a class="text-brand-700 hover:underline" href="/orders/{{entityId}}">{{entityId}}</a>{{else}}{{default entityId "—"}}{{/if}}</td>
+          <td class="text-xs text-slate-500">{{default ipAddress "—"}}</td>
+          <td class="max-w-md text-xs">
+            {{#if (or oldValues newValues)}}
+            <details>
+              <summary class="cursor-pointer text-brand-700">View</summary>
+              {{#if oldValues}}<p class="mt-2 font-medium text-slate-500">Before</p><pre class="overflow-x-auto whitespace-pre-wrap break-all rounded bg-rose-50 p-2">{{json oldValues}}</pre>{{/if}}
+              {{#if newValues}}<p class="mt-2 font-medium text-slate-500">After</p><pre class="overflow-x-auto whitespace-pre-wrap break-all rounded bg-emerald-50 p-2">{{json newValues}}</pre>{{/if}}
+            </details>
+            {{else}}—{{/if}}
+          </td>
+        </tr>
+        {{/each}}
+      </tbody>
+    </table>
+  </div>
+  {{else}}
+    {{> empty-state message="No audit records match your filters." icon="list"}}
+  {{/if}}
+  {{> pagination}}
+</div>
