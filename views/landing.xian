@@ -3,7 +3,7 @@
   <div class="mx-auto flex max-w-7xl items-center gap-3 px-4 py-5 sm:px-6 lg:px-8">
     <a href="/" class="flex items-center gap-3">
       <img src="/images/logo.svg" alt="" class="h-10 w-10 shrink-0 drop-shadow">
-      <span class="text-lg font-semibold tracking-tight text-white">{{default appName "HotelFlow"}}</span>
+      <span class="text-lg font-semibold tracking-tight text-white">{{default appName "HotelPOS"}}</span>
     </a>
     <nav class="ml-auto flex items-center gap-1 sm:gap-2" aria-label="Landing">
       <a href="#features" class="hidden rounded-lg px-3 py-2 text-sm text-brand-100 hover:bg-white/10 hover:text-white sm:inline-block">Features</a>
@@ -143,5 +143,5 @@
 </section>
 
 <footer class="border-t border-slate-200 bg-white py-8 text-center text-xs text-slate-500">
-  © {{year}} {{default appName "HotelFlow"}} · a Hotel ERP subsystem built on the XianFire framework
+  © {{year}} {{default appName "HotelPOS"}} · a Hotel ERP subsystem built on the XianFire framework
 </footer>
