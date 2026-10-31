@@ -5,9 +5,8 @@
 </head>
 <body class="h-full bg-ivory font-sans text-slate-800 antialiased">
   <header class="flex h-14 items-center gap-3 bg-brand-900 px-3 text-white sm:px-4">
-    <a href="/dashboard" class="flex items-center gap-2 rounded-lg px-2 py-1 hover:bg-white/10" title="Back to dashboard">
-      <img src="/images/logo.svg" alt="" class="h-8 w-8 shrink-0">
-      <span class="hidden text-sm font-semibold sm:inline">{{default appName "HotelPOS"}}</span>
+    <a href="/dashboard" class="flex items-center rounded-lg px-2 py-1.5 text-base hover:bg-white/10" title="Back to dashboard">
+      {{wordmark appName}}
     </a>
     <form method="GET" action="/pos/terminal" class="ml-1">
       <label class="sr-only" for="pos-outlet">Outlet</label>

@@ -10,9 +10,9 @@
       <img src="/images/hotel-lobby.jpg" alt="" class="absolute inset-0 h-full w-full object-cover">
       <div class="absolute inset-0 bg-gradient-to-t from-brand-950/90 via-brand-950/35 to-brand-950/10"></div>
       <div class="relative flex w-full flex-col justify-between p-10 xl:p-14">
-        <a href="/" class="flex items-center gap-3">
-          <img src="/images/logo.svg" alt="" class="h-11 w-11 shrink-0 drop-shadow">
-          <span class="text-lg font-semibold tracking-tight text-white">{{default appName "HotelPOS"}}</span>
+        <a href="/" class="self-start text-white drop-shadow">
+          <div class="text-2xl">{{wordmark appName}}</div>
+          <div class="wordmark-tagline text-brand-200">Food &amp; Beverage</div>
         </a>
         <div class="max-w-lg">
           <p class="text-sm font-medium uppercase tracking-widest text-accent-200">Staff portal</p>
@@ -34,9 +34,9 @@
       <div class="relative h-44 overflow-hidden lg:hidden">
         <img src="/images/hotel-lobby.jpg" alt="" class="absolute inset-0 h-full w-full object-cover">
         <div class="absolute inset-0 bg-gradient-to-t from-brand-950/85 to-brand-950/20"></div>
-        <a href="/" class="relative flex h-full items-end gap-3 px-4 pb-5 sm:px-8">
-          <img src="/images/logo.svg" alt="" class="h-10 w-10 shrink-0 drop-shadow">
-          <span class="pb-1.5 text-lg font-semibold tracking-tight text-white">{{default appName "HotelPOS"}}</span>
+        <a href="/" class="relative flex h-full flex-col justify-end px-4 pb-5 text-white drop-shadow sm:px-8">
+          <div class="text-2xl">{{wordmark appName}}</div>
+          <div class="wordmark-tagline text-brand-200">Food &amp; Beverage</div>
         </a>
       </div>
       <div class="flex flex-1 items-center justify-center px-4 py-10 sm:px-8">

@@ -106,6 +106,16 @@ export function registerViewHelpers(hbs) {
   // Safe JSON for embedding in <script type="application/json">.
   hbs.registerHelper("json", (v) => new H.SafeString(JSON.stringify(v ?? null).replace(/</g, "\\u003c")));
 
+  // {{wordmark appName}}: the brand name as text, with a trailing "POS" set as a gold chip.
+  hbs.registerHelper("wordmark", (name) => {
+    const text = typeof name === "string" && name.trim() ? name.trim() : "HotelPOS";
+    const match = /^(.+?)\s*(POS)$/.exec(text);
+    const inner = match
+      ? `${H.escapeExpression(match[1])}<span class="wordmark-chip">${match[2]}</span>`
+      : H.escapeExpression(text);
+    return new H.SafeString(`<span class="wordmark" aria-label="${H.escapeExpression(text)}">${inner}</span>`);
+  });
+
   hbs.registerHelper("icon", (name, cls) => {
     const path = ICONS[name] || ICONS.info;
     const klass = typeof cls === "string" ? cls : "w-5 h-5";

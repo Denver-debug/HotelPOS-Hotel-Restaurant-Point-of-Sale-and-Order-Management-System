@@ -1,8 +1,10 @@
 <div id="sidebar-backdrop" class="fixed inset-0 z-30 hidden bg-slate-900/50 lg:hidden" data-sidebar-close></div>
 <aside id="sidebar" class="no-print fixed inset-y-0 left-0 z-40 flex w-64 -translate-x-full flex-col bg-brand-900 transition-transform lg:translate-x-0">
   <div class="flex h-16 shrink-0 items-center gap-3 border-b border-white/10 px-5">
-    <img src="/images/logo.svg" alt="" class="h-9 w-9 shrink-0">
-    <div class="min-w-0 text-base font-semibold tracking-tight text-white">{{default appName "HotelPOS"}}</div>
+    <a href="/dashboard" class="min-w-0 text-white">
+      <div class="text-xl">{{wordmark appName}}</div>
+      <div class="wordmark-tagline">Food &amp; Beverage</div>
+    </a>
     <button type="button" class="ml-auto text-brand-200 lg:hidden" data-sidebar-close aria-label="Close menu">{{icon "x"}}</button>
   </div>
   <nav class="sidebar-scroll flex-1 space-y-6 overflow-y-auto px-3 py-5" aria-label="Main navigation">
