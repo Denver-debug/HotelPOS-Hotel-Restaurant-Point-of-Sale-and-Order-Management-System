@@ -1,0 +1,53 @@
+{{#> page-header heading=outlet.name subtitle=(concat outlet.code " · " (humanize outlet.outletType))}}
+  <a href="/outlets/{{outlet.id}}/edit" class="btn btn-secondary">{{icon "edit" "w-4 h-4"}}Edit</a>
+{{/page-header}}
+<div class="grid gap-6 lg:grid-cols-3">
+  <div class="space-y-6">
+    <div class="card">
+      <div class="card-header"><h3 class="card-title">Details</h3>{{statusBadge outlet.status}}</div>
+      <dl class="card-body dl">
+        <dt>Location</dt><dd>{{default outlet.location "—"}}</dd>
+        <dt>Service charge</dt><dd>{{outlet.serviceChargeRate}}%</dd>
+        <dt>Room charge</dt><dd>{{#if outlet.allowsRoomCharge}}Allowed{{else}}Not allowed{{/if}}</dd>
+        <dt>Stock locations</dt><dd>{{#each outlet.stockLocations}}{{name}}{{#if isDefault}} <span class="badge badge-blue">Default</span>{{/if}}<br>{{/each}}</dd>
+        <dt>Description</dt><dd>{{default outlet.description "—"}}</dd>
+      </dl>
+    </div>
+    <form class="card" method="POST" action="/outlets/{{outlet.id}}/users">
+      <input type="hidden" name="_csrf" value="{{csrfToken}}">
+      <div class="card-header"><h3 class="card-title">Assigned users</h3><button class="btn btn-primary btn-sm" type="submit">Save</button></div>
+      <div class="card-body max-h-96 space-y-1 overflow-y-auto">
+        {{#each users}}
+          <label class="flex items-center gap-3 rounded px-2 py-1.5 text-sm hover:bg-slate-50">
+            <input type="checkbox" name="userIds" value="{{id}}" class="h-4 w-4 rounded border-slate-300" {{#if (includes ../assignedIds id)}}checked{{/if}}>
+            <span class="flex-1">{{fullName}}</span><span class="text-xs text-slate-400">{{role.name}}</span>
+          </label>
+        {{/each}}
+      </div>
+    </form>
+  </div>
+  <div class="card lg:col-span-2">
+    <div class="card-header"><h3 class="card-title">Products &amp; services at this outlet</h3><a href="/products" class="text-sm text-brand-700 hover:underline">Manage prices</a></div>
+    {{#if products.length}}
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Code</th><th>Name</th><th>Category</th><th class="text-right">Price</th><th>Since</th><th>Status</th></tr></thead>
+        <tbody>
+          {{#each products}}
+          <tr>
+            <td class="font-mono text-xs">{{code}}</td>
+            <td><a class="text-brand-700 hover:underline" href="/products/{{id}}">{{name}}</a></td>
+            <td>{{category}}</td>
+            <td class="text-right font-medium">{{money price}}</td>
+            <td class="text-xs text-slate-500">{{date effective_from}}</td>
+            <td>{{#if is_available}}{{statusBadge status}}{{else}}{{statusBadge "UNAVAILABLE"}}{{/if}}</td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    </div>
+    {{else}}
+      {{> empty-state message="No products are priced at this outlet yet." icon="tag"}}
+    {{/if}}
+  </div>
+</div>

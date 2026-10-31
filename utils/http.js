@@ -22,7 +22,29 @@ export const wantsJson = (req) => {
   return accept.includes("application/json") && !accept.includes("text/html");
 };
 
-export const clientIp = (req) => (req ? req.ip || req.socket?.remoteAddress || null : null);
+const UNIQUE_LABELS = {
+  uq_outlets_code: "outlet code",
+  uq_users_username: "username",
+  uq_users_email: "email",
+  uq_users_external_employee: "HR employee ID",
+  uq_roles_code: "role code",
+  uq_categories_name: "category name",
+  uq_products_code: "product code",
+  uq_taxes_code: "tax code",
+  uq_discounts_code: "discount code",
+  uq_inventory_items_sku: "SKU",
+  uq_stock_locations_code: "location code",
+  uq_payment_methods_code: "payment method code",
+};
+
+// Friendly message for a Sequelize UniqueConstraintError.
+export const duplicateMessage = (err) => {
+  const key = Object.keys(err.fields || {})[0] || "";
+  const label = UNIQUE_LABELS[key] || key.replace(/^uq_/, "").replace(/_/g, " ") || "value";
+  return `A record with this ${label} already exists.`;
+};
+
+export const clientIp =(req) => (req ? req.ip || req.socket?.remoteAddress || null : null);
 
 // Redirect back to the referring page within this app, falling back to a default path.
 export const backUrl = (req, fallback = "/dashboard") => {

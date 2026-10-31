@@ -1,0 +1,49 @@
+{{#> page-header heading=title}}{{/page-header}}
+{{> form-error}}
+<form method="POST" action="{{#if editing}}/outlets/{{outlet.id}}{{else}}/outlets{{/if}}" class="card max-w-3xl">
+  <input type="hidden" name="_csrf" value="{{csrfToken}}">
+  <div class="card-body grid gap-4 sm:grid-cols-2">
+    <div>
+      <label class="label" for="code">Outlet code</label>
+      <input class="input font-mono uppercase" id="code" name="code" value="{{outlet.code}}" maxlength="20" required placeholder="REST-02">
+    </div>
+    <div>
+      <label class="label" for="name">Outlet name</label>
+      <input class="input" id="name" name="name" value="{{outlet.name}}" maxlength="100" required>
+    </div>
+    <div>
+      <label class="label" for="outletType">Outlet type</label>
+      <select class="input" id="outletType" name="outletType" required>
+        {{#each types}}<option value="{{this}}" {{selected this ../outlet.outletType}}>{{humanize this}}</option>{{/each}}
+      </select>
+    </div>
+    <div>
+      <label class="label" for="location">Location</label>
+      <input class="input" id="location" name="location" value="{{outlet.location}}" maxlength="150" placeholder="Ground floor">
+    </div>
+    <div>
+      <label class="label" for="serviceChargeRate">Service charge (%)</label>
+      <input class="input" id="serviceChargeRate" name="serviceChargeRate" type="number" step="0.01" min="0" max="100" value="{{default outlet.serviceChargeRate "0.00"}}">
+      <p class="help">Applied to the net (VAT-exclusive) amount of each order.</p>
+    </div>
+    <div>
+      <label class="label" for="status">Status</label>
+      <select class="input" id="status" name="status">
+        <option value="ACTIVE" {{selected "ACTIVE" outlet.status}}>Active</option>
+        <option value="INACTIVE" {{selected "INACTIVE" outlet.status}}>Inactive</option>
+      </select>
+    </div>
+    <div class="sm:col-span-2">
+      <label class="label" for="description">Description</label>
+      <textarea class="input" id="description" name="description" rows="3">{{outlet.description}}</textarea>
+    </div>
+    <label class="flex items-center gap-3 text-sm sm:col-span-2">
+      <input type="checkbox" name="allowsRoomCharge" value="1" class="h-4 w-4 rounded border-slate-300" {{checked outlet.allowsRoomCharge}}>
+      Allow orders at this outlet to be charged to guest rooms (validated through the PMS)
+    </label>
+  </div>
+  <div class="flex justify-end gap-2 border-t border-slate-100 px-5 py-4">
+    <a href="/outlets" class="btn btn-secondary">Cancel</a>
+    <button class="btn btn-primary" type="submit">{{#if editing}}Save changes{{else}}Create outlet{{/if}}</button>
+  </div>
+</form>

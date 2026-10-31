@@ -1,14 +1,12 @@
 // Re-render a form with the submitted values and the error message for
 // validation/business-rule failures; anything else goes to the error handler.
 import { UniqueConstraintError } from "sequelize";
+import { duplicateMessage } from "./http.js";
 
 const FORM_STATUSES = new Set([409, 422, 423, 503]);
 
 export const formErrorMessage = (err) => {
-  if (err instanceof UniqueConstraintError) {
-    const field = Object.keys(err.fields || {})[0] || "value";
-    return `A record with this ${field.replace(/_/g, " ").replace(/^uq .*?\./, "")} already exists.`;
-  }
+  if (err instanceof UniqueConstraintError) return duplicateMessage(err);
   return FORM_STATUSES.has(err?.status) ? err.message : null;
 };
 

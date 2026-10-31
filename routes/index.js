@@ -30,6 +30,8 @@ import authRoutes from "./auth.js";
 import dashboardRoutes from "./dashboard.js";
 import userRoutes from "./users.js";
 import roleRoutes from "./roles.js";
+import outletRoutes from "./outlets.js";
+import categoryRoutes from "./categories.js";
 
 const router = express.Router();
 
@@ -38,5 +40,7 @@ router.use("/", authRoutes);
 router.use("/dashboard", dashboardRoutes);
 router.use("/users", userRoutes);
 router.use("/roles", roleRoutes);
+router.use("/outlets", outletRoutes);
+router.use("/categories", categoryRoutes);
 
 export default router;

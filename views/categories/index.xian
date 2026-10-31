@@ -1,0 +1,60 @@
+{{#> page-header heading="Categories" subtitle="Organize products and services for the POS terminal and reports."}}{{/page-header}}
+<div class="grid gap-6 lg:grid-cols-3">
+  <div class="card lg:col-span-2">
+    {{#if categories.length}}
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Name</th><th>Description</th><th class="text-right">Products</th><th class="text-right">Order</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          {{#each categories}}
+          <tr class="{{#if (eq status "ARCHIVED")}}opacity-60{{/if}}">
+            <td class="font-medium text-slate-900">{{name}}</td>
+            <td class="text-slate-600">{{default description "—"}}</td>
+            <td class="text-right">{{productCount}}</td>
+            <td class="text-right">{{sortOrder}}</td>
+            <td>{{statusBadge status}}</td>
+            <td class="whitespace-nowrap text-right">
+              <a href="/categories?edit={{id}}" class="btn btn-secondary btn-sm">Edit</a>
+              {{#if (eq status "ACTIVE")}}
+              <form class="inline" method="POST" action="/categories/{{id}}/archive" data-confirm="Archive the category “{{name}}”? It will be hidden from the POS terminal.">
+                <input type="hidden" name="_csrf" value="{{../csrfToken}}"><button class="btn btn-ghost btn-sm" type="submit">{{icon "archive" "w-4 h-4"}}Archive</button>
+              </form>
+              {{else}}
+              <form class="inline" method="POST" action="/categories/{{id}}/restore">
+                <input type="hidden" name="_csrf" value="{{../csrfToken}}"><button class="btn btn-ghost btn-sm" type="submit">Restore</button>
+              </form>
+              {{/if}}
+            </td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    </div>
+    {{else}}
+      {{> empty-state message="No categories yet." icon="folder"}}
+    {{/if}}
+  </div>
+  <form class="card h-fit" method="POST" action="{{#if editing}}/categories/{{category.id}}{{else}}/categories{{/if}}">
+    <input type="hidden" name="_csrf" value="{{csrfToken}}">
+    <div class="card-header"><h3 class="card-title">{{#if editing}}Edit category{{else}}New category{{/if}}</h3></div>
+    <div class="card-body space-y-4">
+      {{> form-error}}
+      <div>
+        <label class="label" for="name">Name</label>
+        <input class="input" id="name" name="name" value="{{category.name}}" maxlength="80" required>
+      </div>
+      <div>
+        <label class="label" for="description">Description</label>
+        <textarea class="input" id="description" name="description" rows="3" maxlength="255">{{category.description}}</textarea>
+      </div>
+      <div>
+        <label class="label" for="sortOrder">Display order</label>
+        <input class="input" id="sortOrder" name="sortOrder" type="number" min="0" value="{{default category.sortOrder 0}}">
+      </div>
+    </div>
+    <div class="flex justify-end gap-2 border-t border-slate-100 px-5 py-4">
+      {{#if editing}}<a href="/categories" class="btn btn-secondary">Cancel</a>{{/if}}
+      <button class="btn btn-primary" type="submit">{{#if editing}}Save changes{{else}}Add category{{/if}}</button>
+    </div>
+  </form>
+</div>

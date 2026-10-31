@@ -1,17 +1,14 @@
 // 404 and error handling. JSON for API calls; flash + redirect for failed form posts;
 // an error page otherwise.
 import { UniqueConstraintError, ValidationError, ForeignKeyConstraintError } from "sequelize";
-import { AppError, wantsJson, backUrl } from "../utils/http.js";
+import { AppError, wantsJson, backUrl, duplicateMessage } from "../utils/http.js";
 import { config } from "../config/env.js";
 
 export const notFoundHandler = (req, res, next) => next(new AppError("The page you requested does not exist.", 404, "NOT_FOUND"));
 
 const normalize = (err) => {
   if (err instanceof AppError) return err;
-  if (err instanceof UniqueConstraintError) {
-    const field = Object.keys(err.fields || {})[0];
-    return new AppError(`A record with this ${field ? field.replace(/_/g, " ") : "value"} already exists.`, 409, "DUPLICATE");
-  }
+  if (err instanceof UniqueConstraintError) return new AppError(duplicateMessage(err), 409, "DUPLICATE");
   if (err instanceof ForeignKeyConstraintError) {
     return new AppError("This record is referenced by other records and cannot be changed this way.", 409, "IN_USE");
   }
