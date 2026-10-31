@@ -1,0 +1,8 @@
+<nav class="mb-6 flex flex-wrap gap-1 border-b border-slate-200" aria-label="Inventory sections">
+  <a href="/inventory" class="-mb-px border-b-2 px-4 py-2 text-sm font-medium {{#if (eq currentPath "/inventory")}}border-brand-700 text-brand-800{{else}}border-transparent text-slate-500 hover:text-slate-800{{/if}}">Stock levels</a>
+  <a href="/inventory/movements" class="-mb-px border-b-2 px-4 py-2 text-sm font-medium {{#if (eq currentPath "/inventory/movements")}}border-brand-700 text-brand-800{{else}}border-transparent text-slate-500 hover:text-slate-800{{/if}}">Movement history</a>
+  {{#if (can "inventory.manage")}}
+  <a href="/inventory/items" class="-mb-px border-b-2 px-4 py-2 text-sm font-medium {{#if (eq currentPath "/inventory/items")}}border-brand-700 text-brand-800{{else}}border-transparent text-slate-500 hover:text-slate-800{{/if}}">Items</a>
+  {{/if}}
+  <a href="/inventory/locations" class="-mb-px border-b-2 px-4 py-2 text-sm font-medium {{#if (eq currentPath "/inventory/locations")}}border-brand-700 text-brand-800{{else}}border-transparent text-slate-500 hover:text-slate-800{{/if}}">Locations</a>
+</nav>

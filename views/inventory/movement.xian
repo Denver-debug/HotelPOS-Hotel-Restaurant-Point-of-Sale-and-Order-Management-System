@@ -1,0 +1,47 @@
+{{#> page-header heading="Record stock movement" subtitle="Every movement is permanent and appears in the inventory history."}}{{/page-header}}
+{{> form-error}}
+<form method="POST" action="/inventory/movements" class="card max-w-2xl">
+  <input type="hidden" name="_csrf" value="{{csrfToken}}">
+  <div class="card-body grid gap-4 sm:grid-cols-2">
+    <div class="sm:col-span-2">
+      <label class="label" for="transactionType">Movement type</label>
+      <select class="input" id="transactionType" name="transactionType" required>
+        {{#each types}}<option value="{{this}}" {{selected this ../movement.transactionType}}>{{humanize this}}</option>{{/each}}
+      </select>
+      <p class="help">Stock in / return add stock. Stock out, damage and waste remove stock. Adjustment sets the quantity to your physical count.</p>
+    </div>
+    <div>
+      <label class="label" for="inventoryItemId">Item</label>
+      <select class="input" id="inventoryItemId" name="inventoryItemId" required>
+        <option value="">Select an item</option>
+        {{#each items}}<option value="{{id}}" {{selected id ../movement.inventoryItemId}}>{{name}} ({{sku}})</option>{{/each}}
+      </select>
+    </div>
+    <div>
+      <label class="label" for="outletId">Outlet</label>
+      <select class="input" id="outletId" name="outletId" required>
+        {{#each outlets}}<option value="{{id}}" {{selected id ../movement.outletId}}>{{name}}</option>{{/each}}
+      </select>
+    </div>
+    <div>
+      <label class="label" for="quantity">Quantity <span class="text-slate-400">(or counted quantity for adjustments)</span></label>
+      <input class="input" id="quantity" name="quantity" type="number" step="0.001" min="0" value="{{movement.quantity}}" required>
+    </div>
+    <div>
+      <label class="label" for="unitCost">Unit cost <span class="text-slate-400">(stock in, optional)</span></label>
+      <input class="input" id="unitCost" name="unitCost" type="number" step="0.01" min="0" value="{{movement.unitCost}}">
+    </div>
+    <div>
+      <label class="label" for="reference">Reference <span class="text-slate-400">(PO, DR, memo #)</span></label>
+      <input class="input" id="reference" name="reference" value="{{movement.reference}}" maxlength="40">
+    </div>
+    <div>
+      <label class="label" for="reason">Reason</label>
+      <input class="input" id="reason" name="reason" value="{{movement.reason}}" maxlength="255" placeholder="Required except for stock in">
+    </div>
+  </div>
+  <div class="flex justify-end gap-2 border-t border-slate-100 px-5 py-4">
+    <a href="/inventory" class="btn btn-secondary">Cancel</a>
+    <button class="btn btn-primary" type="submit">Record movement</button>
+  </div>
+</form>

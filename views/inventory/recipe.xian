@@ -1,0 +1,26 @@
+{{#> page-header heading=title subtitle="Inventory consumed by one unit sold. Leave a row empty to remove it."}}{{/page-header}}
+<form method="POST" action="/inventory/recipes/{{product.id}}" class="card max-w-2xl">
+  <input type="hidden" name="_csrf" value="{{csrfToken}}">
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Inventory item</th><th class="w-40">Quantity per {{product.unit}}</th></tr></thead>
+      <tbody>
+        {{#each lines}}
+        <tr>
+          <td>
+            <select class="input" name="inventoryItemId" aria-label="Inventory item">
+              <option value="">—</option>
+              {{#each ../items}}<option value="{{id}}" {{selected id ../inventoryItemId}}>{{name}} ({{sku}}, {{unit}})</option>{{/each}}
+            </select>
+          </td>
+          <td><input class="input" name="quantity" type="number" min="0" step="0.001" value="{{quantity}}" aria-label="Quantity"></td>
+        </tr>
+        {{/each}}
+      </tbody>
+    </table>
+  </div>
+  <div class="flex justify-end gap-2 border-t border-slate-100 px-5 py-4">
+    <a href="/products/{{product.id}}" class="btn btn-secondary">Cancel</a>
+    <button class="btn btn-primary" type="submit">Save recipe</button>
+  </div>
+</form>

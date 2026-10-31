@@ -1,0 +1,47 @@
+{{#> page-header heading="Inventory" subtitle="Complete, append-only stock movement history."}}
+  {{#if (or (can "inventory.manage") (can "inventory.adjust"))}}<a href="/inventory/movements/new" class="btn btn-primary">{{icon "plus" "w-4 h-4"}}Record movement</a>{{/if}}
+{{/page-header}}
+{{> inventory-tabs}}
+<div class="card">
+  <form class="grid gap-3 border-b border-slate-100 p-4 sm:grid-cols-3 lg:grid-cols-6" method="GET">
+    <select class="input lg:col-span-2" name="itemId" data-autosubmit>
+      <option value="">All items</option>
+      {{#each items}}<option value="{{id}}" {{selected id ../filters.itemId}}>{{name}}</option>{{/each}}
+    </select>
+    <select class="input" name="outletId" data-autosubmit>
+      <option value="">All my outlets</option>
+      {{#each outlets}}<option value="{{id}}" {{selected id ../filters.outletId}}>{{name}}</option>{{/each}}
+    </select>
+    <select class="input" name="type" data-autosubmit>
+      <option value="">All types</option>
+      {{#each types}}<option value="{{this}}" {{selected this ../filters.type}}>{{humanize this}}</option>{{/each}}
+    </select>
+    <input class="input" type="date" name="from" value="{{filters.from}}" aria-label="From date">
+    <div class="flex gap-2"><input class="input" type="date" name="to" value="{{filters.to}}" aria-label="To date"><button class="btn btn-secondary" type="submit">Go</button></div>
+  </form>
+  {{#if movements.length}}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Date</th><th>No.</th><th>Item</th><th>Outlet</th><th>Type</th><th class="text-right">Qty</th><th class="text-right">Balance</th><th>Reference / reason</th><th>By</th></tr></thead>
+      <tbody>
+        {{#each movements}}
+        <tr>
+          <td class="whitespace-nowrap text-xs">{{datetime createdAt}}</td>
+          <td class="font-mono text-xs">{{transactionNumber}}</td>
+          <td>{{item.name}}</td>
+          <td>{{location.outlet.code}}</td>
+          <td>{{statusBadge transactionType}}</td>
+          <td class="text-right font-medium {{#if (lt quantity 0)}}text-rose-700{{else}}text-emerald-700{{/if}}">{{#if (gt quantity 0)}}+{{/if}}{{qty quantity}}</td>
+          <td class="text-right">{{qty balanceAfter}}</td>
+          <td class="text-xs text-slate-600">{{#if (eq referenceType "order")}}<a class="text-brand-700 hover:underline" href="/orders/{{referenceId}}">Order #{{referenceId}}</a> · {{/if}}{{reason}}</td>
+          <td class="text-xs">{{default user.fullName "—"}}</td>
+        </tr>
+        {{/each}}
+      </tbody>
+    </table>
+  </div>
+  {{else}}
+    {{> empty-state message="No movements in this period." icon="box"}}
+  {{/if}}
+  {{> pagination}}
+</div>

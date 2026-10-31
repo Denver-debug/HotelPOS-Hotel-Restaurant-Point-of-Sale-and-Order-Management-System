@@ -1,0 +1,49 @@
+{{#> page-header heading="Inventory" subtitle="Stock-keeping items: retail goods and recipe ingredients."}}{{/page-header}}
+{{> inventory-tabs}}
+<div class="grid gap-6 lg:grid-cols-3">
+  <div class="card lg:col-span-2">
+    <form class="border-b border-slate-100 p-4" method="GET"><input class="input" type="search" name="search" value="{{search}}" placeholder="Search items"></form>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>SKU</th><th>Name</th><th>Unit</th><th class="text-right">Default reorder</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          {{#each items}}
+          <tr>
+            <td class="font-mono text-xs">{{sku}}</td>
+            <td>{{name}}<div class="text-xs text-slate-500">{{description}}</div></td>
+            <td>{{unit}}</td>
+            <td class="text-right">{{qty defaultReorderLevel}}</td>
+            <td>{{statusBadge status}}</td>
+            <td class="text-right"><a class="btn btn-secondary btn-sm" href="/inventory/items?edit={{id}}">Edit</a></td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <form class="card h-fit" method="POST" action="{{#if editing}}/inventory/items/{{item.id}}{{else}}/inventory/items{{/if}}">
+    <input type="hidden" name="_csrf" value="{{csrfToken}}">
+    <div class="card-header"><h3 class="card-title">{{#if editing}}Edit item{{else}}New item{{/if}}</h3></div>
+    <div class="card-body space-y-4">
+      {{> form-error}}
+      <div><label class="label" for="sku">SKU</label><input class="input font-mono uppercase" id="sku" name="sku" value="{{item.sku}}" maxlength="40" required></div>
+      <div><label class="label" for="name">Name</label><input class="input" id="name" name="name" value="{{item.name}}" maxlength="120" required></div>
+      <div class="grid grid-cols-2 gap-3">
+        <div><label class="label" for="unit">Unit</label><input class="input" id="unit" name="unit" value="{{item.unit}}" maxlength="20" required></div>
+        <div><label class="label" for="defaultReorderLevel">Reorder level</label><input class="input" id="defaultReorderLevel" name="defaultReorderLevel" type="number" min="0" step="0.001" value="{{default item.defaultReorderLevel 0}}"></div>
+      </div>
+      <div><label class="label" for="description">Description</label><input class="input" id="description" name="description" value="{{item.description}}" maxlength="255"></div>
+      <div>
+        <label class="label" for="status">Status</label>
+        <select class="input" id="status" name="status">
+          <option value="ACTIVE" {{selected "ACTIVE" item.status}}>Active</option>
+          <option value="INACTIVE" {{selected "INACTIVE" item.status}}>Inactive</option>
+        </select>
+      </div>
+    </div>
+    <div class="flex justify-end gap-2 border-t border-slate-100 px-5 py-4">
+      {{#if editing}}<a href="/inventory/items" class="btn btn-secondary">Cancel</a>{{/if}}
+      <button class="btn btn-primary" type="submit">Save item</button>
+    </div>
+  </form>
+</div>

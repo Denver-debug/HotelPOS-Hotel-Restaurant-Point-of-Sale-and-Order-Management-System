@@ -1,0 +1,46 @@
+{{#> page-header heading="Inventory" subtitle="Stock levels per outlet. Sales deduct stock automatically when an order is completed."}}
+  {{#if (or canManage canAdjust)}}<a href="/inventory/movements/new" class="btn btn-primary">{{icon "plus" "w-4 h-4"}}Record movement</a>{{/if}}
+{{/page-header}}
+{{> inventory-tabs}}
+<div class="card">
+  <form class="grid gap-3 border-b border-slate-100 p-4 sm:grid-cols-4" method="GET">
+    <input class="input sm:col-span-2" type="search" name="search" value="{{filters.search}}" placeholder="Search item or SKU">
+    <select class="input" name="outletId" data-autosubmit>
+      <option value="">All my outlets</option>
+      {{#each outlets}}<option value="{{id}}" {{selected id ../filters.outletId}}>{{name}}</option>{{/each}}
+    </select>
+    <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="low" value="1" data-autosubmit {{checked filters.low}}>Low stock only</label>
+  </form>
+  {{#if levels.length}}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Item</th><th>Outlet</th><th class="text-right">On hand</th><th class="text-right">Reorder level</th><th>Status</th><th>Updated</th>{{#if canManage}}<th>Settings</th>{{/if}}</tr></thead>
+      <tbody>
+        {{#each levels}}
+        <tr class="{{#if is_low}}bg-amber-50/50{{/if}}">
+          <td><span class="font-medium text-slate-900">{{name}}</span><div class="font-mono text-xs text-slate-400">{{sku}}</div></td>
+          <td>{{outlet_name}}</td>
+          <td class="text-right font-semibold {{#if (lt quantity 0)}}text-rose-700{{/if}}">{{qty quantity}} <span class="text-xs font-normal text-slate-500">{{unit}}</span></td>
+          <td class="text-right">{{qty reorder_level}}</td>
+          <td>{{#if is_low}}<span class="badge badge-amber">Low stock</span>{{else}}<span class="badge badge-green">OK</span>{{/if}}{{#if allow_negative}} <span class="badge badge-slate">Negative allowed</span>{{/if}}</td>
+          <td class="text-xs text-slate-500">{{datetime updated_at}}</td>
+          {{#if ../canManage}}
+          <td>
+            <form method="POST" action="/inventory/levels/{{id}}" class="flex items-center gap-2">
+              <input type="hidden" name="_csrf" value="{{../csrfToken}}">
+              <input class="input w-20" name="reorderLevel" type="number" step="0.001" min="0" value="{{qty reorder_level}}" aria-label="Reorder level">
+              <label class="flex items-center gap-1 text-xs" title="Allow negative stock"><input type="checkbox" name="allowNegative" value="1" {{checked allow_negative}}>Neg.</label>
+              <button class="btn btn-secondary btn-sm" type="submit">Save</button>
+            </form>
+          </td>
+          {{/if}}
+        </tr>
+        {{/each}}
+      </tbody>
+    </table>
+  </div>
+  {{else}}
+    {{> empty-state message="No stock records match your filters." icon="box"}}
+  {{/if}}
+  {{> pagination}}
+</div>

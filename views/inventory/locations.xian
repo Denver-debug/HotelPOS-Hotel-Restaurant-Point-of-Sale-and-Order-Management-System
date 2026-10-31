@@ -1,0 +1,21 @@
+{{#> page-header heading="Inventory" subtitle="Each outlet has a default stock location that sales deduct from."}}{{/page-header}}
+{{> inventory-tabs}}
+<div class="card">
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Code</th><th>Name</th><th>Outlet</th><th class="text-right">Items stocked</th><th>Default</th><th>Status</th></tr></thead>
+      <tbody>
+        {{#each locations}}
+        <tr>
+          <td class="font-mono text-xs">{{code}}</td>
+          <td>{{name}}</td>
+          <td>{{outlet.name}}</td>
+          <td class="text-right">{{itemCount}}</td>
+          <td>{{#if isDefault}}<span class="badge badge-blue">Default</span>{{/if}}</td>
+          <td>{{statusBadge status}}</td>
+        </tr>
+        {{/each}}
+      </tbody>
+    </table>
+  </div>
+</div>
