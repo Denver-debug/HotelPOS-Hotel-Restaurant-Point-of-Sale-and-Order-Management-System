@@ -26,7 +26,8 @@
 import * as authService from "../services/authService.js";
 import { str } from "../utils/validate.js";
 
-const safeNext = (value) => (typeof value === "string" && /^\/(?!\/)/.test(value) ? value : "/dashboard");
+// Only same-site paths: "//host" and "/\host" are treated as protocol-relative by browsers.
+export const safeNext = (value) => (typeof value === "string" && value.startsWith("/") && !/^\/[/\\]/.test(value) && !value.includes("\\") ? value : "/dashboard");
 
 export const loginPage = (req, res) => {
   if (req.user) return res.redirect("/dashboard");
