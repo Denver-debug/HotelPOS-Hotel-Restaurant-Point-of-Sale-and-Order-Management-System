@@ -3,8 +3,8 @@
 {{/page-header}}
 {{> inventory-tabs}}
 <div class="card">
-  <form class="grid gap-3 border-b border-slate-100 p-4 sm:grid-cols-4" method="GET">
-    <input class="input sm:col-span-2" type="search" name="search" value="{{filters.search}}" placeholder="Search item or SKU">
+  <form class="filter-bar" method="GET">
+    <input class="input filter-wide" type="search" name="search" value="{{filters.search}}" placeholder="Search item or SKU">
     <select class="input" name="outletId" data-autosubmit>
       <option value="">All my outlets</option>
       {{#each outlets}}<option value="{{id}}" {{selected id ../filters.outletId}}>{{name}}</option>{{/each}}

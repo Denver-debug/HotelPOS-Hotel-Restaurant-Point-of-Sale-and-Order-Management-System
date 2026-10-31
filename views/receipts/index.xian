@@ -1,7 +1,7 @@
 {{#> page-header heading="Receipts" subtitle="Issued sale, room-charge and refund receipts. Reprints are counted and audited."}}{{/page-header}}
 <div class="card">
-  <form class="grid gap-3 border-b border-slate-100 p-4 sm:grid-cols-5" method="GET">
-    <input class="input sm:col-span-2" type="search" name="search" value="{{filters.search}}" placeholder="Receipt number">
+  <form class="filter-bar" method="GET">
+    <input class="input filter-wide" type="search" name="search" value="{{filters.search}}" placeholder="Receipt number">
     <select class="input" name="type" data-autosubmit>
       <option value="">All types</option>
       <option value="SALE" {{selected "SALE" filters.type}}>Sale</option>
@@ -9,7 +9,8 @@
       <option value="REFUND" {{selected "REFUND" filters.type}}>Refund</option>
     </select>
     <input class="input" type="date" name="from" value="{{filters.from}}" aria-label="From">
-    <div class="flex gap-2"><input class="input" type="date" name="to" value="{{filters.to}}" aria-label="To"><button class="btn btn-secondary" type="submit">Go</button></div>
+    <input class="input" type="date" name="to" value="{{filters.to}}" aria-label="To">
+    <button class="btn btn-secondary" type="submit">Go</button>
   </form>
   {{#if receipts.length}}
   <div class="table-wrap">

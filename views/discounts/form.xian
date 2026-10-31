@@ -59,7 +59,7 @@
     </div>
   </div>
   <div class="flex justify-end gap-2 lg:col-span-3">
-    <a href="/discounts" class="btn btn-secondary">Cancel</a>
+    <a href="/discounts" class="btn btn-cancel">Cancel</a>
     <button class="btn btn-primary" type="submit">Save discount</button>
   </div>
 </form>

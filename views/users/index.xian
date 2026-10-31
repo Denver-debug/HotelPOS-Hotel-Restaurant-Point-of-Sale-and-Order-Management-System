@@ -3,8 +3,8 @@
 {{/page-header}}
 
 <div class="card">
-  <form class="grid gap-3 border-b border-slate-100 p-4 sm:grid-cols-4" method="GET">
-    <input class="input sm:col-span-2" type="search" name="search" value="{{filters.search}}" placeholder="Search name, username, email or employee ID">
+  <form class="filter-bar" method="GET">
+    <input class="input filter-wide" type="search" name="search" value="{{filters.search}}" placeholder="Search name, username, email or employee ID">
     <select class="input" name="roleId" data-autosubmit>
       <option value="">All roles</option>
       {{#each roles}}<option value="{{id}}" {{selected id ../filters.roleId}}>{{name}}</option>{{/each}}

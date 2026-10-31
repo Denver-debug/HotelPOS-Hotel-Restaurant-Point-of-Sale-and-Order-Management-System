@@ -2,8 +2,8 @@
   {{#if (can "pos.access")}}<a href="/pos/terminal" class="btn btn-primary">{{icon "terminal" "w-4 h-4"}}POS terminal</a>{{/if}}
 {{/page-header}}
 <div class="card">
-  <form class="grid gap-3 border-b border-slate-100 p-4 sm:grid-cols-3 lg:grid-cols-8" method="GET">
-    <input class="input lg:col-span-2" type="search" name="search" value="{{filters.search}}" placeholder="Order number">
+  <form class="filter-bar" method="GET">
+    <input class="input filter-wide" type="search" name="search" value="{{filters.search}}" placeholder="Order number">
     <select class="input" name="outletId" data-autosubmit>
       <option value="">All outlets</option>
       {{#each outlets}}<option value="{{id}}" {{selected id ../filters.outletId}}>{{name}}</option>{{/each}}
@@ -22,11 +22,12 @@
       <option value="ROOM_CHARGE" {{selected "ROOM_CHARGE" filters.settlementType}}>Room charge</option>
     </select>
     <input class="input" type="date" name="from" value="{{filters.from}}" aria-label="From">
-    <div class="flex gap-2"><input class="input" type="date" name="to" value="{{filters.to}}" aria-label="To"><button class="btn btn-secondary" type="submit">Go</button></div>
-    <select class="input lg:col-span-2" name="cashierId" data-autosubmit>
+    <input class="input" type="date" name="to" value="{{filters.to}}" aria-label="To">
+    <select class="input filter-wide" name="cashierId" data-autosubmit>
       <option value="">Any staff member</option>
       {{#each cashiers}}<option value="{{id}}" {{selected id ../filters.cashierId}}>{{fullName}}</option>{{/each}}
     </select>
+    <button class="btn btn-secondary" type="submit">Go</button>
   </form>
   {{#if orders.length}}
   <div class="table-wrap">
@@ -37,7 +38,7 @@
         <tr>
           <td><a class="font-mono text-xs font-medium text-brand-700 hover:underline" href="/orders/{{id}}">{{orderNumber}}</a></td>
           <td class="whitespace-nowrap text-xs">{{datetime createdAt}}</td>
-          <td>{{outlet.code}}</td>
+          <td class="whitespace-nowrap">{{outlet.code}}</td>
           <td>{{humanize orderType}}</td>
           <td>{{default tableOrLocation "—"}}</td>
           <td>{{creator.fullName}}</td>

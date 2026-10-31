@@ -75,7 +75,7 @@
     </div>
   </div>
   <div class="flex justify-end gap-2 lg:col-span-3">
-    <a href="{{#if editing}}/products/{{product.id}}{{else}}/products{{/if}}" class="btn btn-secondary">Cancel</a>
+    <a href="{{#if editing}}/products/{{product.id}}{{else}}/products{{/if}}" class="btn btn-cancel">Cancel</a>
     <button class="btn btn-primary" type="submit">{{#if editing}}Save changes{{else}}Create item{{/if}}</button>
   </div>
 </form>

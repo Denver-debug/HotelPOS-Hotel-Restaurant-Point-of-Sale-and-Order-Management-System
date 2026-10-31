@@ -42,8 +42,8 @@
       Allow orders at this outlet to be charged to guest rooms (validated through the PMS)
     </label>
   </div>
-  <div class="flex justify-end gap-2 border-t border-slate-100 px-5 py-4">
-    <a href="/outlets" class="btn btn-secondary">Cancel</a>
+  <div class="flex justify-end gap-2 border-t border-slate-200 px-5 py-4">
+    <a href="/outlets" class="btn btn-cancel">Cancel</a>
     <button class="btn btn-primary" type="submit">{{#if editing}}Save changes{{else}}Create outlet{{/if}}</button>
   </div>
 </form>

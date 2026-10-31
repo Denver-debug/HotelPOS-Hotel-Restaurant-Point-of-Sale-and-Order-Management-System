@@ -4,6 +4,9 @@
 /* Low-specificity default so utility classes such as .text-right win on headers. */
 th { text-align: left; }
 
+/* Order, payment and receipt numbers stay on one line instead of breaking at hyphens. */
+.table .font-mono { white-space: nowrap; }
+
 /* Thin scrollbars without arrow buttons.
    Chromium/Electron: ::-webkit-scrollbar (setting the standard scrollbar-color there
    would disable these rules and bring the arrow buttons back).
@@ -12,29 +15,37 @@ th { text-align: left; }
 
 html::-webkit-scrollbar,
 .sidebar-scroll::-webkit-scrollbar,
-.scroll-thin::-webkit-scrollbar { width: 8px; height: 8px; }
+.scroll-thin::-webkit-scrollbar,
+.table-wrap::-webkit-scrollbar { width: 8px; height: 8px; }
 .sidebar-scroll::-webkit-scrollbar,
-.scroll-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+.scroll-thin::-webkit-scrollbar,
+.table-wrap::-webkit-scrollbar { width: 6px; height: 6px; }
 html::-webkit-scrollbar-track,
 .sidebar-scroll::-webkit-scrollbar-track,
-.scroll-thin::-webkit-scrollbar-track { background: transparent; }
+.scroll-thin::-webkit-scrollbar-track,
+.table-wrap::-webkit-scrollbar-track { background: transparent; }
 html::-webkit-scrollbar-button,
 .sidebar-scroll::-webkit-scrollbar-button,
-.scroll-thin::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
+.scroll-thin::-webkit-scrollbar-button,
+.table-wrap::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
 html::-webkit-scrollbar-corner,
 .sidebar-scroll::-webkit-scrollbar-corner,
-.scroll-thin::-webkit-scrollbar-corner { background: transparent; }
+.scroll-thin::-webkit-scrollbar-corner,
+.table-wrap::-webkit-scrollbar-corner { background: transparent; }
 
 html::-webkit-scrollbar-thumb,
-.scroll-thin::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; border: 2px solid transparent; background-clip: padding-box; }
+.scroll-thin::-webkit-scrollbar-thumb,
+.table-wrap::-webkit-scrollbar-thumb { background: #CBCEC3; border-radius: 9999px; border: 2px solid transparent; background-clip: padding-box; }
 html::-webkit-scrollbar-thumb:hover,
-.scroll-thin::-webkit-scrollbar-thumb:hover { background-color: #94a3b8; }
+.scroll-thin::-webkit-scrollbar-thumb:hover,
+.table-wrap::-webkit-scrollbar-thumb:hover { background-color: #8C978F; }
 .sidebar-scroll::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.12); border-radius: 9999px; }
 .sidebar-scroll:hover::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.3); }
 
 @supports not selector(::-webkit-scrollbar) {
   html,
-  .scroll-thin { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+  .scroll-thin,
+  .table-wrap { scrollbar-width: thin; scrollbar-color: #CBCEC3 transparent; }
   .sidebar-scroll { scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.2) transparent; }
 }
 

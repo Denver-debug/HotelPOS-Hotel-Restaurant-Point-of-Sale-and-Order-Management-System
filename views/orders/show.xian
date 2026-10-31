@@ -26,7 +26,7 @@
           </tbody>
         </table>
       </div>
-      <dl class="space-y-1 border-t border-slate-100 px-5 py-4 text-sm">
+      <dl class="space-y-1 border-t border-slate-200 px-5 py-4 text-sm">
         <div class="flex justify-between"><dt class="text-slate-500">Subtotal</dt><dd>{{money order.subtotal}}</dd></div>
         <div class="flex justify-between"><dt class="text-slate-500">Discounts</dt><dd>−{{money order.discountAmount}}</dd></div>
         <div class="flex justify-between"><dt class="text-slate-500">VAT (included)</dt><dd>{{money order.taxAmount}}</dd></div>

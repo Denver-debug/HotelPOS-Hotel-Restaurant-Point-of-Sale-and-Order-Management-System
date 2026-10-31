@@ -1,6 +1,6 @@
 {{#> page-header heading="Audit Logs" subtitle="Read-only trail of security-relevant and financial activity. Records cannot be edited or deleted."}}{{/page-header}}
 <div class="card">
-  <form class="grid gap-3 border-b border-slate-100 p-4 sm:grid-cols-3 lg:grid-cols-7" method="GET">
+  <form class="filter-bar" method="GET">
     <select class="input" name="userId" data-autosubmit>
       <option value="">All users</option>
       {{#each users}}<option value="{{id}}" {{selected id ../filters.userId}}>{{fullName}}</option>{{/each}}

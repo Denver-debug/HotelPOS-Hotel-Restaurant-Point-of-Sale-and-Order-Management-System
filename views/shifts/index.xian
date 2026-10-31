@@ -6,7 +6,7 @@
   {{/if}}
 {{/page-header}}
 <div class="card">
-  <form class="grid gap-3 border-b border-slate-100 p-4 sm:grid-cols-3 lg:grid-cols-6" method="GET">
+  <form class="filter-bar" method="GET">
     <select class="input" name="outletId" data-autosubmit>
       <option value="">All outlets</option>
       {{#each outlets}}<option value="{{id}}" {{selected id ../filters.outletId}}>{{name}}</option>{{/each}}
@@ -24,7 +24,8 @@
       <option value="RECONCILED" {{selected "RECONCILED" filters.status}}>Reconciled</option>
     </select>
     <input class="input" type="date" name="from" value="{{filters.from}}" aria-label="From">
-    <div class="flex gap-2"><input class="input" type="date" name="to" value="{{filters.to}}" aria-label="To"><button class="btn btn-secondary" type="submit">Go</button></div>
+    <input class="input" type="date" name="to" value="{{filters.to}}" aria-label="To">
+    <button class="btn btn-secondary" type="submit">Go</button>
   </form>
   {{#if shifts.length}}
   <div class="table-wrap">
@@ -35,7 +36,7 @@
         <tr>
           <td><a class="font-mono text-xs text-brand-700 hover:underline" href="/shifts/{{id}}">{{shiftNumber}}</a></td>
           <td>{{cashier.fullName}}</td>
-          <td>{{outlet.code}}</td>
+          <td class="whitespace-nowrap">{{outlet.code}}</td>
           <td class="whitespace-nowrap text-xs">{{datetime openedAt}}</td>
           <td class="whitespace-nowrap text-xs">{{default (datetime closedAt) "—"}}</td>
           <td class="text-right">{{money openingCash}}</td>

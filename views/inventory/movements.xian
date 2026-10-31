@@ -3,8 +3,8 @@
 {{/page-header}}
 {{> inventory-tabs}}
 <div class="card">
-  <form class="grid gap-3 border-b border-slate-100 p-4 sm:grid-cols-3 lg:grid-cols-6" method="GET">
-    <select class="input lg:col-span-2" name="itemId" data-autosubmit>
+  <form class="filter-bar" method="GET">
+    <select class="input filter-wide" name="itemId" data-autosubmit>
       <option value="">All items</option>
       {{#each items}}<option value="{{id}}" {{selected id ../filters.itemId}}>{{name}}</option>{{/each}}
     </select>
@@ -17,7 +17,8 @@
       {{#each types}}<option value="{{this}}" {{selected this ../filters.type}}>{{humanize this}}</option>{{/each}}
     </select>
     <input class="input" type="date" name="from" value="{{filters.from}}" aria-label="From date">
-    <div class="flex gap-2"><input class="input" type="date" name="to" value="{{filters.to}}" aria-label="To date"><button class="btn btn-secondary" type="submit">Go</button></div>
+    <input class="input" type="date" name="to" value="{{filters.to}}" aria-label="To date">
+    <button class="btn btn-secondary" type="submit">Go</button>
   </form>
   {{#if movements.length}}
   <div class="table-wrap">
@@ -29,7 +30,7 @@
           <td class="whitespace-nowrap text-xs">{{datetime createdAt}}</td>
           <td class="font-mono text-xs">{{transactionNumber}}</td>
           <td>{{item.name}}</td>
-          <td>{{location.outlet.code}}</td>
+          <td class="whitespace-nowrap">{{location.outlet.code}}</td>
           <td>{{statusBadge transactionType}}</td>
           <td class="text-right font-medium {{#if (lt quantity 0)}}text-rose-700{{else}}text-emerald-700{{/if}}">{{#if (gt quantity 0)}}+{{/if}}{{qty quantity}}</td>
           <td class="text-right">{{qty balanceAfter}}</td>

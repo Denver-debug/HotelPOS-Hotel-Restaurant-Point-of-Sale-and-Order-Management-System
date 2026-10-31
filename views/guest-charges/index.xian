@@ -1,7 +1,7 @@
 {{#> page-header heading="Guest Room Charges" subtitle="Charges posted to guest folios through the PMS. Only external PMS references are stored."}}{{/page-header}}
 <div class="card">
-  <form class="grid gap-3 border-b border-slate-100 p-4 sm:grid-cols-3 lg:grid-cols-6" method="GET">
-    <input class="input lg:col-span-2" type="search" name="search" value="{{filters.search}}" placeholder="Room, charge no. or PMS reference">
+  <form class="filter-bar" method="GET">
+    <input class="input filter-wide" type="search" name="search" value="{{filters.search}}" placeholder="Room, charge no. or PMS reference">
     <select class="input" name="outletId" data-autosubmit>
       <option value="">All outlets</option>
       {{#each outlets}}<option value="{{id}}" {{selected id ../filters.outletId}}>{{name}}</option>{{/each}}
@@ -11,7 +11,8 @@
       {{#each statuses}}<option value="{{this}}" {{selected this ../filters.status}}>{{humanize this}}</option>{{/each}}
     </select>
     <input class="input" type="date" name="from" value="{{filters.from}}" aria-label="From">
-    <div class="flex gap-2"><input class="input" type="date" name="to" value="{{filters.to}}" aria-label="To"><button class="btn btn-secondary" type="submit">Go</button></div>
+    <input class="input" type="date" name="to" value="{{filters.to}}" aria-label="To">
+    <button class="btn btn-secondary" type="submit">Go</button>
   </form>
   {{#if charges.length}}
   <div class="table-wrap">
@@ -23,7 +24,7 @@
           <td><a class="font-mono text-xs text-brand-700 hover:underline" href="/guest-charges/{{id}}">{{chargeNumber}}</a>{{#if isMock}} <span class="badge badge-slate">MOCK</span>{{/if}}</td>
           <td class="whitespace-nowrap text-xs">{{datetime createdAt}}</td>
           <td><a class="font-mono text-xs text-brand-700 hover:underline" href="/orders/{{order.id}}">{{order.orderNumber}}</a></td>
-          <td>{{order.outlet.code}}</td>
+          <td class="whitespace-nowrap">{{order.outlet.code}}</td>
           <td class="font-semibold">{{roomNumber}}</td>
           <td class="font-mono text-xs">{{externalFolioId}}</td>
           <td class="font-mono text-xs">{{default pmsTransactionId "—"}}</td>

@@ -12,7 +12,7 @@
       <div class="flex justify-between"><dt class="text-slate-500">Endpoint</dt><dd>{{default endpoint "not configured"}}</dd></div>
       <div class="flex justify-between"><dt class="text-slate-500">Credentials</dt><dd>{{#if credentials}}set (env){{else}}none{{/if}}</dd></div>
       {{#if timeoutMs}}<div class="flex justify-between"><dt class="text-slate-500">Timeout</dt><dd>{{timeoutMs}} ms</dd></div>{{/if}}
-      <div class="flex justify-between border-t border-slate-100 pt-1"><dt class="text-slate-500">Last 24 h</dt><dd>{{#if health}}{{health.calls}} calls · <span class="{{#if (gt health.failed 0)}}text-rose-600{{/if}}">{{health.failed}} failed</span> · {{health.avg_ms}} ms avg{{else}}no calls{{/if}}</dd></div>
+      <div class="flex justify-between border-t border-slate-200 pt-1"><dt class="text-slate-500">Last 24 h</dt><dd>{{#if health}}{{health.calls}} calls · <span class="{{#if (gt health.failed 0)}}text-rose-600{{/if}}">{{health.failed}} failed</span> · {{health.avg_ms}} ms avg{{else}}no calls{{/if}}</dd></div>
     </dl>
   </div>
   {{/each}}
@@ -21,7 +21,7 @@
 <div class="mt-6 grid gap-6 xl:grid-cols-3">
   <div class="card xl:col-span-2">
     <div class="card-header"><h3 class="card-title">Request &amp; response log</h3><span class="text-xs text-slate-500">Secrets are masked</span></div>
-    <form class="flex gap-3 border-b border-slate-100 p-4" method="GET">
+    <form class="flex gap-3 border-b border-slate-200 p-4" method="GET">
       <select class="input" name="system" data-autosubmit>
         <option value="">All systems</option>
         <option value="PMS" {{selected "PMS" filters.system}}>PMS</option>
@@ -75,7 +75,7 @@
         <div class="rounded-lg bg-rose-50 p-2"><p class="text-xs text-rose-700">Failed</p><p class="text-lg font-semibold">{{default outbox.FAILED 0}}</p></div>
       </div>
       <p class="text-xs text-slate-500">Events such as <code>OrderCompleted</code> are written in the same transaction as the sale. No event bus is configured yet, so dispatching uses a MOCK publisher.</p>
-      <ul class="divide-y divide-slate-100">
+      <ul class="divide-y divide-slate-200">
         {{#each events}}<li class="flex items-center justify-between py-2 text-xs"><span><span class="font-mono">{{eventType}}</span> · {{aggregateType}} {{aggregateId}}</span>{{statusBadge status}}</li>{{/each}}
       </ul>
     </div>

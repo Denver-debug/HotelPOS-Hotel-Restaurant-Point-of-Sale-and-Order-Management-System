@@ -15,7 +15,7 @@
 </header>
 
 <!-- Hero -->
-<section class="relative overflow-hidden bg-brand-950 bg-[radial-gradient(ellipse_at_top_right,_#2f4b7f_0%,_#131e35_45%,_#0b1222_100%)] pb-20 pt-32 sm:pb-28 sm:pt-40">
+<section class="relative overflow-hidden bg-brand-950 bg-[radial-gradient(ellipse_at_top_right,_#365446_0%,_#233E35_45%,_#12211C_100%)] pb-20 pt-32 sm:pb-28 sm:pt-40">
   <div class="mx-auto grid max-w-7xl items-center gap-14 px-4 sm:px-6 lg:grid-cols-2 lg:px-8">
     <div>
       <p class="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-accent-200 ring-1 ring-white/15">
@@ -55,7 +55,7 @@
 
 <!-- Outlets -->
 {{#if outlets.length}}
-<section class="border-b border-slate-100 bg-slate-50 py-10" aria-label="Outlets">
+<section class="border-b border-slate-200 bg-slate-50 py-10" aria-label="Outlets">
   <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
     <p class="text-center text-xs font-semibold uppercase tracking-widest text-slate-500">Serving our outlets</p>
     <ul class="mt-6 flex flex-wrap justify-center gap-3">

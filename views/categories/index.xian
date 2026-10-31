@@ -52,8 +52,8 @@
         <input class="input" id="sortOrder" name="sortOrder" type="number" min="0" value="{{default category.sortOrder 0}}">
       </div>
     </div>
-    <div class="flex justify-end gap-2 border-t border-slate-100 px-5 py-4">
-      {{#if editing}}<a href="/categories" class="btn btn-secondary">Cancel</a>{{/if}}
+    <div class="flex justify-end gap-2 border-t border-slate-200 px-5 py-4">
+      {{#if editing}}<a href="/categories" class="btn btn-cancel">Cancel</a>{{/if}}
       <button class="btn btn-primary" type="submit">{{#if editing}}Save changes{{else}}Add category{{/if}}</button>
     </div>
   </form>

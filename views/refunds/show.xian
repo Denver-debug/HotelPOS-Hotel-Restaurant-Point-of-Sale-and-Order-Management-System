@@ -13,7 +13,7 @@
           <tbody>{{#each refund.items}}<tr><td>{{orderItem.productName}}</td><td class="text-right">{{qty quantity}}</td><td class="text-right">{{money amount}}</td><td>{{#if restock}}Yes{{else}}No{{/if}}</td></tr>{{/each}}</tbody>
         </table>
       </div>
-      <div class="flex justify-between border-t border-slate-100 px-5 py-4 text-base font-semibold"><span>Refund amount</span><span>{{money refund.amount}}</span></div>
+      <div class="flex justify-between border-t border-slate-200 px-5 py-4 text-base font-semibold"><span>Refund amount</span><span>{{money refund.amount}}</span></div>
     </div>
     {{#if canDecide}}
     <div class="grid gap-4 md:grid-cols-2">

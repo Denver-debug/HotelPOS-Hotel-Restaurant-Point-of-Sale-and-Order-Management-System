@@ -2,7 +2,7 @@
   <a href="/discounts/new" class="btn btn-primary">{{icon "plus" "w-4 h-4"}}New discount</a>
 {{/page-header}}
 <div class="card">
-  <form class="border-b border-slate-100 p-4" method="GET">
+  <form class="border-b border-slate-200 p-4" method="GET">
     <select class="input max-w-xs" name="status" data-autosubmit>
       <option value="">Active and inactive</option>
       <option value="ACTIVE" {{selected "ACTIVE" filters.status}}>Active</option>

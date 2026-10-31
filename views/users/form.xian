@@ -61,7 +61,7 @@
     </div>
   </div>
   <div class="flex justify-end gap-2 lg:col-span-3">
-    <a href="/users" class="btn btn-secondary">Cancel</a>
+    <a href="/users" class="btn btn-cancel">Cancel</a>
     <button type="submit" class="btn btn-primary">{{#if editing}}Save changes{{else}}Create user{{/if}}</button>
   </div>
 </form>

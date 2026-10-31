@@ -19,8 +19,8 @@
       <input class="input" id="openingNotes" name="openingNotes" value="{{shift.openingNotes}}" maxlength="255">
     </div>
   </div>
-  <div class="flex justify-end gap-2 border-t border-slate-100 px-5 py-4">
-    <a href="/shifts" class="btn btn-secondary">Cancel</a>
+  <div class="flex justify-end gap-2 border-t border-slate-200 px-5 py-4">
+    <a href="/shifts" class="btn btn-cancel">Cancel</a>
     <button class="btn btn-primary" type="submit">Open shift</button>
   </div>
 </form>

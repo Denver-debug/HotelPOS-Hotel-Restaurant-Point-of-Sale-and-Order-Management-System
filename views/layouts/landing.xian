@@ -3,7 +3,7 @@
 <head>
   {{> head}}
 </head>
-<body class="bg-white font-sans text-slate-800 antialiased">
+<body class="bg-ivory font-sans text-slate-800 antialiased">
   {{{body}}}
   {{> scripts}}
 </body>

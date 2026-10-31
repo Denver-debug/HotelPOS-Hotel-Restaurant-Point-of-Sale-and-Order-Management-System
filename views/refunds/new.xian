@@ -27,7 +27,7 @@
         </tbody>
       </table>
     </div>
-    <p class="border-t border-slate-100 px-5 py-3 text-xs text-slate-500">The amount is calculated by the server from the line totals (including the proportional service charge) and is capped at the refundable balance.</p>
+    <p class="border-t border-slate-200 px-5 py-3 text-xs text-slate-500">The amount is calculated by the server from the line totals (including the proportional service charge) and is capped at the refundable balance.</p>
   </div>
   <div class="card card-body grid gap-4 sm:grid-cols-2">
     <div class="sm:col-span-2"><label class="label" for="reason">Reason</label><input class="input" id="reason" name="reason" value="{{form.reason}}" maxlength="255" required placeholder="Wrong item served, guest complaint…"></div>
@@ -45,7 +45,7 @@
     <label class="flex items-center gap-3 text-sm"><input type="checkbox" name="restock" value="1" class="h-4 w-4 rounded border-slate-300" {{checked form.restock}}>Return refunded goods to stock</label>
   </div>
   <div class="flex justify-end gap-2">
-    <a href="/orders/{{order.id}}" class="btn btn-secondary">Cancel</a>
+    <a href="/orders/{{order.id}}" class="btn btn-cancel">Cancel</a>
     <button class="btn btn-primary" type="submit">Request refund</button>
   </div>
 </form>

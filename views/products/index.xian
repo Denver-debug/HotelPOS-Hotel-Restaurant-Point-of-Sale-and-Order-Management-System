@@ -5,8 +5,8 @@
   {{/if}}
 {{/page-header}}
 <div class="card">
-  <form class="grid gap-3 border-b border-slate-100 p-4 sm:grid-cols-2 lg:grid-cols-6" method="GET">
-    <input class="input lg:col-span-2" type="search" name="search" value="{{filters.search}}" placeholder="Search name or code">
+  <form class="filter-bar" method="GET">
+    <input class="input filter-wide" type="search" name="search" value="{{filters.search}}" placeholder="Search name or code">
     <select class="input" name="categoryId" data-autosubmit>
       <option value="">All categories</option>
       {{#each categories}}<option value="{{id}}" {{selected id ../filters.categoryId}}>{{name}}</option>{{/each}}
