@@ -1,0 +1,38 @@
+{{#> page-header heading=title subtitle="Select the permissions granted to this role."}}{{/page-header}}
+{{> form-error}}
+<form method="POST" action="{{#if role.id}}/roles/{{role.id}}{{else}}/roles{{/if}}" class="space-y-6">
+  <input type="hidden" name="_csrf" value="{{csrfToken}}">
+  <div class="card card-body grid gap-4 sm:grid-cols-3">
+    <div>
+      <label class="label" for="code">Code</label>
+      <input class="input font-mono" id="code" name="code" value="{{role.code}}" {{#if role.id}}disabled{{else}}required{{/if}} placeholder="NIGHT_AUDITOR">
+    </div>
+    <div>
+      <label class="label" for="name">Name</label>
+      <input class="input" id="name" name="name" value="{{role.name}}" required maxlength="80">
+    </div>
+    <div>
+      <label class="label" for="description">Description</label>
+      <input class="input" id="description" name="description" value="{{role.description}}" maxlength="255">
+    </div>
+  </div>
+  <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+    {{#each matrix}}
+      <div class="card">
+        <div class="card-header"><h3 class="card-title capitalize">{{humanize module}}</h3></div>
+        <div class="card-body space-y-2">
+          {{#each permissions}}
+            <label class="flex items-start gap-3 text-sm">
+              <input type="checkbox" name="permissionIds" value="{{id}}" class="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-700" {{#if granted}}checked{{/if}}>
+              <span><span class="font-medium text-slate-800">{{description}}</span><br><span class="font-mono text-xs text-slate-400">{{code}}</span></span>
+            </label>
+          {{/each}}
+        </div>
+      </div>
+    {{/each}}
+  </div>
+  <div class="flex justify-end gap-2">
+    <a href="/roles" class="btn btn-secondary">Cancel</a>
+    <button type="submit" class="btn btn-primary">Save role</button>
+  </div>
+</form>

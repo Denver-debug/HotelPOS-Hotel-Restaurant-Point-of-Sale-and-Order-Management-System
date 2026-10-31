@@ -28,11 +28,15 @@ import express from "express";
 import { homePage } from "../controllers/homeController.js";
 import authRoutes from "./auth.js";
 import dashboardRoutes from "./dashboard.js";
+import userRoutes from "./users.js";
+import roleRoutes from "./roles.js";
 
 const router = express.Router();
 
 router.get("/", homePage);
 router.use("/", authRoutes);
 router.use("/dashboard", dashboardRoutes);
+router.use("/users", userRoutes);
+router.use("/roles", roleRoutes);
 
 export default router;

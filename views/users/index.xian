@@ -1,0 +1,43 @@
+{{#> page-header heading="Users" subtitle="POS login accounts. Employee records remain in HR and Staff Payroll."}}
+  <a href="/users/new" class="btn btn-primary">{{icon "plus" "w-4 h-4"}}New user</a>
+{{/page-header}}
+
+<div class="card">
+  <form class="grid gap-3 border-b border-slate-100 p-4 sm:grid-cols-4" method="GET">
+    <input class="input sm:col-span-2" type="search" name="search" value="{{filters.search}}" placeholder="Search name, username, email or employee ID">
+    <select class="input" name="roleId" data-autosubmit>
+      <option value="">All roles</option>
+      {{#each roles}}<option value="{{id}}" {{selected id ../filters.roleId}}>{{name}}</option>{{/each}}
+    </select>
+    <select class="input" name="status" data-autosubmit>
+      <option value="">All statuses</option>
+      <option value="ACTIVE" {{selected "ACTIVE" filters.status}}>Active</option>
+      <option value="INACTIVE" {{selected "INACTIVE" filters.status}}>Inactive</option>
+      <option value="LOCKED" {{selected "LOCKED" filters.status}}>Locked</option>
+    </select>
+  </form>
+  {{#if users.length}}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Employee ID</th><th>Outlets</th><th>Last login</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+        {{#each users}}
+        <tr>
+          <td class="font-medium text-slate-900">{{fullName}}<div class="text-xs font-normal text-slate-500">{{email}}</div></td>
+          <td>{{username}}</td>
+          <td>{{role.name}}</td>
+          <td>{{default externalEmployeeId "—"}}</td>
+          <td class="text-xs">{{#each outlets}}<span class="badge badge-slate mr-1">{{code}}</span>{{else}}<span class="text-slate-400">—</span>{{/each}}</td>
+          <td class="whitespace-nowrap text-xs text-slate-500">{{default (datetime lastLoginAt) "Never"}}</td>
+          <td>{{statusBadge status}}</td>
+          <td class="text-right"><a href="/users/{{id}}/edit" class="btn btn-secondary btn-sm">{{icon "edit" "w-4 h-4"}}Edit</a></td>
+        </tr>
+        {{/each}}
+      </tbody>
+    </table>
+  </div>
+  {{else}}
+    {{> empty-state message="No users match your filters." icon="users"}}
+  {{/if}}
+  {{> pagination}}
+</div>

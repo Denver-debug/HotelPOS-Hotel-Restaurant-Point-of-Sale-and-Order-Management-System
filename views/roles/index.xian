@@ -1,0 +1,22 @@
+{{#> page-header heading="Roles & Permissions" subtitle="Permissions are enforced on the server for every request."}}
+  <a href="/roles/new" class="btn btn-primary">{{icon "plus" "w-4 h-4"}}New role</a>
+{{/page-header}}
+<div class="card">
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Role</th><th>Code</th><th>Description</th><th class="text-right">Permissions</th><th class="text-right">Users</th><th></th></tr></thead>
+      <tbody>
+        {{#each roles}}
+        <tr>
+          <td class="font-medium text-slate-900">{{name}} {{#if isSystem}}<span class="badge badge-slate ml-1">System</span>{{/if}}</td>
+          <td class="font-mono text-xs">{{code}}</td>
+          <td class="text-slate-600">{{description}}</td>
+          <td class="text-right">{{permissionCount}}</td>
+          <td class="text-right">{{userCount}}</td>
+          <td class="text-right"><a class="btn btn-secondary btn-sm" href="/roles/{{id}}">{{icon "edit" "w-4 h-4"}}Edit</a></td>
+        </tr>
+        {{/each}}
+      </tbody>
+    </table>
+  </div>
+</div>

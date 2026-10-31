@@ -1,0 +1,67 @@
+{{#> page-header heading=title subtitle="Accounts are never deleted; set the status to Inactive to revoke access."}}{{/page-header}}
+{{> form-error}}
+<form method="POST" action="{{#if editing}}/users/{{user.id}}{{else}}/users{{/if}}" class="grid gap-6 lg:grid-cols-3">
+  <input type="hidden" name="_csrf" value="{{csrfToken}}">
+  <div class="card lg:col-span-2">
+    <div class="card-header"><h3 class="card-title">Account details</h3></div>
+    <div class="card-body grid gap-4 sm:grid-cols-2">
+      <div>
+        <label class="label" for="fullName">Full name</label>
+        <input class="input" id="fullName" name="fullName" value="{{user.fullName}}" maxlength="120" required>
+      </div>
+      <div>
+        <label class="label" for="username">Username</label>
+        <input class="input" id="username" name="username" value="{{user.username}}" maxlength="50" pattern="[A-Za-z0-9._-]+" required>
+      </div>
+      <div>
+        <label class="label" for="email">Email <span class="text-slate-400">(optional)</span></label>
+        <input class="input" id="email" type="email" name="email" value="{{user.email}}" maxlength="160">
+      </div>
+      <div>
+        <label class="label" for="externalEmployeeId">HR employee ID</label>
+        <input class="input" id="externalEmployeeId" name="externalEmployeeId" value="{{user.externalEmployeeId}}" placeholder="EMP-0231" maxlength="50">
+        <p class="help">Verified against HR and Staff Payroll when saved.</p>
+      </div>
+      <div>
+        <label class="label" for="roleId">Role</label>
+        <select class="input" id="roleId" name="roleId" required>
+          <option value="">Select a role</option>
+          {{#each roles}}<option value="{{id}}" {{selected id ../user.roleId}}>{{name}}</option>{{/each}}
+        </select>
+      </div>
+      <div>
+        <label class="label" for="status">Status</label>
+        <select class="input" id="status" name="status">
+          <option value="ACTIVE" {{selected "ACTIVE" user.status}}>Active</option>
+          <option value="INACTIVE" {{selected "INACTIVE" user.status}}>Inactive</option>
+          <option value="LOCKED" {{selected "LOCKED" user.status}}>Locked</option>
+        </select>
+      </div>
+      <div>
+        <label class="label" for="password">{{#if editing}}Reset password <span class="text-slate-400">(leave blank to keep)</span>{{else}}Password{{/if}}</label>
+        <input class="input" id="password" type="password" name="password" autocomplete="new-password" {{#unless editing}}required{{/unless}} minlength="8">
+        <p class="help">At least 8 characters with letters and numbers.</p>
+      </div>
+      <div>
+        <label class="label" for="confirmPassword">Confirm password</label>
+        <input class="input" id="confirmPassword" type="password" name="confirmPassword" autocomplete="new-password">
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><h3 class="card-title">Outlet access</h3></div>
+    <div class="card-body space-y-2">
+      <p class="text-xs text-slate-500">Roles with “Access every outlet” ignore this list.</p>
+      {{#each outlets}}
+        <label class="flex items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 text-sm hover:bg-slate-50">
+          <input type="checkbox" name="outletIds" value="{{id}}" class="h-4 w-4 rounded border-slate-300 text-brand-700" {{#if (includes ../user.outletIds id)}}checked{{/if}}>
+          <span class="flex-1">{{name}}</span><span class="text-xs text-slate-400">{{code}}</span>
+        </label>
+      {{/each}}
+    </div>
+  </div>
+  <div class="flex justify-end gap-2 lg:col-span-3">
+    <a href="/users" class="btn btn-secondary">Cancel</a>
+    <button type="submit" class="btn btn-primary">{{#if editing}}Save changes{{else}}Create user{{/if}}</button>
+  </div>
+</form>
