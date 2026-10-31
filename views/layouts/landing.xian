@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  {{> head}}
+</head>
+<body class="bg-white font-sans text-slate-800 antialiased">
+  {{{body}}}
+  {{> scripts}}
+</body>
+</html>

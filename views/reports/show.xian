@@ -51,7 +51,7 @@
 {{/if}}
 
 {{#if charts}}
-<div class="card mb-6"><div class="card-body"><div class="h-64"><canvas id="report-chart" role="img" aria-label="{{def.title}} chart"></canvas></div></div></div>
+<div class="card mb-6"><div class="card-body"><div class="relative h-64 w-full overflow-hidden"><canvas id="report-chart" role="img" aria-label="{{def.title}} chart"></canvas></div></div></div>
 {{/if}}
 
 <div class="card">

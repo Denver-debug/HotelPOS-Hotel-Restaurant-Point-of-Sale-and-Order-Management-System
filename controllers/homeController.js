@@ -23,6 +23,18 @@
     SOFTWARE.
     */
 
-export const homePage = (req, res) => {
-  res.redirect(req.user ? "/dashboard" : "/login");
+import { Outlet } from "../models/index.js";
+
+const OUTLET_ICONS = { RESTAURANT: "utensils", BAR: "cocktail", ROOM_SERVICE: "cloche", MINIBAR: "box", SPA: "leaf", OTHER: "building" };
+
+// Public landing page; signed-in staff go straight to their dashboard.
+export const homePage = async (req, res) => {
+  if (req.user) return res.redirect("/dashboard");
+  const outlets = await Outlet.findAll({ where: { status: "ACTIVE" }, attributes: ["name", "outletType", "location"], order: [["name", "ASC"]] });
+  res.render("landing", {
+    layout: "layouts/landing",
+    title: "Welcome",
+    outlets: outlets.map((o) => ({ ...o.get({ plain: true }), icon: OUTLET_ICONS[o.outletType] || "building" })),
+    year: new Date().getFullYear(),
+  });
 };

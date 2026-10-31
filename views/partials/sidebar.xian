@@ -8,7 +8,7 @@
     </div>
     <button type="button" class="ml-auto text-brand-200 lg:hidden" data-sidebar-close aria-label="Close menu">{{icon "x"}}</button>
   </div>
-  <nav class="flex-1 space-y-6 overflow-y-auto px-3 py-5" aria-label="Main navigation">
+  <nav class="sidebar-scroll flex-1 space-y-6 overflow-y-auto px-3 py-5" aria-label="Main navigation">
     {{#each navigation}}
       <div>
         {{#if section}}<p class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-brand-400">{{section}}</p>{{/if}}

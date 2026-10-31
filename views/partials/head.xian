@@ -29,7 +29,7 @@
     .btn-ghost { @apply text-slate-600 hover:bg-slate-100 focus-visible:ring-brand-400; }
     .btn-sm { @apply px-2.5 py-1.5 text-xs; }
     .btn-lg { @apply px-5 py-3 text-base; }
-    .card { @apply bg-white rounded-xl border border-slate-200 shadow-sm; }
+    .card { @apply min-w-0 bg-white rounded-xl border border-slate-200 shadow-sm; }
     .card-header { @apply px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-3; }
     .card-title { @apply text-base font-semibold text-slate-900; }
     .card-body { @apply p-5; }

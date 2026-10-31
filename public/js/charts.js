@@ -12,7 +12,7 @@
     return {
       responsive: true,
       maintainAspectRatio: false,
-      animation: { duration: 300 },
+      animation: false, // synchronous draws, so re-measuring works even in background tabs
       plugins: {
         legend: { display: false }, // single series: the card title names it
         tooltip: { callbacks: { label: (ctx) => ` ${money(ctx.parsed.y ?? ctx.parsed.x)}` } },
@@ -31,7 +31,7 @@
   function line(id, rows) {
     const el = document.getElementById(id);
     if (!el || !rows?.length) return;
-    new Chart(el, {
+    charts.push(new Chart(el, {
       type: "line",
       data: {
         labels: rows.map((r) => r.label),
@@ -41,13 +41,13 @@
         interaction: { mode: "index", intersect: false },
         scales: { x: { ...axis(false), grid: { display: false } }, y: { ...axis(true), beginAtZero: true } },
       }),
-    });
+    }));
   }
 
   function hbar(id, rows) {
     const el = document.getElementById(id);
     if (!el || !rows?.length) return;
-    new Chart(el, {
+    charts.push(new Chart(el, {
       type: "bar",
       data: {
         labels: rows.map((r) => r.label),
@@ -58,10 +58,16 @@
         plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => ` ${money(ctx.parsed.x)}` } } },
         scales: { x: { ...axis(true), beginAtZero: true }, y: { ...axis(false), grid: { display: false } } },
       }),
-    });
+    }));
   }
 
-  document.addEventListener("DOMContentLoaded", () => {
+  // The Tailwind CDN generates the grid styles asynchronously, so a canvas may first
+  // measure the unstyled full-width page. Re-measure once the layout has settled
+  // (setTimeout, because requestAnimationFrame is paused in background tabs).
+  const charts = [];
+  const settle = () => [150, 600, 1500].forEach((ms) => setTimeout(() => charts.forEach((c) => c.resize()), ms));
+
+  function render() {
     const data = JSON.parse(document.getElementById("dashboard-charts")?.textContent || "null");
     if (!data || typeof Chart === "undefined") return;
     Chart.defaults.font.family = "Inter, ui-sans-serif, system-ui, sans-serif";
@@ -69,5 +75,9 @@
     hbar("chart-outlets", data.outlets);
     hbar("chart-methods", data.methods);
     (data.extra || []).forEach((c) => (c.kind === "line" ? line(c.id, c.rows) : hbar(c.id, c.rows)));
-  });
+    settle();
+  }
+
+  if (document.readyState === "complete") setTimeout(render, 0);
+  else window.addEventListener("load", () => setTimeout(render, 0));
 })();

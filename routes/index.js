@@ -26,6 +26,7 @@
 // Route registry: each feature lives in its own router module under routes/.
 import express from "express";
 import { homePage } from "../controllers/homeController.js";
+import { asyncHandler } from "../utils/http.js";
 import authRoutes from "./auth.js";
 import dashboardRoutes from "./dashboard.js";
 import userRoutes from "./users.js";
@@ -48,7 +49,7 @@ import systemRoutes from "./system.js";
 
 const router = express.Router();
 
-router.get("/", homePage);
+router.get("/", asyncHandler(homePage));
 router.use("/", authRoutes);
 router.use("/dashboard", dashboardRoutes);
 router.use("/users", userRoutes);

@@ -37,13 +37,13 @@
 <div class="mt-6 grid gap-6 xl:grid-cols-3">
   <div class="card xl:col-span-2">
     <div class="card-header"><h3 class="card-title">Sales trend · last 7 days</h3><a href="/reports/sales" class="text-sm text-brand-700 hover:underline">Sales report</a></div>
-    <div class="card-body"><div class="h-64"><canvas id="chart-trend" aria-label="Daily sales for the last 7 days" role="img"></canvas></div></div>
+    <div class="card-body"><div class="relative h-64 w-full overflow-hidden"><canvas id="chart-trend" aria-label="Daily sales for the last 7 days" role="img"></canvas></div></div>
   </div>
   <div class="card">
     <div class="card-header"><h3 class="card-title">Settlement mix</h3><a href="/reports/payments" class="text-sm text-brand-700 hover:underline">Details</a></div>
     <div class="card-body">
       {{#if methods.length}}
-      <div class="h-48"><canvas id="chart-methods" aria-label="Amount by payment method" role="img"></canvas></div>
+      <div class="relative h-48 w-full overflow-hidden"><canvas id="chart-methods" aria-label="Amount by payment method" role="img"></canvas></div>
       <table class="mt-3 w-full text-sm"><tbody>{{#each methods}}<tr><td class="py-1 text-slate-600">{{method}}</td><td class="py-1 text-right font-medium">{{money amount}}</td></tr>{{/each}}</tbody></table>
       {{else}}{{> empty-state message="No settlements yet." icon="card"}}{{/if}}
     </div>
@@ -55,7 +55,7 @@
     <div class="card-header"><h3 class="card-title">Sales by outlet</h3></div>
     <div class="card-body">
       {{#if byOutlet.length}}
-      <div class="h-48"><canvas id="chart-outlets" aria-label="Sales by outlet" role="img"></canvas></div>
+      <div class="relative h-48 w-full overflow-hidden"><canvas id="chart-outlets" aria-label="Sales by outlet" role="img"></canvas></div>
       <table class="mt-3 w-full text-sm"><tbody>{{#each byOutlet}}<tr><td class="py-1 text-slate-600">{{name}}</td><td class="py-1 text-right text-slate-500">{{orders}} orders</td><td class="py-1 text-right font-medium">{{money amount}}</td></tr>{{/each}}</tbody></table>
       {{else}}{{> empty-state message="No completed sales." icon="building"}}{{/if}}
     </div>

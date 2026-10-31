@@ -6,9 +6,9 @@
         <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">{{icon "search" "w-5 h-5"}}</span>
         <input id="pos-search" type="search" class="input py-3 pl-10 text-base" placeholder="Search products or scan code  ( / )" autocomplete="off" aria-label="Search products">
       </div>
-      <div id="pos-categories" class="flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Categories"></div>
+      <div id="pos-categories" class="scroll-thin flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Categories"></div>
     </div>
-    <div class="flex-1 overflow-y-auto p-3">
+    <div class="scroll-thin flex-1 overflow-y-auto p-3">
       <div id="pos-products" class="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"></div>
       <div id="pos-products-empty" class="hidden">{{> empty-state message="No products match." hint="This outlet may not have prices set for these items." icon="tag"}}</div>
     </div>

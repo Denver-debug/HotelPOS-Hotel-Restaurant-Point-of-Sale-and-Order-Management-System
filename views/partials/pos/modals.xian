@@ -127,7 +127,7 @@
 <div id="modal-discount" class="pos-modal fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 p-4" role="dialog" aria-modal="true" aria-labelledby="discount-title">
   <div class="w-full max-w-lg rounded-2xl bg-white shadow-2xl">
     <div class="border-b border-slate-100 px-6 py-4"><h2 id="discount-title" class="text-lg font-semibold">Apply discount</h2></div>
-    <div class="max-h-[60vh] space-y-4 overflow-y-auto px-6 py-5">
+    <div class="scroll-thin max-h-[60vh] space-y-4 overflow-y-auto px-6 py-5">
       <div id="discount-list" class="space-y-2"></div>
       <div id="discount-item-wrap" class="hidden">
         <label class="label" for="discount-item">Apply to item</label>
@@ -154,7 +154,7 @@
       <h2 id="orders-title" class="text-lg font-semibold">Open orders at this outlet</h2>
       <button type="button" class="btn btn-ghost p-2" data-modal-close aria-label="Close">{{icon "x"}}</button>
     </div>
-    <div id="orders-list" class="max-h-[60vh] overflow-y-auto"></div>
+    <div id="orders-list" class="scroll-thin max-h-[60vh] overflow-y-auto"></div>
   </div>
 </div>
 

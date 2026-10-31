@@ -12,7 +12,7 @@
   <input id="order-location" class="input py-1.5 text-sm" placeholder="Table / room / location" maxlength="60" aria-label="Table or location">
 </div>
 
-<div id="order-items" class="min-h-[12rem] flex-1 overflow-y-auto px-2 py-2" aria-live="polite"></div>
+<div id="order-items" class="scroll-thin min-h-[12rem] flex-1 overflow-y-auto px-2 py-2" aria-live="polite"></div>
 
 <div class="border-t border-slate-200 bg-slate-50 px-4 py-3 text-sm">
   <dl class="space-y-1">

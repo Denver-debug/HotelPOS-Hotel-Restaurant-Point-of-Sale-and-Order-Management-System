@@ -41,6 +41,11 @@ const ICONS = {
   cash: "M2 6h20v12H2zM12 15a3 3 0 100-6 3 3 0 000 6zM6 12h.01M18 12h.01",
   door: "M3 21h18M5 21V3h11v18M13 12h.01M16 5h3v16",
   refresh: "M23 4v6h-6M1 20v-6h6M3.5 9a9 9 0 0114.9-3.4L23 10M1 14l4.6 4.4A9 9 0 0020.5 15",
+  utensils: "M6 2v8M3.5 2v5a2.5 2.5 0 005 0V2M6 10v12M18 22V2c-2.2 0-4 2.4-4 6.5V13h4",
+  cocktail: "M4 3h16l-8 9zM12 12v8M8 21h8",
+  cloche: "M2 18h20M4 18a8 8 0 0116 0M12 10V8M10 7h4",
+  leaf: "M5 20c0-9 6-15 15-15 0 9-6 15-15 15zM5 20l8-8",
+  arrow: "M5 12h14M13 6l6 6-6 6",
 };
 
 const STATUS_STYLES = {
