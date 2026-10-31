@@ -5,13 +5,16 @@
 <link rel="icon" type="image/png" href="/favicon.png">
 <title>{{#if title}}{{title}} · {{/if}}{{default appName "HotelPOS"}}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;800&display=swap">
 <script src="https://cdn.tailwindcss.com/3.4.16"></script>
 <script>
   tailwind.config = {
     theme: {
       extend: {
-        fontFamily: { sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"] },
+        fontFamily: {
+          sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+          display: ["Plus Jakarta Sans", "Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+        },
         // Palette anchors: fern green #2E5F45 (brand-800, primary buttons), sidebar green
         // #29553E (brand-900), leaf green #3F7957 (brand-600, charts), ivory #FAF9F6, soft sage
         // #F1F4EE (slate-100), light gray #E3E8E0 (slate-200), sage gray #637369 (slate-500),
@@ -68,9 +71,8 @@
     .stat { @apply card p-5; }
     .stat-label { @apply text-xs font-medium uppercase tracking-wide text-slate-500; }
     .stat-value { @apply mt-2 text-2xl font-semibold text-slate-900; }
-    .wordmark { @apply inline-flex items-center gap-[0.3em] font-semibold leading-none tracking-tight whitespace-nowrap; }
-    .wordmark-chip { @apply rounded-md bg-accent-300 px-[0.4em] py-[0.3em] text-[0.7em] font-bold leading-none tracking-wider text-brand-950; }
-    .wordmark-tagline { @apply mt-1.5 text-[10px] font-semibold uppercase leading-none tracking-[0.2em] text-brand-300; }
+    .wordmark { @apply font-display font-semibold leading-none tracking-[-0.035em] whitespace-nowrap; }
+    .wordmark-accent { @apply font-extrabold text-accent-300; }
     .nav-link { @apply flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-brand-100 hover:bg-white/10 hover:text-white transition; }
     .nav-link-active { @apply bg-white/10 text-white font-medium; }
     .dl { @apply grid grid-cols-3 gap-x-4 gap-y-2 text-sm; }
