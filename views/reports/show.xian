@@ -1,0 +1,98 @@
+{{#> page-header heading=def.title subtitle=def.description}}
+  <button type="button" class="btn btn-secondary no-print" data-print>{{icon "printer" "w-4 h-4"}}Print</button>
+  <a href="{{exportUrl}}" class="btn btn-primary no-print">{{icon "download" "w-4 h-4"}}Export CSV</a>
+{{/page-header}}
+
+<form class="card no-print mb-6 grid gap-3 p-4 sm:grid-cols-3 lg:grid-cols-6" method="GET">
+  {{#if show.dates}}
+    <div><label class="label" for="from">From</label><input class="input" id="from" type="date" name="from" value="{{filters.from}}"></div>
+    <div><label class="label" for="to">To</label><input class="input" id="to" type="date" name="to" value="{{filters.to}}"></div>
+  {{/if}}
+  {{#if show.outlet}}
+  <div><label class="label" for="outletId">Outlet</label>
+    <select class="input" id="outletId" name="outletId"><option value="">All my outlets</option>{{#each outlets}}<option value="{{id}}" {{selected id ../filters.outletId}}>{{name}}</option>{{/each}}</select></div>
+  {{/if}}
+  {{#if show.cashier}}
+  <div><label class="label" for="cashierId">Cashier</label>
+    <select class="input" id="cashierId" name="cashierId"><option value="">All cashiers</option>{{#each cashiers}}<option value="{{id}}" {{selected id ../filters.cashierId}}>{{fullName}}</option>{{/each}}</select></div>
+  {{/if}}
+  {{#if show.product}}
+  <div><label class="label" for="productId">Product</label>
+    <select class="input" id="productId" name="productId"><option value="">All products</option>{{#each products}}<option value="{{id}}" {{selected id ../filters.productId}}>{{name}}</option>{{/each}}</select></div>
+  {{/if}}
+  {{#if show.method}}
+  <div><label class="label" for="methodId">Payment method</label>
+    <select class="input" id="methodId" name="methodId"><option value="">All (incl. room charges)</option>{{#each methods}}<option value="{{id}}" {{selected id ../filters.methodId}}>{{name}}</option>{{/each}}</select></div>
+  {{/if}}
+  {{#if show.granularity}}
+  <div><label class="label" for="granularity">Group by</label>
+    <select class="input" id="granularity" name="granularity">
+      <option value="day" {{selected "day" filters.granularity}}>Day</option>
+      <option value="week" {{selected "week" filters.granularity}}>Week</option>
+      <option value="month" {{selected "month" filters.granularity}}>Month</option>
+    </select></div>
+  {{/if}}
+  {{#if show.sort}}
+  <div><label class="label" for="sort">Rank by</label>
+    <select class="input" id="sort" name="sort">
+      <option value="amount" {{selected "amount" filters.sort}}>Revenue</option>
+      <option value="quantity" {{selected "quantity" filters.sort}}>Quantity (best sellers)</option>
+    </select></div>
+  {{/if}}
+  <div class="flex items-end"><button class="btn btn-primary w-full" type="submit">Apply</button></div>
+</form>
+
+<p class="mb-4 hidden text-sm text-slate-600 print:block">{{#if show.dates}}Period: {{filters.from}} to {{filters.to}}{{/if}}</p>
+
+{{#if summary}}
+<div class="mb-6 grid gap-4 sm:grid-cols-3 xl:grid-cols-6">
+  {{#each summary}}<div class="stat"><p class="stat-label">{{this.[0]}}</p><p class="stat-value text-xl">{{money this.[1]}}</p></div>{{/each}}
+</div>
+{{/if}}
+
+{{#if charts}}
+<div class="card mb-6"><div class="card-body"><div class="h-64"><canvas id="report-chart" role="img" aria-label="{{def.title}} chart"></canvas></div></div></div>
+{{/if}}
+
+<div class="card">
+  {{#if rows.length}}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr>{{#each def.columns}}<th class="{{#if (or (eq type "money") (eq type "qty") (eq type "int"))}}text-right{{/if}}">{{label}}</th>{{/each}}</tr></thead>
+      <tbody>
+        {{#each rows}}
+        <tr>{{#each this}}<td class="{{#if (or (eq type "money") (eq type "qty") (eq type "int"))}}text-right{{/if}} whitespace-nowrap">{{> reports/cell}}</td>{{/each}}</tr>
+        {{/each}}
+      </tbody>
+      {{#if totals}}
+      <tfoot><tr class="bg-slate-50 font-semibold">{{#each totals}}<td class="px-4 py-3 {{#if (or (eq type "money") (eq type "qty") (eq type "int"))}}text-right{{/if}}">{{#if (or value (eq value 0))}}{{#if (eq type "money")}}{{money value}}{{else}}{{value}}{{/if}}{{/if}}</td>{{/each}}</tr></tfoot>
+      {{/if}}
+    </table>
+  </div>
+  {{> pagination}}
+  {{else}}
+    {{> empty-state message="No data for the selected filters." icon="chart"}}
+  {{/if}}
+</div>
+
+{{#if secondary}}
+<div class="card mt-6">
+  <div class="card-header"><h3 class="card-title">{{secondary.title}}</h3></div>
+  {{#if secondary.rows.length}}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr>{{#each secondary.columns}}<th class="{{#if (eq type "money")}}text-right{{/if}}">{{label}}</th>{{/each}}</tr></thead>
+      <tbody>{{#each secondary.rows}}<tr>{{#each this}}<td class="{{#if (eq type "money")}}text-right{{/if}}">{{> reports/cell}}</td>{{/each}}</tr>{{/each}}</tbody>
+    </table>
+  </div>
+  {{else}}
+    {{> empty-state message="None in this period." icon="undo"}}
+  {{/if}}
+</div>
+{{/if}}
+
+{{#if charts}}
+<script type="application/json" id="dashboard-charts">{{json charts}}</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+<script src="/js/charts.js" defer></script>
+{{/if}}

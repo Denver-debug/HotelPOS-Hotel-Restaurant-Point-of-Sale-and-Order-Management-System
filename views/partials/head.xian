@@ -38,7 +38,7 @@
     .help { @apply mt-1 text-xs text-slate-500; }
     .table-wrap { @apply overflow-x-auto; }
     .table { @apply w-full text-sm; }
-    .table thead th { @apply bg-slate-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 whitespace-nowrap; }
+    .table thead th { @apply bg-slate-50 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 whitespace-nowrap; }
     .table tbody td { @apply border-t border-slate-100 px-4 py-3 align-middle; }
     .table tbody tr:hover { @apply bg-slate-50/60; }
     .badge { @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset whitespace-nowrap; }

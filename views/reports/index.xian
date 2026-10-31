@@ -1,0 +1,11 @@
+{{#> page-header heading="Reports" subtitle="Operational and financial reports from live data. Every report can be filtered, printed and exported to CSV."}}{{/page-header}}
+<div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+  {{#each reports}}
+  <a href="/reports/{{key}}" class="card block p-5 transition hover:border-brand-300 hover:shadow-md">
+    <div class="flex items-start gap-3">
+      <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-700">{{icon "chart" "w-5 h-5"}}</span>
+      <div><h3 class="font-semibold text-slate-900">{{title}}</h3><p class="mt-1 text-sm text-slate-500">{{description}}</p></div>
+    </div>
+  </a>
+  {{/each}}
+</div>

@@ -1,6 +1,9 @@
 /* Rules that are awkward to express with Tailwind utility classes. */
 [x-cloak] { display: none !important; }
 
+/* Low-specificity default so utility classes such as .text-right win on headers. */
+th { text-align: left; }
+
 .spinner {
   width: 1rem;
   height: 1rem;
