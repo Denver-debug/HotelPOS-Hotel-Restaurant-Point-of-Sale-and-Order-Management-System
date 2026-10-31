@@ -1,0 +1,118 @@
+{{#> page-header heading=(concat "Order " order.orderNumber) subtitle=(concat order.outlet.name " · " (humanize order.orderType) " · " (datetime order.createdAt))}}
+  {{#if canResume}}<a href="/pos/terminal?outletId={{order.outletId}}&orderId={{order.id}}" class="btn btn-primary">{{icon "terminal" "w-4 h-4"}}Open in POS</a>{{/if}}
+  {{#if saleReceipt}}<a href="/receipts/{{saleReceipt.id}}" class="btn btn-secondary">{{icon "receipt" "w-4 h-4"}}Receipt</a>{{/if}}
+  {{#if canRefund}}<a href="/refunds/new?orderId={{order.id}}" class="btn btn-secondary">{{icon "undo" "w-4 h-4"}}Request refund</a>{{/if}}
+{{/page-header}}
+
+<div class="grid gap-6 lg:grid-cols-3">
+  <div class="space-y-6 lg:col-span-2">
+    <div class="card">
+      <div class="card-header"><h3 class="card-title">Items</h3>{{statusBadge order.status}}</div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Item</th><th class="text-right">Qty</th><th class="text-right">Unit price</th><th class="text-right">Discount</th><th class="text-right">VAT</th><th class="text-right">Line total</th></tr></thead>
+          <tbody>
+            {{#each order.items}}
+            <tr>
+              <td><span class="font-medium">{{productName}}</span> <span class="font-mono text-xs text-slate-400">{{productCode}}</span>{{#if notes}}<div class="text-xs italic text-accent-700">{{notes}}</div>{{/if}}{{#if (gt quantityRefunded 0)}}<div class="text-xs text-rose-600">Refunded: {{qty quantityRefunded}}</div>{{/if}}</td>
+              <td class="text-right">{{qty quantity}} {{unit}}</td>
+              <td class="text-right">{{money unitPrice}}</td>
+              <td class="text-right">{{#if (gt discountAmount 0)}}−{{money discountAmount}}{{else}}—{{/if}}</td>
+              <td class="text-right text-xs text-slate-500">{{money taxAmount}}</td>
+              <td class="text-right font-medium">{{money lineTotal}}</td>
+            </tr>
+            {{else}}<tr><td colspan="6" class="text-center text-slate-500">No items.</td></tr>
+            {{/each}}
+          </tbody>
+        </table>
+      </div>
+      <dl class="space-y-1 border-t border-slate-100 px-5 py-4 text-sm">
+        <div class="flex justify-between"><dt class="text-slate-500">Subtotal</dt><dd>{{money order.subtotal}}</dd></div>
+        <div class="flex justify-between"><dt class="text-slate-500">Discounts</dt><dd>−{{money order.discountAmount}}</dd></div>
+        <div class="flex justify-between"><dt class="text-slate-500">VAT (included)</dt><dd>{{money order.taxAmount}}</dd></div>
+        <div class="flex justify-between"><dt class="text-slate-500">Service charge ({{order.serviceChargeRate}}%)</dt><dd>{{money order.serviceChargeAmount}}</dd></div>
+        <div class="flex justify-between text-base font-semibold"><dt>Total</dt><dd>{{money order.totalAmount}}</dd></div>
+        <div class="flex justify-between text-emerald-700"><dt>Paid / charged</dt><dd>{{money order.amountPaid}}</dd></div>
+        {{#if (gt order.amountRefunded 0)}}<div class="flex justify-between text-rose-700"><dt>Refunded</dt><dd>−{{money order.amountRefunded}}</dd></div>{{/if}}
+      </dl>
+    </div>
+
+    {{#if order.discounts.length}}
+    <div class="card">
+      <div class="card-header"><h3 class="card-title">Discounts applied</h3></div>
+      <div class="table-wrap"><table class="table">
+        <thead><tr><th>Code</th><th>Name</th><th>Applies to</th><th>Rule</th><th class="text-right">Amount</th></tr></thead>
+        <tbody>{{#each order.discounts}}<tr><td class="font-mono text-xs">{{discountCode}}</td><td>{{discountName}}</td><td>{{#if orderItemId}}Item #{{orderItemId}}{{else}}Order{{/if}}</td><td>{{#if (eq discountType "PERCENTAGE")}}{{discountValue}}%{{else}}{{money discountValue}}{{/if}}</td><td class="text-right">−{{money amount}}</td></tr>{{/each}}</tbody>
+      </table></div>
+    </div>
+    {{/if}}
+
+    <div class="card">
+      <div class="card-header"><h3 class="card-title">Settlement</h3>{{#if order.settlementType}}{{statusBadge order.settlementType (humanize order.settlementType)}}{{/if}}</div>
+      {{#if (or order.payments.length order.guestCharges.length)}}
+      <div class="table-wrap"><table class="table">
+        <thead><tr><th>Reference</th><th>Method</th><th>Details</th><th class="text-right">Amount</th><th>Status</th></tr></thead>
+        <tbody>
+          {{#each order.payments}}
+          <tr>
+            <td class="font-mono text-xs">{{paymentNumber}}</td>
+            <td>{{method.name}}{{#if isMock}} <span class="badge badge-slate">MOCK</span>{{/if}}</td>
+            <td class="text-xs text-slate-600">{{#if tenderedAmount}}Tendered {{money tenderedAmount}} · change {{money changeAmount}}{{/if}}{{#if reference}} Ref {{reference}}{{/if}}{{#if failureReason}} <span class="text-rose-600">{{failureReason}}</span>{{/if}}</td>
+            <td class="text-right">{{money amount}}</td>
+            <td>{{statusBadge status}}</td>
+          </tr>
+          {{/each}}
+          {{#each order.guestCharges}}
+          <tr>
+            <td class="font-mono text-xs"><a class="text-brand-700 hover:underline" href="/guest-charges/{{id}}">{{chargeNumber}}</a></td>
+            <td>Room {{roomNumber}}{{#if isMock}} <span class="badge badge-slate">MOCK</span>{{/if}}</td>
+            <td class="text-xs text-slate-600">Folio {{externalFolioId}}{{#if pmsTransactionId}} · PMS {{pmsTransactionId}}{{/if}}{{#if lastError}} <span class="text-rose-600">{{lastError}}</span>{{/if}}</td>
+            <td class="text-right">{{money amount}}</td>
+            <td>{{statusBadge status}}</td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table></div>
+      {{else}}
+        {{> empty-state message="Not settled yet." icon="card"}}
+      {{/if}}
+    </div>
+
+    {{#if order.refunds.length}}
+    <div class="card">
+      <div class="card-header"><h3 class="card-title">Refunds</h3></div>
+      <div class="table-wrap"><table class="table">
+        <thead><tr><th>Refund</th><th>Type</th><th>Reason</th><th class="text-right">Amount</th><th>Status</th></tr></thead>
+        <tbody>{{#each order.refunds}}<tr><td><a class="font-mono text-xs text-brand-700 hover:underline" href="/refunds/{{id}}">{{refundNumber}}</a></td><td>{{humanize refundType}}</td><td class="text-sm">{{reason}}</td><td class="text-right">{{money amount}}</td><td>{{statusBadge status}}</td></tr>{{/each}}</tbody>
+      </table></div>
+    </div>
+    {{/if}}
+  </div>
+
+  <div class="space-y-6">
+    <div class="card">
+      <div class="card-header"><h3 class="card-title">Details</h3></div>
+      <dl class="card-body dl">
+        <dt>Outlet</dt><dd>{{order.outlet.name}}</dd>
+        <dt>Type</dt><dd>{{humanize order.orderType}}</dd>
+        <dt>Location</dt><dd>{{default order.tableOrLocation "—"}}</dd>
+        <dt>Guests</dt><dd>{{default order.guestCount "—"}}</dd>
+        <dt>Created by</dt><dd>{{order.creator.fullName}}</dd>
+        <dt>Shift</dt><dd>{{#if order.shift}}<a class="text-brand-700 hover:underline" href="/shifts/{{order.shift.id}}">{{order.shift.shiftNumber}}</a>{{else}}—{{/if}}</dd>
+        {{#if order.completedAt}}<dt>Completed</dt><dd>{{datetime order.completedAt}}</dd>{{/if}}
+        {{#if order.voidedAt}}<dt>Voided</dt><dd>{{datetime order.voidedAt}} by {{order.voider.fullName}}<br><span class="text-rose-700">{{order.voidReason}}</span></dd>{{/if}}
+        {{#if order.notes}}<dt>Notes</dt><dd>{{order.notes}}</dd>{{/if}}
+      </dl>
+    </div>
+    <div class="card">
+      <div class="card-header"><h3 class="card-title">Activity</h3></div>
+      <ol class="card-body space-y-3 text-sm">
+        {{#each history}}
+          <li class="flex gap-3"><span class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-400"></span>
+            <div><p class="font-medium text-slate-800">{{humanize action}}</p><p class="text-xs text-slate-500">{{datetime createdAt}} · {{default user.fullName "System"}}</p></div></li>
+        {{else}}<li class="text-slate-500">No activity recorded.</li>
+        {{/each}}
+      </ol>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,175 @@
+{{!-- POS terminal dialogs. Content is filled in by public/js/pos-terminal.js. --}}
+
+<!-- Direct payment -->
+<div id="modal-payment" class="pos-modal fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 p-4" role="dialog" aria-modal="true" aria-labelledby="payment-title">
+  <div class="w-full max-w-lg rounded-2xl bg-white shadow-2xl">
+    <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+      <h2 id="payment-title" class="text-lg font-semibold">Direct payment</h2>
+      <button type="button" class="btn btn-ghost p-2" data-modal-close aria-label="Close">{{icon "x"}}</button>
+    </div>
+    <div class="space-y-4 px-6 py-5">
+      <div class="flex items-center justify-between rounded-xl bg-brand-50 px-4 py-3">
+        <span class="text-sm text-brand-700">Balance due</span><span id="pay-due" class="text-2xl font-semibold text-brand-900">0.00</span>
+      </div>
+      <div>
+        <p class="label">Payment method</p>
+        <div id="pay-methods" class="grid grid-cols-3 gap-2"></div>
+        <p id="pay-mock-note" class="mt-2 hidden text-xs text-amber-700">Mock payment gateway: no real card or e-wallet is charged. Use reference <code>DECLINE</code> to simulate a decline.</p>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="label" for="pay-amount">Amount to apply</label>
+          <input id="pay-amount" type="number" min="0.01" step="0.01" class="input text-lg">
+        </div>
+        <div id="pay-tendered-wrap">
+          <label class="label" for="pay-tendered">Cash received</label>
+          <input id="pay-tendered" type="number" min="0" step="0.01" class="input text-lg">
+        </div>
+      </div>
+      <div id="pay-quick" class="flex flex-wrap gap-2"></div>
+      <div id="pay-reference-wrap" class="hidden">
+        <label class="label" for="pay-reference">Reference / approval code</label>
+        <input id="pay-reference" class="input" maxlength="100">
+      </div>
+      <div class="flex items-center justify-between rounded-lg bg-slate-50 px-4 py-2 text-sm"><span>Change</span><span id="pay-change" class="text-lg font-semibold">0.00</span></div>
+      <p id="pay-error" class="hidden rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700" role="alert"></p>
+    </div>
+    <div class="flex justify-end gap-2 rounded-b-2xl bg-slate-50 px-6 py-4">
+      <button type="button" class="btn btn-secondary" data-modal-close>Cancel</button>
+      <button type="button" id="pay-submit" class="btn btn-primary btn-lg">Confirm payment</button>
+    </div>
+  </div>
+</div>
+
+<!-- Charge to room (PMS) -->
+<div id="modal-room" class="pos-modal fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 p-4" role="dialog" aria-modal="true" aria-labelledby="room-title">
+  <div class="w-full max-w-lg rounded-2xl bg-white shadow-2xl">
+    <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+      <h2 id="room-title" class="text-lg font-semibold">Charge to room</h2>
+      <button type="button" class="btn btn-ghost p-2" data-modal-close aria-label="Close">{{icon "x"}}</button>
+    </div>
+    <div class="px-6 py-5">
+      <div class="mb-4 flex items-center justify-between rounded-xl bg-accent-50 px-4 py-3">
+        <span class="text-sm text-accent-700">Amount to charge</span><span id="room-amount" class="text-2xl font-semibold text-accent-800">0.00</span>
+      </div>
+      <!-- Step 1: room lookup -->
+      <div id="room-step-lookup" class="space-y-3">
+        <label class="label" for="room-number">Guest room number</label>
+        <div class="flex gap-2">
+          <input id="room-number" class="input text-lg" maxlength="20" placeholder="e.g. 205" autocomplete="off">
+          <button type="button" id="room-validate" class="btn btn-primary">Validate with PMS</button>
+        </div>
+        <p class="text-xs text-slate-500">The room number is only a lookup. The PMS confirms the checked-in guest, the active folio and charge eligibility.</p>
+      </div>
+      <!-- Step 2: confirm PMS-validated details -->
+      <div id="room-step-confirm" class="hidden space-y-3">
+        <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm">
+          <p class="mb-2 flex items-center gap-2 font-medium text-emerald-800">{{icon "check" "w-4 h-4"}}Validated by PMS</p>
+          <dl class="dl">
+            <dt>Room</dt><dd id="room-c-room" class="font-semibold"></dd>
+            <dt>Guest</dt><dd id="room-c-guest" class="font-semibold"></dd>
+            <dt>Folio</dt><dd id="room-c-folio" class="font-mono"></dd>
+            <dt>Stay</dt><dd id="room-c-stay"></dd>
+          </dl>
+        </div>
+        <p class="text-sm text-slate-600">Confirm with the guest that these details are correct before posting the charge.</p>
+      </div>
+      <!-- Step 3: result -->
+      <div id="room-step-result" class="hidden"></div>
+      <p id="room-error" class="mt-3 hidden rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700" role="alert"></p>
+      <p id="room-mock-note" class="mt-3 hidden text-xs text-amber-700">Mock PMS: 205 valid · 101 vacant · 102 no active folio · 103 not eligible · 404 PMS rejects · 306 timeout · 999 unknown.</p>
+    </div>
+    <div class="flex justify-end gap-2 rounded-b-2xl bg-slate-50 px-6 py-4">
+      <button type="button" class="btn btn-secondary" data-modal-close id="room-cancel">Cancel</button>
+      <button type="button" class="btn btn-secondary hidden" id="room-back">Use another room</button>
+      <button type="button" class="btn btn-secondary hidden" id="room-verify">Check status with PMS</button>
+      <button type="button" class="btn btn-accent btn-lg hidden" id="room-confirm">Post charge to folio</button>
+    </div>
+  </div>
+</div>
+
+<!-- Void -->
+<div id="modal-void" class="pos-modal fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 p-4" role="dialog" aria-modal="true" aria-labelledby="void-title">
+  <div class="w-full max-w-md rounded-2xl bg-white shadow-2xl">
+    <div class="border-b border-slate-100 px-6 py-4"><h2 id="void-title" class="text-lg font-semibold text-rose-700">Void order</h2></div>
+    <div class="space-y-4 px-6 py-5">
+      <div><label class="label" for="void-reason">Reason</label><input id="void-reason" class="input" maxlength="255" placeholder="Guest cancelled, wrong order…"></div>
+      <div id="void-supervisor" class="hidden space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
+        <p class="text-sm font-medium text-amber-800">Supervisor authorization required</p>
+        <input id="void-sup-user" class="input" placeholder="Supervisor username" autocomplete="off">
+        <input id="void-sup-pass" class="input" type="password" placeholder="Supervisor password" autocomplete="off">
+      </div>
+      <p id="void-error" class="hidden rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700" role="alert"></p>
+    </div>
+    <div class="flex justify-end gap-2 rounded-b-2xl bg-slate-50 px-6 py-4">
+      <button type="button" class="btn btn-secondary" data-modal-close>Cancel</button>
+      <button type="button" id="void-submit" class="btn btn-danger">Void order</button>
+    </div>
+  </div>
+</div>
+
+<!-- Notes -->
+<div id="modal-note" class="pos-modal fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 p-4" role="dialog" aria-modal="true" aria-labelledby="note-title">
+  <div class="w-full max-w-md rounded-2xl bg-white shadow-2xl">
+    <div class="border-b border-slate-100 px-6 py-4"><h2 id="note-title" class="text-lg font-semibold">Note</h2></div>
+    <div class="px-6 py-5">
+      <textarea id="note-text" class="input" rows="3" maxlength="255" placeholder="No onions, extra ice…"></textarea>
+      <p id="note-error" class="mt-2 hidden rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700" role="alert"></p>
+    </div>
+    <div class="flex justify-end gap-2 rounded-b-2xl bg-slate-50 px-6 py-4">
+      <button type="button" class="btn btn-secondary" data-modal-close>Cancel</button>
+      <button type="button" id="note-save" class="btn btn-primary">Save note</button>
+    </div>
+  </div>
+</div>
+
+<!-- Discounts -->
+<div id="modal-discount" class="pos-modal fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 p-4" role="dialog" aria-modal="true" aria-labelledby="discount-title">
+  <div class="w-full max-w-lg rounded-2xl bg-white shadow-2xl">
+    <div class="border-b border-slate-100 px-6 py-4"><h2 id="discount-title" class="text-lg font-semibold">Apply discount</h2></div>
+    <div class="max-h-[60vh] space-y-4 overflow-y-auto px-6 py-5">
+      <div id="discount-list" class="space-y-2"></div>
+      <div id="discount-item-wrap" class="hidden">
+        <label class="label" for="discount-item">Apply to item</label>
+        <select id="discount-item" class="input"></select>
+      </div>
+      <div id="discount-supervisor" class="hidden space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
+        <p class="text-sm font-medium text-amber-800">This discount requires supervisor authorization</p>
+        <input id="discount-sup-user" class="input" placeholder="Supervisor username" autocomplete="off">
+        <input id="discount-sup-pass" class="input" type="password" placeholder="Supervisor password" autocomplete="off">
+      </div>
+      <p id="discount-error" class="hidden rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700" role="alert"></p>
+    </div>
+    <div class="flex justify-end gap-2 rounded-b-2xl bg-slate-50 px-6 py-4">
+      <button type="button" class="btn btn-secondary" data-modal-close>Cancel</button>
+      <button type="button" id="discount-apply" class="btn btn-primary">Apply</button>
+    </div>
+  </div>
+</div>
+
+<!-- Open orders -->
+<div id="modal-orders" class="pos-modal fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 p-4" role="dialog" aria-modal="true" aria-labelledby="orders-title">
+  <div class="w-full max-w-2xl rounded-2xl bg-white shadow-2xl">
+    <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+      <h2 id="orders-title" class="text-lg font-semibold">Open orders at this outlet</h2>
+      <button type="button" class="btn btn-ghost p-2" data-modal-close aria-label="Close">{{icon "x"}}</button>
+    </div>
+    <div id="orders-list" class="max-h-[60vh] overflow-y-auto"></div>
+  </div>
+</div>
+
+<!-- Completed -->
+<div id="modal-done" class="pos-modal fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 p-4" role="dialog" aria-modal="true" aria-labelledby="done-title">
+  <div class="w-full max-w-md rounded-2xl bg-white text-center shadow-2xl">
+    <div class="px-6 pb-4 pt-8">
+      <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">{{icon "check" "w-7 h-7"}}</div>
+      <h2 id="done-title" class="mt-4 text-xl font-semibold">Order completed</h2>
+      <p id="done-message" class="mt-2 text-sm text-slate-600"></p>
+      <p id="done-change" class="mt-3 hidden text-2xl font-semibold text-emerald-700"></p>
+    </div>
+    <div class="flex justify-center gap-2 rounded-b-2xl bg-slate-50 px-6 py-4">
+      <a id="done-receipt" href="#" target="_blank" class="btn btn-secondary">{{icon "printer" "w-4 h-4"}}Print receipt</a>
+      <button type="button" class="btn btn-primary" data-action="new-order" data-modal-close>New order</button>
+    </div>
+  </div>
+</div>

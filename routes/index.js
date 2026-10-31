@@ -35,6 +35,9 @@ import categoryRoutes from "./categories.js";
 import productRoutes from "./products.js";
 import inventoryRoutes from "./inventory.js";
 import shiftRoutes from "./shifts.js";
+import posRoutes from "./pos.js";
+import orderRoutes from "./orders.js";
+import apiRoutes from "./api.js";
 
 const router = express.Router();
 
@@ -48,5 +51,8 @@ router.use("/categories", categoryRoutes);
 router.use("/products", productRoutes);
 router.use("/inventory", inventoryRoutes);
 router.use("/shifts", shiftRoutes);
+router.use("/pos", posRoutes);
+router.use("/orders", orderRoutes);
+router.use("/api", apiRoutes);
 
 export default router;

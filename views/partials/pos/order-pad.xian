@@ -1,0 +1,45 @@
+<div class="flex items-center gap-2 border-b border-slate-200 px-4 py-3">
+  <div class="min-w-0 flex-1">
+    <p class="text-xs uppercase tracking-wide text-slate-500">Current order</p>
+    <p class="flex flex-wrap items-center gap-2 font-semibold text-slate-900"><span id="order-number" class="font-mono text-sm">New order</span><span id="order-status"></span></p>
+  </div>
+  <button type="button" class="btn btn-secondary btn-sm" data-action="open-orders" title="Open orders">{{icon "list" "w-4 h-4"}}Open</button>
+  <button type="button" class="btn btn-secondary btn-sm" data-action="new-order" title="New order (F8)">{{icon "plus" "w-4 h-4"}}New</button>
+</div>
+
+<div class="grid grid-cols-2 gap-2 border-b border-slate-100 px-4 py-3">
+  <select id="order-type" class="input py-1.5 text-sm" aria-label="Order type"></select>
+  <input id="order-location" class="input py-1.5 text-sm" placeholder="Table / room / location" maxlength="60" aria-label="Table or location">
+</div>
+
+<div id="order-items" class="min-h-[12rem] flex-1 overflow-y-auto px-2 py-2" aria-live="polite"></div>
+
+<div class="border-t border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+  <dl class="space-y-1">
+    <div class="flex justify-between"><dt class="text-slate-500">Subtotal</dt><dd id="t-subtotal">0.00</dd></div>
+    <div class="flex justify-between"><dt class="text-slate-500">Discounts</dt><dd id="t-discount">0.00</dd></div>
+    <div class="flex justify-between"><dt class="text-slate-500">VAT <span id="t-tax-note" class="text-xs">(incl.)</span></dt><dd id="t-tax">0.00</dd></div>
+    <div class="flex justify-between"><dt class="text-slate-500">Service charge <span id="t-sc-rate" class="text-xs"></span></dt><dd id="t-service">0.00</dd></div>
+    <div class="flex items-end justify-between pt-2 text-lg font-semibold text-slate-900"><dt>Total</dt><dd id="t-total">0.00</dd></div>
+    <div id="t-paid-row" class="hidden justify-between text-emerald-700"><dt>Paid</dt><dd id="t-paid">0.00</dd></div>
+    <div id="t-balance-row" class="hidden justify-between font-semibold text-amber-700"><dt>Balance due</dt><dd id="t-balance">0.00</dd></div>
+  </dl>
+  <div id="order-discounts" class="mt-2 space-y-1"></div>
+</div>
+
+<div class="space-y-2 border-t border-slate-200 p-3">
+  <div class="grid grid-cols-3 gap-2">
+    <button type="button" class="btn btn-secondary btn-sm" data-action="order-note">{{icon "edit" "w-4 h-4"}}Note</button>
+    <button type="button" class="btn btn-secondary btn-sm" data-action="discount">{{icon "percent" "w-4 h-4"}}Discount</button>
+    <button type="button" class="btn btn-secondary btn-sm text-rose-700" data-action="void">{{icon "x" "w-4 h-4"}}Void</button>
+  </div>
+  <div class="grid grid-cols-2 gap-2">
+    <button type="button" class="btn btn-primary btn-lg flex-col gap-0 py-4" data-action="pay">
+      <span class="flex items-center gap-2">{{icon "cash" "w-5 h-5"}}Direct Payment</span><span class="text-xs font-normal opacity-75">F2</span>
+    </button>
+    <button type="button" class="btn btn-accent btn-lg flex-col gap-0 py-4" data-action="room-charge">
+      <span class="flex items-center gap-2">{{icon "door" "w-5 h-5"}}Charge to Room</span><span class="text-xs font-normal opacity-75">F4</span>
+    </button>
+  </div>
+  <p id="pos-shift-warning" class="hidden rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800"></p>
+</div>

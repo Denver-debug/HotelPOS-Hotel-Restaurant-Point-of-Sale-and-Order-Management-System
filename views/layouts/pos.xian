@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {{> head}}
+</head>
+<body class="h-full bg-slate-100 font-sans text-slate-800 antialiased">
+  <header class="flex h-14 items-center gap-3 bg-brand-900 px-3 text-white sm:px-4">
+    <a href="/dashboard" class="flex items-center gap-2 rounded-lg px-2 py-1 hover:bg-white/10" title="Back to dashboard">
+      <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-500">{{icon "key" "w-4 h-4"}}</span>
+      <span class="hidden text-sm font-semibold sm:inline">{{default appName "HotelPOS"}}</span>
+    </a>
+    <form method="GET" action="/pos/terminal" class="ml-1">
+      <label class="sr-only" for="pos-outlet">Outlet</label>
+      <select id="pos-outlet" name="outletId" class="rounded-lg border-0 bg-white/10 px-3 py-1.5 text-sm text-white focus:ring-2 focus:ring-accent-400" data-autosubmit>
+        {{#each outlets}}<option class="text-slate-900" value="{{id}}" {{selected id ../outlet.id}}>{{name}}</option>{{/each}}
+      </select>
+    </form>
+    <div class="ml-auto flex items-center gap-2 text-xs">
+      {{#if boot.mocks.pms}}<span class="hidden rounded-full bg-amber-400/20 px-2 py-1 font-medium text-amber-200 md:inline" title="PMS integration is simulated">MOCK PMS</span>{{/if}}
+      {{#if boot.mocks.payment}}<span class="hidden rounded-full bg-amber-400/20 px-2 py-1 font-medium text-amber-200 md:inline" title="Card/e-wallet processing is simulated">MOCK PAYMENTS</span>{{/if}}
+      {{#if openShift}}
+        <a href="/shifts/{{openShift.id}}" class="rounded-full bg-emerald-400/20 px-3 py-1 font-medium text-emerald-200">{{openShift.shiftNumber}}</a>
+      {{else}}
+        {{#if boot.can.openShift}}<a href="/shifts/open" class="rounded-full bg-rose-400/20 px-3 py-1 font-medium text-rose-200">No open shift</a>{{/if}}
+      {{/if}}
+      <span class="hidden text-brand-200 sm:inline">{{currentUser.fullName}}</span>
+      <a href="/orders" class="rounded-lg px-2 py-1 text-brand-100 hover:bg-white/10">Orders</a>
+    </div>
+  </header>
+  {{{body}}}
+  {{> modal}}
+  {{> scripts}}
+</body>
+</html>

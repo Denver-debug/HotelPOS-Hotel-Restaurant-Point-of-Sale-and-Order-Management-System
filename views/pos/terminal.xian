@@ -1,0 +1,26 @@
+<div id="pos-app" class="flex flex-col lg:h-[calc(100vh-3.5rem)] lg:flex-row">
+  <!-- Product selection -->
+  <section class="flex min-w-0 flex-1 flex-col lg:h-full">
+    <div class="space-y-3 border-b border-slate-200 bg-white p-3">
+      <div class="relative">
+        <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">{{icon "search" "w-5 h-5"}}</span>
+        <input id="pos-search" type="search" class="input py-3 pl-10 text-base" placeholder="Search products or scan code  ( / )" autocomplete="off" aria-label="Search products">
+      </div>
+      <div id="pos-categories" class="flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Categories"></div>
+    </div>
+    <div class="flex-1 overflow-y-auto p-3">
+      <div id="pos-products" class="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"></div>
+      <div id="pos-products-empty" class="hidden">{{> empty-state message="No products match." hint="This outlet may not have prices set for these items." icon="tag"}}</div>
+    </div>
+  </section>
+
+  <!-- Current order -->
+  <aside class="flex w-full flex-col border-t border-slate-200 bg-white lg:h-full lg:w-[420px] lg:border-l lg:border-t-0">
+    {{> pos/order-pad}}
+  </aside>
+</div>
+
+{{> pos/modals}}
+
+<script type="application/json" id="pos-boot">{{json boot}}</script>
+<script src="/js/pos-terminal.js" defer></script>
