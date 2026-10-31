@@ -1,0 +1,51 @@
+{{#> page-header heading=title subtitle=(concat "Refundable balance: " (money refundable) " · settled by " (humanize order.settlementType))}}{{/page-header}}
+{{> form-error}}
+<form method="POST" action="/refunds" class="space-y-6">
+  <input type="hidden" name="_csrf" value="{{csrfToken}}">
+  <input type="hidden" name="orderId" value="{{order.id}}">
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">Items</h3>
+      <div class="flex gap-4 text-sm">
+        <label class="flex items-center gap-2"><input type="radio" name="refundType" value="PARTIAL" {{checked form.refundType "PARTIAL"}}>Partial (selected quantities)</label>
+        <label class="flex items-center gap-2"><input type="radio" name="refundType" value="FULL" {{checked form.refundType "FULL"}}>Full refund</label>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Item</th><th class="text-right">Sold</th><th class="text-right">Line total</th><th class="text-right">Refundable qty</th><th class="w-36">Refund qty</th></tr></thead>
+        <tbody>
+          {{#each items}}
+          <tr>
+            <td>{{productName}}</td>
+            <td class="text-right">{{qty quantity}}</td>
+            <td class="text-right">{{money lineTotal}}</td>
+            <td class="text-right">{{qty refundableQty}}</td>
+            <td><input class="input" type="number" name="quantities[item_{{id}}]" min="0" max="{{qty refundableQty}}" step="0.001" value="0" {{#unless (gt refundableQty 0)}}disabled{{/unless}} aria-label="Refund quantity for {{productName}}"></td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    </div>
+    <p class="border-t border-slate-100 px-5 py-3 text-xs text-slate-500">The amount is calculated by the server from the line totals (including the proportional service charge) and is capped at the refundable balance.</p>
+  </div>
+  <div class="card card-body grid gap-4 sm:grid-cols-2">
+    <div class="sm:col-span-2"><label class="label" for="reason">Reason</label><input class="input" id="reason" name="reason" value="{{form.reason}}" maxlength="255" required placeholder="Wrong item served, guest complaint…"></div>
+    {{#if (eq order.settlementType "DIRECT_PAYMENT")}}
+    <div>
+      <label class="label" for="refundMethodId">Refund to</label>
+      <select class="input" id="refundMethodId" name="refundMethodId">
+        {{#each methods}}<option value="{{id}}" {{selected id ../form.refundMethodId}}>{{name}}{{#if (includes ../originalMethodIds id)}} (original){{/if}}</option>{{/each}}
+      </select>
+      <p class="help">Card/e-wallet refunds go back to the original transaction through the payment provider.</p>
+    </div>
+    {{else}}
+    <div class="rounded-lg bg-accent-50 p-3 text-sm text-accent-800">This order was charged to a guest room. The refund will be posted to the guest folio through the PMS (full reversal or credit adjustment).</div>
+    {{/if}}
+    <label class="flex items-center gap-3 text-sm"><input type="checkbox" name="restock" value="1" class="h-4 w-4 rounded border-slate-300" {{checked form.restock}}>Return refunded goods to stock</label>
+  </div>
+  <div class="flex justify-end gap-2">
+    <a href="/orders/{{order.id}}" class="btn btn-secondary">Cancel</a>
+    <button class="btn btn-primary" type="submit">Request refund</button>
+  </div>
+</form>

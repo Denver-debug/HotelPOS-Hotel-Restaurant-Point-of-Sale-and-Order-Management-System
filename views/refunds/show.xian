@@ -1,0 +1,52 @@
+{{#> page-header heading=title subtitle=(concat "Order " refund.order.orderNumber " · " refund.order.outlet.name)}}
+  {{#if receipt}}<a href="/receipts/{{receipt.id}}" class="btn btn-secondary">{{icon "receipt" "w-4 h-4"}}Refund receipt</a>{{/if}}
+  <a href="/orders/{{refund.order.id}}" class="btn btn-secondary">View order</a>
+{{/page-header}}
+{{#if (eq refund.status "FAILED")}}<div class="mb-6 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{{refund.failureReason}}</div>{{/if}}
+<div class="grid gap-6 lg:grid-cols-3">
+  <div class="space-y-6 lg:col-span-2">
+    <div class="card">
+      <div class="card-header"><h3 class="card-title">Refunded items</h3>{{statusBadge refund.status}}</div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Item</th><th class="text-right">Qty</th><th class="text-right">Line amount</th><th>Restock</th></tr></thead>
+          <tbody>{{#each refund.items}}<tr><td>{{orderItem.productName}}</td><td class="text-right">{{qty quantity}}</td><td class="text-right">{{money amount}}</td><td>{{#if restock}}Yes{{else}}No{{/if}}</td></tr>{{/each}}</tbody>
+        </table>
+      </div>
+      <div class="flex justify-between border-t border-slate-100 px-5 py-4 text-base font-semibold"><span>Refund amount</span><span>{{money refund.amount}}</span></div>
+    </div>
+    {{#if canDecide}}
+    <div class="grid gap-4 md:grid-cols-2">
+      <form class="card card-body space-y-3" method="POST" action="/refunds/{{refund.id}}/approve" data-confirm="Approve and process refund {{refund.refundNumber}} for {{money refund.amount}}?" data-confirm-danger="false" data-confirm-label="Approve">
+        <input type="hidden" name="_csrf" value="{{csrfToken}}">
+        <h3 class="card-title">{{#if (eq refund.status "FAILED")}}Retry processing{{else}}Approve &amp; process{{/if}}</h3>
+        {{#if needsReference}}<div><label class="label" for="externalReference">Bank / transfer reference</label><input class="input" id="externalReference" name="externalReference" maxlength="100" required></div>{{/if}}
+        <p class="text-xs text-slate-500">{{#if (eq refund.settlementType "ROOM_CHARGE")}}A reversal/adjustment is sent to the PMS folio.{{else}}{{#if refund.paymentId}}The refund is sent to the payment provider.{{else}}Cash is paid out from your open shift.{{/if}}{{/if}}</p>
+        <button class="btn btn-success w-full" type="submit">Approve</button>
+      </form>
+      {{#if (eq refund.status "REQUESTED")}}
+      <form class="card card-body space-y-3" method="POST" action="/refunds/{{refund.id}}/reject">
+        <input type="hidden" name="_csrf" value="{{csrfToken}}">
+        <h3 class="card-title">Reject</h3>
+        <input class="input" name="rejectionReason" maxlength="255" required placeholder="Reason for rejection">
+        <button class="btn btn-danger w-full" type="submit">Reject</button>
+      </form>
+      {{/if}}
+    </div>
+    {{/if}}
+  </div>
+  <div class="card h-fit">
+    <div class="card-header"><h3 class="card-title">Details</h3></div>
+    <dl class="card-body dl">
+      <dt>Type</dt><dd>{{humanize refund.refundType}}</dd>
+      <dt>Settlement</dt><dd>{{humanize refund.settlementType}}</dd>
+      <dt>Refund to</dt><dd>{{#if refund.guestCharge}}Room {{refund.guestCharge.roomNumber}} · folio {{refund.guestCharge.externalFolioId}}{{else}}{{default refund.refundMethod.name "—"}}{{/if}}</dd>
+      <dt>Reason</dt><dd>{{refund.reason}}</dd>
+      <dt>Requested</dt><dd>{{datetime refund.createdAt}}<br>{{refund.requester.fullName}}</dd>
+      {{#if refund.approvedAt}}<dt>{{#if (eq refund.status "REJECTED")}}Rejected{{else}}Approved{{/if}}</dt><dd>{{datetime refund.approvedAt}}<br>{{refund.approver.fullName}}</dd>{{/if}}
+      {{#if refund.rejectionReason}}<dt>Rejection</dt><dd class="text-rose-700">{{refund.rejectionReason}}</dd>{{/if}}
+      {{#if refund.processedAt}}<dt>Processed</dt><dd>{{datetime refund.processedAt}}<br>{{refund.processor.fullName}}</dd>{{/if}}
+      {{#if refund.externalReference}}<dt>External ref</dt><dd class="font-mono text-xs">{{refund.externalReference}}</dd>{{/if}}
+    </dl>
+  </div>
+</div>
