@@ -10,15 +10,16 @@
     theme: {
       extend: {
         fontFamily: { sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"] },
-        // Palette anchors: deep green #233E35 (brand-800 / slate-800-900), darker sage #365446
-        // (brand-700, hover), ivory #FAF9F6, soft sage #EEF1E9 (slate-100), light gray #DEDFD7
-        // (slate-200), muted green #45584E (slate-500), muted gold #9A7A43 (accent-500),
-        // terracotta #923E2C (rose-600). Other steps are interpolated between them.
+        // Palette anchors: fern green #2E5F45 (brand-800, primary buttons), sidebar green
+        // #29553E (brand-900), leaf green #3F7957 (brand-600, charts), ivory #FAF9F6, soft sage
+        // #F1F4EE (slate-100), light gray #E3E8E0 (slate-200), sage gray #637369 (slate-500),
+        // honey gold #9E7D3F (accent-500), terracotta #923E2C (rose-600). Other steps are
+        // interpolated between them. Slate is a near-neutral gray so text no longer reads green.
         colors: {
           ivory: "#FAF9F6",
-          brand: { 50: "#EEF1E9", 100: "#DCE3D9", 200: "#B9C8BC", 300: "#93AB9C", 400: "#7A9A87", 500: "#4F705F", 600: "#3F5F4F", 700: "#365446", 800: "#233E35", 900: "#1B3029", 950: "#12211C" },
-          accent: { 50: "#F8F4EC", 100: "#EFE6D3", 200: "#E0CDA8", 300: "#CBAE78", 400: "#B39256", 500: "#9A7A43", 600: "#806434", 700: "#67502A", 800: "#523F22", 900: "#3F311B" },
-          slate: { 50: "#F5F6F1", 100: "#EEF1E9", 200: "#DEDFD7", 300: "#CBCEC3", 400: "#8C978F", 500: "#45584E", 600: "#3E5147", 700: "#34483E", 800: "#233E35", 900: "#233E35", 950: "#172A23" },
+          brand: { 50: "#F0F6F1", 100: "#DDECE1", 200: "#BFDBC8", 300: "#98C4A6", 400: "#6FA984", 500: "#4D8C66", 600: "#3F7957", 700: "#356B4C", 800: "#2E5F45", 900: "#29553E", 950: "#1E422F" },
+          accent: { 50: "#FBF6EB", 100: "#F5EAD0", 200: "#EBD4A3", 300: "#DDB971", 400: "#C69D52", 500: "#9E7D3F", 600: "#846831", 700: "#715627", 800: "#5A4421", 900: "#45341A" },
+          slate: { 50: "#F8F9F6", 100: "#F1F4EE", 200: "#E3E8E0", 300: "#CFD6CC", 400: "#9AA69E", 500: "#637369", 600: "#4D5D53", 700: "#3C4B42", 800: "#2D3B33", 900: "#24322B", 950: "#19241E" },
           rose: { 50: "#F8EEEB", 100: "#F0D9D3", 200: "#E2B3A8", 300: "#CD8676", 400: "#B3604D", 500: "#A04C38", 600: "#923E2C", 700: "#7A3324", 800: "#62291D", 900: "#4C2017", 950: "#2E130E" },
         },
       },

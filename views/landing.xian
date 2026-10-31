@@ -15,7 +15,7 @@
 </header>
 
 <!-- Hero -->
-<section class="relative overflow-hidden bg-brand-950 bg-[radial-gradient(ellipse_at_top_right,_#365446_0%,_#233E35_45%,_#12211C_100%)] pb-20 pt-32 sm:pb-28 sm:pt-40">
+<section class="relative overflow-hidden bg-brand-950 bg-[radial-gradient(ellipse_at_top_right,_#4D8C66_0%,_#2E5F45_45%,_#1E422F_100%)] pb-20 pt-32 sm:pb-28 sm:pt-40">
   <div class="mx-auto grid max-w-7xl items-center gap-14 px-4 sm:px-6 lg:grid-cols-2 lg:px-8">
     <div>
       <p class="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-accent-200 ring-1 ring-white/15">

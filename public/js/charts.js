@@ -3,9 +3,9 @@
 (function () {
   "use strict";
 
-  const SERIES = "#233E35"; // deep green; validated vs the white card surface (contrast >= 3:1)
-  const TEXT = "#45584E";
-  const GRID = "#EEF1E9";
+  const SERIES = "#3F7957"; // leaf green (brand-600); validated vs the white card surface (contrast >= 3:1)
+  const TEXT = "#637369";
+  const GRID = "#F1F4EE";
   const money = (v) => "₱" + Number(v).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   function base(extra = {}) {
@@ -35,7 +35,7 @@
       type: "line",
       data: {
         labels: rows.map((r) => r.label),
-        datasets: [{ data: rows.map((r) => r.value), borderColor: SERIES, backgroundColor: "rgba(35,62,53,0.08)", fill: true, borderWidth: 2, pointRadius: 4, pointHoverRadius: 6, pointBackgroundColor: SERIES, pointBorderColor: "#fff", pointBorderWidth: 2, tension: 0 }],
+        datasets: [{ data: rows.map((r) => r.value), borderColor: SERIES, backgroundColor: "rgba(63,121,87,0.10)", fill: true, borderWidth: 2, pointRadius: 4, pointHoverRadius: 6, pointBackgroundColor: SERIES, pointBorderColor: "#fff", pointBorderWidth: 2, tension: 0 }],
       },
       options: base({
         interaction: { mode: "index", intersect: false },

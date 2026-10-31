@@ -35,17 +35,17 @@ html::-webkit-scrollbar-corner,
 
 html::-webkit-scrollbar-thumb,
 .scroll-thin::-webkit-scrollbar-thumb,
-.table-wrap::-webkit-scrollbar-thumb { background: #CBCEC3; border-radius: 9999px; border: 2px solid transparent; background-clip: padding-box; }
+.table-wrap::-webkit-scrollbar-thumb { background: #CFD6CC; border-radius: 9999px; border: 2px solid transparent; background-clip: padding-box; }
 html::-webkit-scrollbar-thumb:hover,
 .scroll-thin::-webkit-scrollbar-thumb:hover,
-.table-wrap::-webkit-scrollbar-thumb:hover { background-color: #8C978F; }
+.table-wrap::-webkit-scrollbar-thumb:hover { background-color: #9AA69E; }
 .sidebar-scroll::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.12); border-radius: 9999px; }
 .sidebar-scroll:hover::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.3); }
 
 @supports not selector(::-webkit-scrollbar) {
   html,
   .scroll-thin,
-  .table-wrap { scrollbar-width: thin; scrollbar-color: #CBCEC3 transparent; }
+  .table-wrap { scrollbar-width: thin; scrollbar-color: #CFD6CC transparent; }
   .sidebar-scroll { scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.2) transparent; }
 }
 

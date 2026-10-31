@@ -4,7 +4,7 @@
   {{> head}}
 </head>
 <body class="min-h-screen bg-brand-950 font-sans text-slate-800 antialiased">
-  <div class="flex min-h-screen items-center justify-center bg-[radial-gradient(ellipse_at_top,_#365446_0%,_#12211C_70%)] px-4 py-10">
+  <div class="flex min-h-screen items-center justify-center bg-[radial-gradient(ellipse_at_top,_#4D8C66_0%,_#1E422F_70%)] px-4 py-10">
     <div class="w-full max-w-md">
       <div class="mb-8 text-center">
         <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-accent-500 text-white shadow-lg">{{icon "key" "w-7 h-7"}}</div>
