@@ -111,6 +111,16 @@
 
     const printBtn = e.target.closest("[data-print]");
     if (printBtn) window.print();
+
+    // Show/hide toggle next to a password field.
+    const toggle = e.target.closest("[data-toggle-password]");
+    if (toggle) {
+      const input = document.getElementById(toggle.dataset.togglePassword);
+      const show = input.type === "password";
+      input.type = show ? "text" : "password";
+      toggle.setAttribute("aria-pressed", String(show));
+      toggle.setAttribute("aria-label", show ? "Hide password" : "Show password");
+    }
   });
 
   // Auto-submit filter selects marked data-autosubmit.

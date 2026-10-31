@@ -15,11 +15,14 @@
 </header>
 
 <!-- Hero -->
-<section class="relative overflow-hidden bg-brand-950 bg-[radial-gradient(ellipse_at_top_right,_#4D8C66_0%,_#2E5F45_45%,_#1E422F_100%)] pb-20 pt-32 sm:pb-28 sm:pt-40">
-  <div class="mx-auto grid max-w-7xl items-center gap-14 px-4 sm:px-6 lg:grid-cols-2 lg:px-8">
+<section class="relative flex min-h-[88vh] items-center overflow-hidden bg-brand-950 pb-20 pt-32 sm:pb-28 sm:pt-40">
+  <img src="/images/hotel-resort.jpg" alt="" class="absolute inset-0 h-full w-full object-cover">
+  <div class="absolute inset-0 bg-gradient-to-r from-brand-950/90 via-brand-950/75 to-brand-950/50 lg:via-brand-950/60 lg:to-brand-950/10"></div>
+  <div class="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-brand-950/60 to-transparent"></div>
+  <div class="relative mx-auto grid w-full max-w-7xl items-center gap-14 px-4 sm:px-6 lg:grid-cols-2 lg:px-8">
     <div>
-      <p class="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-accent-200 ring-1 ring-white/15">
-        <span class="h-1.5 w-1.5 rounded-full bg-accent-400"></span>Restaurant &amp; outlet point-of-sale
+      <p class="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-accent-100 ring-1 ring-white/25 backdrop-blur">
+        <span class="h-1.5 w-1.5 rounded-full bg-accent-400"></span>{{hotelName}} · Restaurant &amp; outlet point-of-sale
       </p>
       <h1 class="mt-6 text-4xl font-semibold leading-tight tracking-tight text-white sm:text-5xl">
         Every outlet.<br><span class="text-accent-300">One point of sale.</span>
@@ -30,9 +33,9 @@
       </p>
       <div class="mt-10 flex flex-wrap items-center gap-3">
         <a href="/login" class="btn btn-accent btn-lg">Sign in to the POS {{icon "arrow" "w-5 h-5"}}</a>
-        <a href="#how-it-works" class="btn btn-lg text-white ring-1 ring-white/25 hover:bg-white/10">See how it works</a>
+        <a href="#how-it-works" class="btn btn-lg bg-white/10 text-white ring-1 ring-white/30 backdrop-blur hover:bg-white/20">See how it works</a>
       </div>
-      <p class="mt-6 text-sm text-brand-300">For hotel staff. Accounts are issued by your system administrator.</p>
+      <p class="mt-6 text-sm text-brand-200">For hotel staff. Accounts are issued by your system administrator.</p>
     </div>
 
     <!-- Illustrative room-charge slip -->
@@ -77,32 +80,32 @@
       <p class="mt-4 text-slate-600">One system for front-of-house speed and back-office control, connected to the rest of the hotel ERP.</p>
     </div>
     <div class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-      <div class="rounded-2xl border border-slate-200 p-6">
+      <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
         <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-700">{{icon "terminal" "w-6 h-6"}}</span>
         <h3 class="mt-5 font-semibold text-slate-900">Fast touch-friendly terminal</h3>
         <p class="mt-2 text-sm text-slate-600">Category tabs, search and barcode entry, item notes and keyboard shortcuts, with outlet-specific prices.</p>
       </div>
-      <div class="rounded-2xl border border-slate-200 p-6">
+      <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
         <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-accent-50 text-accent-700">{{icon "door" "w-6 h-6"}}</span>
         <h3 class="mt-5 font-semibold text-slate-900">Charge to the guest's room</h3>
         <p class="mt-2 text-sm text-slate-600">Room, guest and active folio are confirmed with the PMS before posting, and duplicate charges are prevented.</p>
       </div>
-      <div class="rounded-2xl border border-slate-200 p-6">
+      <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
         <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-700">{{icon "card" "w-6 h-6"}}</span>
         <h3 class="mt-5 font-semibold text-slate-900">Every way to pay</h3>
         <p class="mt-2 text-sm text-slate-600">Cash with change, card, e-wallet and bank transfer, plus split payments and printable receipts.</p>
       </div>
-      <div class="rounded-2xl border border-slate-200 p-6">
+      <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
         <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-700">{{icon "box" "w-6 h-6"}}</span>
         <h3 class="mt-5 font-semibold text-slate-900">Outlet inventory</h3>
         <p class="mt-2 text-sm text-slate-600">Stock is deducted automatically per sale or recipe, with low-stock alerts and a full movement history.</p>
       </div>
-      <div class="rounded-2xl border border-slate-200 p-6">
+      <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
         <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-700">{{icon "shield" "w-6 h-6"}}</span>
         <h3 class="mt-5 font-semibold text-slate-900">Controls that hold up</h3>
         <p class="mt-2 text-sm text-slate-600">Cashier shifts with cash variance, supervisor approvals for voids, discounts and refunds, and a tamper-proof audit trail.</p>
       </div>
-      <div class="rounded-2xl border border-slate-200 p-6">
+      <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
         <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-700">{{icon "chart" "w-6 h-6"}}</span>
         <h3 class="mt-5 font-semibold text-slate-900">Live reports</h3>
         <p class="mt-2 text-sm text-slate-600">Sales by outlet, product and cashier, the settlement mix and room charges, with CSV export for accounting.</p>
@@ -144,8 +147,10 @@
 </section>
 
 <!-- Call to action -->
-<section class="bg-brand-900 py-16">
-  <div class="mx-auto flex max-w-7xl flex-col items-center gap-6 px-4 text-center sm:px-6 lg:flex-row lg:justify-between lg:text-left lg:px-8">
+<section class="relative overflow-hidden py-20">
+  <img src="/images/hotel-lobby.jpg" alt="" class="absolute inset-0 h-full w-full object-cover">
+  <div class="absolute inset-0 bg-brand-900/80"></div>
+  <div class="relative mx-auto flex max-w-7xl flex-col items-center gap-6 px-4 text-center sm:px-6 lg:flex-row lg:justify-between lg:text-left lg:px-8">
     <div>
       <h2 class="text-2xl font-semibold text-white">Ready for your shift?</h2>
       <p class="mt-2 text-brand-200">Sign in with the account issued by your administrator.</p>
@@ -154,6 +159,6 @@
   </div>
 </section>
 
-<footer class="bg-brand-950 py-8 text-center text-xs text-brand-300">
+<footer class="border-t border-slate-200 bg-white py-8 text-center text-xs text-slate-500">
   © {{year}} {{hotelName}} · {{default appName "HotelPOS"}}, a Hotel ERP subsystem built on the XianFire framework
 </footer>

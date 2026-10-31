@@ -1,27 +1,36 @@
-<div class="rounded-2xl bg-white p-8 shadow-xl">
-  <h2 class="text-lg font-semibold text-slate-900">Sign in to your account</h2>
-  <p class="mt-1 text-sm text-slate-500">Use the credentials issued by your system administrator.</p>
+<div class="rounded-2xl bg-white p-8 shadow-xl shadow-brand-900/5 ring-1 ring-slate-200">
+  <h2 class="text-2xl font-semibold text-slate-900">Welcome back</h2>
+  <p class="mt-1 text-sm text-slate-500">Sign in with the credentials issued by your system administrator.</p>
   {{#if error}}
-    <div class="mt-4 flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800" role="alert">{{icon "alert" "w-5 h-5 shrink-0"}}<span>{{error}}</span></div>
+    <div class="mt-5 flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800" role="alert">{{icon "alert" "w-5 h-5 shrink-0"}}<span>{{error}}</span></div>
   {{/if}}
   {{#each error_msg}}
-    <div class="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800" role="alert">{{this}}</div>
+    <div class="mt-5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800" role="alert">{{this}}</div>
   {{/each}}
-  <form class="mt-6 space-y-4" method="POST" action="/login" novalidate>
+  <form class="mt-6 space-y-5" method="POST" action="/login" novalidate>
     <input type="hidden" name="_csrf" value="{{csrfToken}}">
     <input type="hidden" name="next" value="{{next}}">
     <div>
       <label class="label" for="username">Username</label>
-      <input class="input" id="username" name="username" value="{{username}}" autocomplete="username" required autofocus>
+      <div class="relative">
+        <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">{{icon "users" "w-5 h-5"}}</span>
+        <input class="input py-2.5 pl-10" id="username" name="username" value="{{username}}" autocomplete="username" placeholder="e.g. cashier01" required autofocus>
+      </div>
     </div>
     <div>
-      <label class="label" for="password">Password</label>
-      <input class="input" id="password" type="password" name="password" autocomplete="current-password" required>
+      <div class="mb-1 flex items-center justify-between">
+        <label class="label mb-0" for="password">Password</label>
+        <a href="/forgot-password" class="text-xs font-medium text-brand-700 hover:underline">Forgot your password?</a>
+      </div>
+      <div class="relative">
+        <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">{{icon "key" "w-5 h-5"}}</span>
+        <input class="input py-2.5 pl-10 pr-11" id="password" type="password" name="password" autocomplete="current-password" required>
+        <button type="button" class="absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 hover:text-brand-700" data-toggle-password="password" aria-label="Show password" aria-pressed="false">{{icon "eye" "w-5 h-5"}}</button>
+      </div>
     </div>
-    <button type="submit" class="btn btn-primary btn-lg w-full" data-loading-text="Signing in…">Sign in</button>
+    <button type="submit" class="btn btn-primary btn-lg w-full" data-loading-text="Signing in…">Sign in {{icon "arrow" "w-5 h-5"}}</button>
   </form>
-  <div class="mt-4 flex justify-between text-sm">
+  <div class="mt-6 border-t border-slate-200 pt-5 text-center text-sm">
     <a href="/" class="text-slate-500 hover:text-brand-700">← Back to home</a>
-    <a href="/forgot-password" class="text-brand-700 hover:underline">Forgot your password?</a>
   </div>
 </div>
