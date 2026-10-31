@@ -1,0 +1,88 @@
+<div class="no-print mx-auto flex max-w-md items-center justify-between gap-2 px-4 pt-6">
+  <a href="/orders/{{receipt.orderId}}" class="btn btn-secondary btn-sm">← Order</a>
+  <button type="button" id="print-receipt" class="btn btn-primary btn-sm">{{icon "printer" "w-4 h-4"}}Print</button>
+</div>
+
+<article class="receipt-paper mx-auto my-6 p-4 shadow-lg" id="receipt" data-receipt-id="{{receipt.id}}" data-auto-print="{{#if autoPrint}}1{{/if}}">
+  <div style="text-align:center">
+    <div style="font-size:15px;font-weight:bold">{{s.hotelName}}</div>
+    <div>{{s.outlet.name}}</div>
+    {{#if s.header}}<div style="white-space:pre-line">{{s.header}}</div>{{/if}}
+  </div>
+  <div class="rule"></div>
+  {{#if (eq receipt.receiptType "REFUND")}}<div style="text-align:center;font-weight:bold">*** REFUND RECEIPT ***</div>{{/if}}
+  {{#if isReprint}}<div style="text-align:center;font-weight:bold">*** REPRINT ***</div>{{/if}}
+  <table>
+    <tr><td>Receipt #</td><td style="text-align:right">{{receipt.receiptNumber}}</td></tr>
+    <tr><td>Order #</td><td style="text-align:right">{{s.orderNumber}}</td></tr>
+    {{#if s.refundNumber}}<tr><td>Refund #</td><td style="text-align:right">{{s.refundNumber}}</td></tr>{{/if}}
+    <tr><td>Date</td><td style="text-align:right">{{datetime s.transactionAt}}</td></tr>
+    <tr><td>Cashier</td><td style="text-align:right">{{s.cashier}}</td></tr>
+    {{#if s.tableOrLocation}}<tr><td>Table/Location</td><td style="text-align:right">{{s.tableOrLocation}}</td></tr>{{/if}}
+  </table>
+  <div class="rule"></div>
+  <table>
+    {{#each s.items}}
+      <tr><td colspan="2">{{name}}</td></tr>
+      <tr>
+        <td style="padding-left:8px">{{qty quantity}} {{unit}}{{#if unitPrice}} × {{money unitPrice}}{{/if}}</td>
+        <td style="text-align:right">{{#if grossAmount}}{{money grossAmount}}{{else}}{{money lineTotal}}{{/if}}</td>
+      </tr>
+      {{#if (gt discountAmount 0)}}<tr><td style="padding-left:8px">  less discount</td><td style="text-align:right">-{{money discountAmount}}</td></tr>{{/if}}
+      {{#if notes}}<tr><td colspan="2" style="padding-left:8px;font-style:italic">* {{notes}}</td></tr>{{/if}}
+    {{/each}}
+  </table>
+  <div class="rule"></div>
+  <table>
+    {{#if s.subtotal}}
+    <tr><td>Subtotal</td><td style="text-align:right">{{money s.subtotal}}</td></tr>
+    {{#each s.discounts}}<tr><td>Discount {{code}}</td><td style="text-align:right">-{{money amount}}</td></tr>{{/each}}
+    {{#if (gt s.serviceChargeAmount 0)}}<tr><td>Service charge ({{s.serviceChargeRate}}%)</td><td style="text-align:right">{{money s.serviceChargeAmount}}</td></tr>{{/if}}
+    {{/if}}
+    <tr style="font-size:14px;font-weight:bold"><td>{{#if (eq receipt.receiptType "REFUND")}}TOTAL REFUND{{else}}TOTAL{{/if}}</td><td style="text-align:right">{{money s.totalAmount}}</td></tr>
+    {{#if s.taxAmount}}<tr><td>VAT {{#if s.taxInclusive}}(included){{/if}}</td><td style="text-align:right">{{money s.taxAmount}}</td></tr>{{/if}}
+  </table>
+  <div class="rule"></div>
+
+  {{#if s.roomCharge}}
+    <div style="text-align:center;font-size:15px;font-weight:bold;border:2px solid #000;padding:6px;margin:6px 0">
+      {{#if (eq receipt.receiptType "REFUND")}}REVERSED ON ROOM {{s.roomCharge.roomNumber}}{{else}}CHARGED TO ROOM {{s.roomCharge.roomNumber}}{{/if}}
+    </div>
+    <table>
+      <tr><td>Folio</td><td style="text-align:right">{{s.roomCharge.folio}}</td></tr>
+      {{#if s.roomCharge.pmsTransactionId}}<tr><td>PMS ref</td><td style="text-align:right">{{s.roomCharge.pmsTransactionId}}</td></tr>{{/if}}
+      {{#if s.roomCharge.status}}<tr><td>Status</td><td style="text-align:right">{{s.roomCharge.status}} (confirmed by PMS)</td></tr>{{/if}}
+      {{#if s.externalReference}}<tr><td>PMS ref</td><td style="text-align:right">{{s.externalReference}}</td></tr>{{/if}}
+    </table>
+    {{#unless (eq receipt.receiptType "REFUND")}}
+    <div style="margin-top:28px;border-top:1px solid #000;text-align:center;padding-top:2px">Guest signature</div>
+    <div style="text-align:center;font-size:10px">Charges will be settled at check-out.</div>
+    {{/unless}}
+    {{#if s.roomCharge.isMock}}<div style="text-align:center;font-size:10px">[MOCK PMS — test transaction]</div>{{/if}}
+  {{else}}
+    <table>
+      {{#each s.payments}}
+        <tr><td>{{method}}{{#if isMock}} [MOCK]{{/if}}</td><td style="text-align:right">{{money amount}}</td></tr>
+        {{#if tendered}}<tr><td style="padding-left:8px">Cash received</td><td style="text-align:right">{{money tendered}}</td></tr>
+        <tr><td style="padding-left:8px">Change</td><td style="text-align:right">{{money change}}</td></tr>{{/if}}
+        {{#if reference}}<tr><td style="padding-left:8px">Ref</td><td style="text-align:right">{{reference}}</td></tr>{{/if}}
+      {{/each}}
+      {{#if s.refundMethod}}<tr><td>Refunded via</td><td style="text-align:right">{{s.refundMethod}}</td></tr>{{/if}}
+      {{#if s.reason}}<tr><td>Reason</td><td style="text-align:right">{{s.reason}}</td></tr>{{/if}}
+    </table>
+  {{/if}}
+  <div class="rule"></div>
+  <div style="text-align:center">{{default s.footer "Thank you!"}}</div>
+</article>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const el = document.getElementById("receipt");
+    const doPrint = async () => {
+      try { await window.HotelPOS.api("POST", `/api/receipts/${el.dataset.receiptId}/printed`); } catch {}
+      window.print();
+    };
+    document.getElementById("print-receipt").addEventListener("click", doPrint);
+    if (el.dataset.autoPrint === "1") setTimeout(doPrint, 400);
+  });
+</script>

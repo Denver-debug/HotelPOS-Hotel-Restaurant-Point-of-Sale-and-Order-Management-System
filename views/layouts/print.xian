@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {{> head}}
+</head>
+<body class="bg-slate-200 font-sans">
+  {{{body}}}
+  {{> scripts}}
+</body>
+</html>

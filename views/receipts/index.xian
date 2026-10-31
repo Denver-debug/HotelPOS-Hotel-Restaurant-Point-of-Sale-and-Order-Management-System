@@ -1,0 +1,38 @@
+{{#> page-header heading="Receipts" subtitle="Issued sale, room-charge and refund receipts. Reprints are counted and audited."}}{{/page-header}}
+<div class="card">
+  <form class="grid gap-3 border-b border-slate-100 p-4 sm:grid-cols-5" method="GET">
+    <input class="input sm:col-span-2" type="search" name="search" value="{{filters.search}}" placeholder="Receipt number">
+    <select class="input" name="type" data-autosubmit>
+      <option value="">All types</option>
+      <option value="SALE" {{selected "SALE" filters.type}}>Sale</option>
+      <option value="ROOM_CHARGE" {{selected "ROOM_CHARGE" filters.type}}>Room charge</option>
+      <option value="REFUND" {{selected "REFUND" filters.type}}>Refund</option>
+    </select>
+    <input class="input" type="date" name="from" value="{{filters.from}}" aria-label="From">
+    <div class="flex gap-2"><input class="input" type="date" name="to" value="{{filters.to}}" aria-label="To"><button class="btn btn-secondary" type="submit">Go</button></div>
+  </form>
+  {{#if receipts.length}}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Receipt</th><th>Issued</th><th>Order</th><th>Type</th><th class="text-right">Order total</th><th class="text-right">Prints</th><th>Issued by</th><th></th></tr></thead>
+      <tbody>
+        {{#each receipts}}
+        <tr>
+          <td class="font-mono text-xs">{{receiptNumber}}</td>
+          <td class="whitespace-nowrap text-xs">{{datetime generatedAt}}</td>
+          <td><a class="font-mono text-xs text-brand-700 hover:underline" href="/orders/{{order.id}}">{{order.orderNumber}}</a></td>
+          <td>{{statusBadge receiptType (humanize receiptType)}}</td>
+          <td class="text-right">{{money order.totalAmount}}</td>
+          <td class="text-right">{{printCount}}</td>
+          <td>{{generator.fullName}}</td>
+          <td class="text-right"><a class="btn btn-secondary btn-sm" href="/receipts/{{id}}">{{icon "printer" "w-4 h-4"}}View</a></td>
+        </tr>
+        {{/each}}
+      </tbody>
+    </table>
+  </div>
+  {{else}}
+    {{> empty-state message="No receipts in this period." icon="receipt"}}
+  {{/if}}
+  {{> pagination}}
+</div>

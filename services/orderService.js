@@ -4,7 +4,7 @@
 import { Op } from "sequelize";
 import {
   sequelize, Order, OrderItem, OrderDiscount, Outlet, Product, ProductPrice, Tax, User,
-  Payment, PaymentMethod, GuestCharge, Refund, Receipt, Shift,
+  Payment, PaymentMethod, GuestCharge, Refund, Receipt, Shift, Discount,
 } from "../models/index.js";
 import { ORDER_TYPES } from "../models/salesModel.js";
 import { AppError, notFound, forbidden } from "../utils/http.js";
@@ -14,8 +14,10 @@ import { priceOrder } from "./pricingService.js";
 import { assertTransition, EDITABLE_STATUSES, VOIDABLE_STATUSES } from "./orderStateMachine.js";
 import { audit } from "./auditService.js";
 import { nextNumber } from "./numberingService.js";
-import { findShortages } from "./inventoryService.js";
+import { findShortages, deductForOrder } from "./inventoryService.js";
 import { authorizeSupervisor } from "./authService.js";
+import { generateSaleReceipt } from "./receiptService.js";
+import { recordEvent } from "../integrations/events/eventPublisher.js";
 
 const DEFAULT_ORDER_TYPE = { ROOM_SERVICE: "ROOM_SERVICE", MINIBAR: "MINIBAR", SPA: "SPA", RESTAURANT: "DINE_IN", BAR: "DINE_IN", OTHER: "OTHER" };
 
@@ -328,6 +330,45 @@ export async function voidOrder(req, orderId, body) {
     await audit({ req, action: "ORDER_VOIDED", entityType: "order", entityId: order.id, oldValues: { status: before }, newValues: { status: "VOIDED", reason, approvedBy: approver.id, total: order.totalAmount }, transaction });
     return order.id;
   });
+}
+
+/**
+ * Post-sale steps once settlement is confirmed (F13 Paid/Charged to Room → Completed,
+ * F15 fork: inventory ∥ receipt, then OrderCompleted). Runs inside the caller's
+ * transaction with the order row already locked, so it can only happen once.
+ */
+export async function completeOrder(order, { req, userId, settledExternally }, transaction) {
+  assertTransition(order.status, "COMPLETED");
+  const items = await OrderItem.findAll({ where: { orderId: order.id }, transaction });
+  await deductForOrder(order, items, { userId, settledExternally, req }, transaction);
+
+  await order.update({ status: "COMPLETED", completedAt: new Date(), completedBy: userId, version: order.version + 1 }, { transaction });
+
+  const discounts = await OrderDiscount.findAll({ where: { orderId: order.id }, transaction });
+  for (const d of discounts) await Discount.increment("timesUsed", { by: 1, where: { id: d.discountId }, transaction });
+
+  const receipt = await generateSaleReceipt(order.id, { userId }, transaction);
+  const charge = order.settlementType === "ROOM_CHARGE" ? await GuestCharge.findOne({ where: { orderId: order.id, status: "POSTED" }, transaction }) : null;
+  await recordEvent(
+    "OrderCompleted",
+    "order",
+    order.id,
+    {
+      orderNumber: order.orderNumber,
+      outletId: order.outletId,
+      orderType: order.orderType,
+      settlementType: order.settlementType,
+      totalAmount: order.totalAmount,
+      taxAmount: order.taxAmount,
+      serviceChargeAmount: order.serviceChargeAmount,
+      completedAt: order.completedAt,
+      receiptNumber: receipt.receiptNumber,
+      guestCharge: charge ? { externalFolioId: charge.externalFolioId, externalGuestId: charge.externalGuestId, pmsTransactionId: charge.pmsTransactionId } : null,
+    },
+    transaction
+  );
+  await audit({ req, userId, action: "ORDER_COMPLETED", entityType: "order", entityId: order.id, newValues: { totalAmount: order.totalAmount, settlementType: order.settlementType, receiptNumber: receipt.receiptNumber }, transaction });
+  return receipt;
 }
 
 // ── Lists ────────────────────────────────────────────────────────────────

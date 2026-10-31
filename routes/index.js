@@ -38,6 +38,8 @@ import shiftRoutes from "./shifts.js";
 import posRoutes from "./pos.js";
 import orderRoutes from "./orders.js";
 import apiRoutes from "./api.js";
+import paymentRoutes from "./payments.js";
+import receiptRoutes from "./receipts.js";
 
 const router = express.Router();
 
@@ -53,6 +55,8 @@ router.use("/inventory", inventoryRoutes);
 router.use("/shifts", shiftRoutes);
 router.use("/pos", posRoutes);
 router.use("/orders", orderRoutes);
+router.use("/payments", paymentRoutes);
+router.use("/receipts", receiptRoutes);
 router.use("/api", apiRoutes);
 
 export default router;
