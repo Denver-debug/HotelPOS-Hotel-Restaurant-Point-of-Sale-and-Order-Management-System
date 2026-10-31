@@ -1,0 +1,8 @@
+{{!-- Usage: {{#> page-header heading="Products" subtitle="…"}}<a class="btn …">Action</a>{{/page-header}} --}}
+<div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+  <div>
+    <h2 class="text-2xl font-semibold text-slate-900">{{heading}}</h2>
+    {{#if subtitle}}<p class="mt-1 text-sm text-slate-500">{{subtitle}}</p>{{/if}}
+  </div>
+  <div class="flex flex-wrap items-center gap-2">{{> @partial-block}}</div>
+</div>

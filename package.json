@@ -1,7 +1,7 @@
 {
   "name": "HotelPOS",
   "version": "1.0.0",
-  "description": "XianFire Framework project",
+  "description": "HotelPOS: Hotel Restaurant Point-of-Sale and Order Management System (XianFire Framework)",
   "main": "electron/main.js",
   "type": "module",
   "bin": {
@@ -18,14 +18,15 @@
     "create:upload-middleware": "node create.js upload-middleware",
     "route:list": "node list-routes.js",
     "route:cache": "node route-cache.js",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand",
+    "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
+    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage --runInBand",
     "electron": "electron .",
     "dev:electron": "concurrently \"npm run dev\" \"wait-on http://localhost:3000 && electron .\"",
     "build": "electron-builder",
     "run": "concurrently \"npm start\" \"wait-on http://localhost:3000 && electron .\"",
-    "dist": "electron-builder --publish=never"
+    "dist": "electron-builder --publish=never",
+    "test:unit": "node --experimental-vm-modules node_modules/jest/bin/jest.js __tests__/unit"
   },
   "dependencies": {
     "express": "^4.19.2",

@@ -1,5 +1,4 @@
-
-      /*
+/*
     MIT License
     
     Copyright (c) 2025 Christian I. Cabrera || XianFire Framework
@@ -23,38 +22,44 @@
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
     SOFTWARE.
     */
-    
-import bcrypt from "bcrypt";
-import { User, sequelize } from "../models/userModel.js";
-await sequelize.sync();
 
-export const loginPage = (req, res) => res.render("login", { title: "Login" });
-export const registerPage = (req, res) => res.render("register", { title: "Register" });
-export const forgotPasswordPage = (req, res) => res.render("forgotpassword", { title: "Forgot Password" });
-export const dashboardPage = (req, res) => {
-  if (!req.session.userId) return res.redirect("/login");
-  res.render("dashboard", { title: "Dashboard" });
+import * as authService from "../services/authService.js";
+import { str } from "../utils/validate.js";
+
+const safeNext = (value) => (typeof value === "string" && /^\/(?!\/)/.test(value) ? value : "/dashboard");
+
+export const loginPage = (req, res) => {
+  if (req.user) return res.redirect("/dashboard");
+  res.render("auth/login", { layout: "layouts/auth", title: "Sign in", next: req.query.next || "" });
 };
 
 export const loginUser = async (req, res) => {
-  const { email, password } = req.body;
-  const user = await User.findOne({ where: { email } });
-  if (!user) return res.send("User not found");
-  const match = await bcrypt.compare(password, user.password);
-  if (!match) return res.send("Incorrect password");
-  req.session.userId = user.id;
-  res.redirect("/dashboard");
+  const username = str(req.body.username, "Username", { required: true, max: 50 });
+  const password = String(req.body.password || "");
+  const next = safeNext(req.body.next);
+  try {
+    await authService.login(req, username, password);
+    res.redirect(next);
+  } catch (err) {
+    if (!err.status || err.status >= 500) throw err;
+    res.status(err.status).render("auth/login", { layout: "layouts/auth", title: "Sign in", error: err.message, username, next });
+  }
 };
 
-export const registerUser = async (req, res) => {
-  const { name, email, password } = req.body;
-  const hashed = await bcrypt.hash(password, 10);
-  const user = await User.create({ name, email, password: hashed });
-  req.session.userId = user.id;
-  res.redirect("/dashboard");
-};
-
-export const logoutUser = (req, res) => {
-  req.session.destroy();
+export const logoutUser = async (req, res) => {
+  await authService.logout(req);
+  res.clearCookie("hotelpos.sid");
   res.redirect("/login");
+};
+
+export const forgotPasswordPage = (req, res) =>
+  res.render("auth/forgot-password", { layout: "layouts/auth", title: "Forgot password" });
+
+export const changePasswordPage = (req, res) =>
+  res.render("auth/change-password", { title: "Change password", breadcrumbs: [{ label: "Change password" }] });
+
+export const changePassword = async (req, res) => {
+  await authService.changePassword(req, req.body.currentPassword, req.body.newPassword, req.body.confirmPassword);
+  req.flash("success_msg", "Your password has been changed.");
+  res.redirect("/dashboard");
 };

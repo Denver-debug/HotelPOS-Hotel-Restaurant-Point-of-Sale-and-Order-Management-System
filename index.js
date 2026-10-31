@@ -23,6 +23,7 @@
     SOFTWARE.
     */
     
+import { config } from "./config/env.js";
 import express from "express";
 import path from "path";
 import session from "express-session";
@@ -32,21 +33,39 @@ import fs from 'fs';
 import hbs from "hbs";
 import { fileURLToPath, pathToFileURL } from "url";
 import { dirname } from "path";
+import { MySQLSessionStore } from "./middleware/sessionStore.js";
+import { securityHeaders } from "./middleware/securityHeaders.js";
+import { csrfProtection } from "./middleware/csrf.js";
+import { loadCurrentUser } from "./middleware/auth.js";
+import { notFoundHandler, errorHandler } from "./middleware/errorHandler.js";
+import { registerViewHelpers } from "./utils/viewHelpers.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = config.port;
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(process.cwd(), "public")));
+app.disable("x-powered-by");
+app.use(securityHeaders);
+app.use(express.json({ limit: "1mb" }));
+app.use(express.urlencoded({ extended: true, limit: "1mb" }));
+app.use(express.static(path.join(__dirname, "public")));
 
+export const sessionStore = new MySQLSessionStore({ ttlMs: config.session.ttlMinutes * 60000 });
 app.use(session({
-  secret: "xianfire-secret-key",
+  name: "hotelpos.sid",
+  store: sessionStore,
+  secret: config.session.secret,
   resave: false,
-  saveUninitialized: false
+  saveUninitialized: false,
+  rolling: true,
+  cookie: {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: config.session.cookieSecure,
+    maxAge: config.session.ttlMinutes * 60000,
+  },
 }));
 app.use(flash());
 
@@ -68,40 +87,46 @@ app.engine("xian", async (filePath, options, callback) => {
     callback(err);
   }
 });
-app.use((req, res, next) => {
-  res.locals.success_msg = req.flash("success_msg");
-  res.locals.error_msg = req.flash("error_msg");
-  next();
-});
-
 
 app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "xian");
+// Every page renders inside views/layouts/main.xian unless it sets `layout`.
+app.set("view options", { layout: "layouts/main" });
+registerViewHelpers(hbs);
+
+// Register partials synchronously (including subfolders, e.g. {{> pos/order-pad}})
+// so they exist before the first request is served.
 const partialsDir = path.join(__dirname, "views/partials");
-fs.readdir(partialsDir, (err, files) => {
-  if (err) {
-    console.error("❌ Could not read partials directory:", err);
-    return;
+const registerPartials = (dir, prefix = "") => {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      registerPartials(fullPath, `${prefix}${entry.name}/`);
+    } else if (entry.name.endsWith(".xian")) {
+      hbs.registerPartial(prefix + entry.name.replace(".xian", ""), fs.readFileSync(fullPath, "utf8"));
+    }
   }
+};
+try {
+  registerPartials(partialsDir);
+} catch (err) {
+  console.error("❌ Could not register partials:", err);
+}
 
-   files
-    .filter(file => file.endsWith('.xian'))
-    .forEach(file => {
-      const partialName = file.replace('.xian', ''); 
-      const fullPath = path.join(partialsDir, file);
-
-      fs.readFile(fullPath, 'utf8', (err, content) => {
-        if (err) {
-          console.error(`❌ Failed to read partial: ${file}`, err);
-          return;
-        }
-        hbs.registerPartial(partialName, content);
-        
-      });
-    });
+app.use(loadCurrentUser);
+app.use(csrfProtection);
+app.use((req, res, next) => {
+  res.locals.success_msg = req.flash("success_msg");
+  res.locals.error_msg = req.flash("error_msg");
+  res.locals.appName = config.appName;
+  res.locals.hotelName = config.hotelName;
+  res.locals.currencySymbol = config.currencySymbol;
+  next();
 });
 
 app.use("/", router);
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 export default app;
 

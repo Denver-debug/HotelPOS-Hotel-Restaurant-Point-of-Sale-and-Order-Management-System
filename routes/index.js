@@ -1,5 +1,4 @@
-
-  /*
+/*
     MIT License
     
     Copyright (c) 2025 Christian I. Cabrera || XianFire Framework
@@ -23,20 +22,17 @@
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
     SOFTWARE.
     */
-    
+
+// Route registry: each feature lives in its own router module under routes/.
 import express from "express";
 import { homePage } from "../controllers/homeController.js";
+import authRoutes from "./auth.js";
+import dashboardRoutes from "./dashboard.js";
+
 const router = express.Router();
+
 router.get("/", homePage);
-
-import { loginPage, registerPage, forgotPasswordPage, dashboardPage, loginUser, registerUser, logoutUser } from "../controllers/authController.js";
-
-router.get("/login", loginPage);
-router.post("/login", loginUser);
-router.get("/register", registerPage);
-router.post("/register", registerUser);
-router.get("/forgot-password", forgotPasswordPage);
-router.get("/dashboard", dashboardPage);
-router.get("/logout", logoutUser);
+router.use("/", authRoutes);
+router.use("/dashboard", dashboardRoutes);
 
 export default router;

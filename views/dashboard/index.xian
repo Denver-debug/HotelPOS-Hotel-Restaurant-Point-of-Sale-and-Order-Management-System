@@ -1,0 +1,4 @@
+{{#> page-header heading=(concat "Welcome, " currentUser.fullName) subtitle=currentUser.roleName}}{{/page-header}}
+<div class="card card-body text-sm text-slate-600">
+  Use the navigation menu to open the modules available to your role.
+</div>

@@ -1,35 +1,29 @@
-
-      /*
-    MIT License
-    
-    Copyright (c) 2025 Christian I. Cabrera || XianFire Framework
-    Mindoro State University - Philippines
-
-    Permission is hereby granted, free of charge, to any person obtaining a copy
-    of this software and associated documentation files (the "Software"), to deal
-    in the Software without restriction, including without limitation the rights
-    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is
-    furnished to do so, subject to the following conditions:
-
-    The above copyright notice and this permission notice shall be included in all
-    copies or substantial portions of the Software.
-
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-    SOFTWARE.
-    */
 import { DataTypes } from "sequelize";
 import { sequelize } from "./db.js";
 
+// Local login account. The employee master record lives in HR and Staff Payroll;
+// only its reference (externalEmployeeId) is kept here.
 export const User = sequelize.define("User", {
-  name: { type: DataTypes.STRING, allowNull: false },
-  email: { type: DataTypes.STRING, allowNull: false },
-  password: { type: DataTypes.STRING, allowNull: false },
-  role: { type: DataTypes.ENUM("admin", "staff", "visitors"), allowNull: false, defaultValue: "visitors" }
+  username: { type: DataTypes.STRING(50), allowNull: false, unique: true },
+  email: { type: DataTypes.STRING(160), unique: true },
+  fullName: { type: DataTypes.STRING(120), allowNull: false },
+  passwordHash: { type: DataTypes.STRING(255), allowNull: false },
+  roleId: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
+  externalEmployeeId: { type: DataTypes.STRING(50), unique: true },
+  status: { type: DataTypes.ENUM("ACTIVE", "INACTIVE", "LOCKED"), allowNull: false, defaultValue: "ACTIVE" },
+  failedLoginCount: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, defaultValue: 0 },
+  lockedUntil: { type: DataTypes.DATE },
+  lastLoginAt: { type: DataTypes.DATE },
+  passwordChangedAt: { type: DataTypes.DATE },
+}, {
+  tableName: "users",
+  defaultScope: { attributes: { exclude: ["passwordHash"] } },
+  scopes: { withPassword: { attributes: { include: ["passwordHash"] } } },
 });
-export { sequelize }; 
+
+export const UserOutlet = sequelize.define("UserOutlet", {
+  userId: { type: DataTypes.INTEGER.UNSIGNED, primaryKey: true },
+  outletId: { type: DataTypes.INTEGER.UNSIGNED, primaryKey: true },
+}, { tableName: "user_outlets", updatedAt: false });
+
+export { sequelize };

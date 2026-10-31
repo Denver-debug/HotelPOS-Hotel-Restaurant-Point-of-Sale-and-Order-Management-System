@@ -1,8 +1,60 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <title>{{ title }} </title>
-</head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="csrf-token" content="{{csrfToken}}">
+<title>{{#if title}}{{title}} · {{/if}}{{default appName "HotelPOS"}}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<script src="https://cdn.tailwindcss.com/3.4.16"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: { sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"] },
+        colors: {
+          brand: { 50: "#f1f5fb", 100: "#dfe7f3", 200: "#bccbe4", 300: "#8ea6cf", 400: "#5f7fb5", 500: "#3f619b", 600: "#2f4b7f", 700: "#273d67", 800: "#1d2d4d", 900: "#131e35", 950: "#0b1222" },
+          accent: { 50: "#fbf7ef", 100: "#f4ead4", 200: "#e8d3a6", 300: "#d9b672", 400: "#cc9d4b", 500: "#b8843a", 600: "#9b6a2f", 700: "#7c5229", 800: "#674427", 900: "#573a25" },
+        },
+      },
+    },
+  };
+</script>
+<style type="text/tailwindcss">
+  @layer components {
+    .btn { @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap; }
+    .btn-primary { @apply bg-brand-800 text-white hover:bg-brand-900 focus-visible:ring-brand-500; }
+    .btn-accent { @apply bg-accent-500 text-white hover:bg-accent-600 focus-visible:ring-accent-400; }
+    .btn-secondary { @apply bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 focus-visible:ring-brand-400; }
+    .btn-danger { @apply bg-rose-600 text-white hover:bg-rose-700 focus-visible:ring-rose-400; }
+    .btn-success { @apply bg-emerald-600 text-white hover:bg-emerald-700 focus-visible:ring-emerald-400; }
+    .btn-ghost { @apply text-slate-600 hover:bg-slate-100 focus-visible:ring-brand-400; }
+    .btn-sm { @apply px-2.5 py-1.5 text-xs; }
+    .btn-lg { @apply px-5 py-3 text-base; }
+    .card { @apply bg-white rounded-xl border border-slate-200 shadow-sm; }
+    .card-header { @apply px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-3; }
+    .card-title { @apply text-base font-semibold text-slate-900; }
+    .card-body { @apply p-5; }
+    .label { @apply block text-sm font-medium text-slate-700 mb-1; }
+    .input { @apply block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50; }
+    .help { @apply mt-1 text-xs text-slate-500; }
+    .table-wrap { @apply overflow-x-auto; }
+    .table { @apply w-full text-sm; }
+    .table thead th { @apply bg-slate-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 whitespace-nowrap; }
+    .table tbody td { @apply border-t border-slate-100 px-4 py-3 align-middle; }
+    .table tbody tr:hover { @apply bg-slate-50/60; }
+    .badge { @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset whitespace-nowrap; }
+    .badge-green { @apply bg-emerald-50 text-emerald-700 ring-emerald-600/20; }
+    .badge-blue { @apply bg-brand-50 text-brand-700 ring-brand-600/20; }
+    .badge-amber { @apply bg-amber-50 text-amber-800 ring-amber-600/20; }
+    .badge-red { @apply bg-rose-50 text-rose-700 ring-rose-600/20; }
+    .badge-slate { @apply bg-slate-100 text-slate-600 ring-slate-500/20; }
+    .stat { @apply card p-5; }
+    .stat-label { @apply text-xs font-medium uppercase tracking-wide text-slate-500; }
+    .stat-value { @apply mt-2 text-2xl font-semibold text-slate-900; }
+    .nav-link { @apply flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-brand-100 hover:bg-white/10 hover:text-white transition; }
+    .nav-link-active { @apply bg-white/10 text-white font-medium; }
+    .dl { @apply grid grid-cols-3 gap-x-4 gap-y-2 text-sm; }
+    .dl dt { @apply text-slate-500; }
+    .dl dd { @apply col-span-2 text-slate-900; }
+  }
+</style>
+<link rel="stylesheet" href="/css/app.css">

@@ -1,0 +1,26 @@
+<div class="rounded-2xl bg-white p-8 shadow-xl">
+  <h2 class="text-lg font-semibold text-slate-900">Sign in to your account</h2>
+  <p class="mt-1 text-sm text-slate-500">Use the credentials issued by your system administrator.</p>
+  {{#if error}}
+    <div class="mt-4 flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800" role="alert">{{icon "alert" "w-5 h-5 shrink-0"}}<span>{{error}}</span></div>
+  {{/if}}
+  {{#each error_msg}}
+    <div class="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800" role="alert">{{this}}</div>
+  {{/each}}
+  <form class="mt-6 space-y-4" method="POST" action="/login" novalidate>
+    <input type="hidden" name="_csrf" value="{{csrfToken}}">
+    <input type="hidden" name="next" value="{{next}}">
+    <div>
+      <label class="label" for="username">Username</label>
+      <input class="input" id="username" name="username" value="{{username}}" autocomplete="username" required autofocus>
+    </div>
+    <div>
+      <label class="label" for="password">Password</label>
+      <input class="input" id="password" type="password" name="password" autocomplete="current-password" required>
+    </div>
+    <button type="submit" class="btn btn-primary btn-lg w-full" data-loading-text="Signing in…">Sign in</button>
+  </form>
+  <div class="mt-4 text-center text-sm">
+    <a href="/forgot-password" class="text-brand-700 hover:underline">Forgot your password?</a>
+  </div>
+</div>

@@ -25,8 +25,14 @@
     */
     
 import { Sequelize } from "sequelize";
+import { config } from "../config/env.js";
 
-export const sequelize = new Sequelize("HotelPOS", "root", "", {
-  host: "localhost",
-  dialect: "mysql"
+export const sequelize = new Sequelize(config.db.name, config.db.user, config.db.password, {
+  host: config.db.host,
+  port: config.db.port,
+  dialect: "mysql",
+  timezone: config.timezone,
+  logging: false,
+  define: { underscored: true, freezeTableName: true },
+  pool: { max: 10, min: 0, idle: 10000 },
 });

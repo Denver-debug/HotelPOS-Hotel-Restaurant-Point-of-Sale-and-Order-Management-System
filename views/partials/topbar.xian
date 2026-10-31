@@ -1,0 +1,26 @@
+<header class="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-slate-200 bg-white/90 px-4 backdrop-blur sm:px-6 lg:px-8">
+  <button type="button" class="btn btn-ghost -ml-2 p-2 lg:hidden" data-sidebar-open aria-label="Open menu">{{icon "menu"}}</button>
+  <h1 class="truncate text-lg font-semibold text-slate-900">{{title}}</h1>
+  <div class="ml-auto flex items-center gap-3">
+    {{#if openShift}}
+      <a href="/shifts/{{openShift.id}}" class="hidden items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 ring-1 ring-emerald-600/20 sm:inline-flex" title="Open cashier shift">
+        <span class="h-2 w-2 rounded-full bg-emerald-500"></span>{{openShift.shiftNumber}} · {{openShift.outlet.name}}
+      </a>
+    {{else}}
+      {{#if (can "shifts.open")}}
+        <a href="/shifts/open" class="hidden items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800 ring-1 ring-amber-600/20 sm:inline-flex">
+          <span class="h-2 w-2 rounded-full bg-amber-500"></span>No open shift
+        </a>
+      {{/if}}
+    {{/if}}
+    <div class="hidden text-right sm:block">
+      <div class="text-sm font-medium text-slate-900">{{currentUser.fullName}}</div>
+      <div class="text-xs text-slate-500">{{currentUser.roleName}}</div>
+    </div>
+    <a href="/account/password" class="btn btn-ghost p-2" title="Change password" aria-label="Change password">{{icon "cog"}}</a>
+    <form method="POST" action="/logout">
+      <input type="hidden" name="_csrf" value="{{csrfToken}}">
+      <button type="submit" class="btn btn-ghost p-2" title="Sign out" aria-label="Sign out">{{icon "logout"}}</button>
+    </form>
+  </div>
+</header>

@@ -1,5 +1,3 @@
-<footer class="mt-8 py-4 text-center text-gray-500 text-sm">
-  &copy; 2026 XianFire Framework — Built with ❤️ at Mindoro State University
+<footer class="border-t border-slate-200 px-4 py-4 text-center text-xs text-slate-500 sm:px-6 lg:px-8">
+  {{default appName "HotelPOS"}} — Hotel Restaurant Point-of-Sale and Order Management · Built on the XianFire Framework
 </footer>
-</body>
-</html>

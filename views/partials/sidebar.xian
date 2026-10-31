@@ -1,0 +1,30 @@
+<div id="sidebar-backdrop" class="fixed inset-0 z-30 hidden bg-slate-900/50 lg:hidden" data-sidebar-close></div>
+<aside id="sidebar" class="fixed inset-y-0 left-0 z-40 flex w-64 -translate-x-full flex-col bg-brand-900 transition-transform lg:translate-x-0">
+  <div class="flex h-16 shrink-0 items-center gap-3 border-b border-white/10 px-5">
+    <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-accent-500 text-white">{{icon "key" "w-5 h-5"}}</div>
+    <div class="min-w-0">
+      <div class="text-sm font-semibold text-white">{{default appName "HotelPOS"}}</div>
+      <div class="truncate text-xs text-brand-300">{{hotelName}}</div>
+    </div>
+    <button type="button" class="ml-auto text-brand-200 lg:hidden" data-sidebar-close aria-label="Close menu">{{icon "x"}}</button>
+  </div>
+  <nav class="flex-1 space-y-6 overflow-y-auto px-3 py-5" aria-label="Main navigation">
+    {{#each navigation}}
+      <div>
+        {{#if section}}<p class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-brand-400">{{section}}</p>{{/if}}
+        <ul class="space-y-1">
+          {{#each items}}
+            <li>
+              <a href="{{href}}" class="nav-link {{#if active}}nav-link-active{{/if}}" {{#if active}}aria-current="page"{{/if}}>
+                {{icon icon "w-5 h-5 shrink-0"}}<span class="truncate">{{label}}</span>
+              </a>
+            </li>
+          {{/each}}
+        </ul>
+      </div>
+    {{/each}}
+  </nav>
+  <div class="border-t border-white/10 px-5 py-4 text-xs text-brand-300">
+    Signed in as <span class="font-medium text-white">{{currentUser.username}}</span><br>{{currentUser.roleName}}
+  </div>
+</aside>

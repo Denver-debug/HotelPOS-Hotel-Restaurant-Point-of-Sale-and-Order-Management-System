@@ -1,0 +1,17 @@
+<!-- Shared confirmation dialog used by forms/buttons with data-confirm="…" -->
+<div id="confirm-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/50 p-4" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+  <div class="w-full max-w-md rounded-xl bg-white shadow-xl">
+    <div class="flex items-start gap-4 p-6">
+      <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">{{icon "alert"}}</div>
+      <div>
+        <h2 id="confirm-title" class="text-base font-semibold text-slate-900">Please confirm</h2>
+        <p id="confirm-message" class="mt-1 text-sm text-slate-600"></p>
+      </div>
+    </div>
+    <div class="flex justify-end gap-2 rounded-b-xl bg-slate-50 px-6 py-3">
+      <button type="button" class="btn btn-secondary" data-confirm-cancel>Cancel</button>
+      <button type="button" class="btn btn-danger" data-confirm-ok>Confirm</button>
+    </div>
+  </div>
+</div>
+<div id="toast-root" class="pointer-events-none fixed bottom-4 right-4 z-[60] flex flex-col gap-2"></div>

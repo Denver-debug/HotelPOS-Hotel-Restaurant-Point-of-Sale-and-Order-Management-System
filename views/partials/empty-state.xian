@@ -1,0 +1,6 @@
+{{!-- Usage: {{> empty-state message="No orders found." hint="Try another filter."}} --}}
+<div class="flex flex-col items-center justify-center px-6 py-12 text-center">
+  <div class="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">{{icon (default icon "list") "w-6 h-6"}}</div>
+  <p class="mt-3 text-sm font-medium text-slate-700">{{message}}</p>
+  {{#if hint}}<p class="mt-1 text-sm text-slate-500">{{hint}}</p>{{/if}}
+</div>
