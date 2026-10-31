@@ -6,6 +6,7 @@ import * as pos from "../controllers/posController.js";
 import * as orders from "../controllers/orderController.js";
 import * as payments from "../controllers/paymentController.js";
 import * as receipts from "../controllers/receiptController.js";
+import * as guestCharges from "../controllers/guestChargeController.js";
 
 const router = express.Router();
 const canOrder = requirePermission("orders.create");
@@ -26,6 +27,11 @@ router.post("/orders/:id(\\d+)/reopen", canOrder, asyncHandler(orders.apiReopen)
 router.post("/orders/:id(\\d+)/void", canOrder, asyncHandler(orders.apiVoid));
 
 router.post("/orders/:id(\\d+)/payments", requirePermission("payments.process"), asyncHandler(payments.apiPay));
+const canCharge = requirePermission("room_charges.process");
+router.post("/orders/:id(\\d+)/room-charge/validate", canCharge, asyncHandler(guestCharges.apiValidate));
+router.post("/orders/:id(\\d+)/room-charge", canCharge, asyncHandler(guestCharges.apiPost));
+router.post("/guest-charges/:id(\\d+)/verify", canCharge, asyncHandler(guestCharges.apiVerify));
+
 router.post("/receipts/:id(\\d+)/printed", requirePermission("receipts.view"), asyncHandler(receipts.apiPrinted));
 
 export default router;

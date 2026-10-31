@@ -1,0 +1,57 @@
+{{#> page-header heading=(concat "Room charge " charge.chargeNumber) subtitle=(concat "Room " charge.roomNumber " · " charge.order.outlet.name)}}
+  {{#if canVerify}}
+  <form method="POST" action="/guest-charges/{{charge.id}}/verify">
+    <input type="hidden" name="_csrf" value="{{csrfToken}}">
+    <button class="btn btn-primary" type="submit">{{icon "refresh" "w-4 h-4"}}Check status with PMS</button>
+  </form>
+  {{/if}}
+{{/page-header}}
+{{#if (eq charge.status "UNKNOWN")}}
+<div class="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+  The PMS did not confirm this charge. It has not been re-sent. Use <strong>Check status with PMS</strong>; it is re-posted with the same idempotency key only if the PMS has no record of it.
+</div>
+{{/if}}
+<div class="grid gap-6 lg:grid-cols-3">
+  <div class="card">
+    <div class="card-header"><h3 class="card-title">Charge</h3>{{statusBadge charge.status}}</div>
+    <dl class="card-body dl">
+      <dt>Order</dt><dd><a class="text-brand-700 hover:underline" href="/orders/{{charge.order.id}}">{{charge.order.orderNumber}}</a></dd>
+      <dt>Amount</dt><dd class="font-semibold">{{money charge.amount}}</dd>
+      {{#if (gt charge.reversedAmount 0)}}<dt>Reversed</dt><dd class="text-rose-700">{{money charge.reversedAmount}}</dd>{{/if}}
+      <dt>Room</dt><dd>{{charge.roomNumber}}</dd>
+      <dt>Guest ref</dt><dd class="font-mono text-xs">{{charge.externalGuestId}}</dd>
+      <dt>Room ref</dt><dd class="font-mono text-xs">{{charge.externalRoomId}}</dd>
+      <dt>Folio</dt><dd class="font-mono text-xs">{{charge.externalFolioId}}</dd>
+      <dt>PMS transaction</dt><dd class="font-mono text-xs">{{default charge.pmsTransactionId "—"}}</dd>
+      <dt>Attempts</dt><dd>{{charge.attempts}}</dd>
+      <dt>Requested by</dt><dd>{{charge.requester.fullName}}</dd>
+      <dt>Posted</dt><dd>{{default (datetime charge.postedAt) "—"}}</dd>
+      {{#if charge.lastError}}<dt>Last error</dt><dd class="text-rose-700">{{charge.lastError}}</dd>{{/if}}
+      <dt>Idempotency key</dt><dd class="break-all font-mono text-xs text-slate-500">{{charge.idempotencyKey}}</dd>
+      {{#if charge.isMock}}<dt>Integration</dt><dd><span class="badge badge-slate">MOCK PMS</span></dd>{{/if}}
+    </dl>
+  </div>
+  <div class="card lg:col-span-2">
+    <div class="card-header"><h3 class="card-title">PMS communication log</h3></div>
+    {{#if logs.length}}
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Time</th><th>Operation</th><th>Status</th><th class="text-right">ms</th><th>Response / error</th></tr></thead>
+        <tbody>
+          {{#each logs}}
+          <tr>
+            <td class="whitespace-nowrap text-xs">{{datetime createdAt}}</td>
+            <td class="font-mono text-xs">{{operation}}</td>
+            <td>{{statusBadge status}}</td>
+            <td class="text-right text-xs">{{durationMs}}</td>
+            <td class="max-w-md break-all font-mono text-xs text-slate-600">{{#if errorMessage}}<span class="text-rose-700">{{errorMessage}}</span>{{else}}{{json responsePayload}}{{/if}}</td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    </div>
+    {{else}}
+      {{> empty-state message="No PMS calls recorded." icon="plug"}}
+    {{/if}}
+  </div>
+</div>
