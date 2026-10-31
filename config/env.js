@@ -27,8 +27,7 @@ export const config = {
   isProduction,
   isTest,
   port: int(env.PORT, 3000),
-  appName: env.APP_NAME || "HotelPOS",
-  hotelName: env.HOTEL_NAME || "Shangri-La Hotel",
+  appName: env.APP_NAME || "HotelFlow",
   timezone: env.APP_TIMEZONE || "+08:00",
   currencySymbol: env.CURRENCY_SYMBOL || "₱",
   session: {

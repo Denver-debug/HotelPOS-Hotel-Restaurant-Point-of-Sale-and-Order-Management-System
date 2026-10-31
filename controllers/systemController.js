@@ -112,7 +112,7 @@ export const settings = async (req, res) => {
     breadcrumbs: [{ label: "Settings" }],
     posSettings: (await SystemSetting.findAll({ order: [["sortOrder", "ASC"]] })).map((s) => s.get({ plain: true })),
     methods: (await PaymentMethod.findAll({ order: [["sortOrder", "ASC"]] })).map((m) => m.get({ plain: true })),
-    env: { appName: config.appName, hotelName: config.hotelName, timezone: config.timezone, currency: config.currencySymbol, environment: config.env, database: config.db.name },
+    env: { appName: config.appName, timezone: config.timezone, currency: config.currencySymbol, environment: config.env, database: config.db.name },
   });
 };
 

@@ -12,7 +12,7 @@ import { audit } from "./auditService.js";
 
 async function header() {
   const settings = await getSettings();
-  return { hotelName: config.hotelName, header: settings.receipt_header || "", footer: settings.receipt_footer || "" };
+  return { appName: config.appName, header: settings.receipt_header || "", footer: settings.receipt_footer || "" };
 }
 
 export async function generateSaleReceipt(orderId, { userId }, transaction) {

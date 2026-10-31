@@ -1,4 +1,4 @@
-{{#> page-header heading=(concat "Welcome, " currentUser.fullName) subtitle=(concat currentUser.roleName " · " (default hotelName ""))}}
+{{#> page-header heading=(concat "Welcome, " currentUser.fullName) subtitle=currentUser.roleName}}
   <form method="GET" class="flex flex-wrap items-center gap-2">
     <select class="input w-auto" name="outletId" data-autosubmit aria-label="Outlet">
       <option value="">All my outlets</option>

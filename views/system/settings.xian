@@ -26,7 +26,6 @@
     <div class="card-header"><h3 class="card-title">Environment</h3></div>
     <dl class="card-body dl">
       <dt>Application</dt><dd>{{env.appName}}</dd>
-      <dt>Hotel name</dt><dd>{{env.hotelName}}</dd>
       <dt>Timezone</dt><dd>{{env.timezone}}</dd>
       <dt>Currency</dt><dd>{{env.currency}}</dd>
       <dt>Environment</dt><dd>{{env.environment}}</dd>

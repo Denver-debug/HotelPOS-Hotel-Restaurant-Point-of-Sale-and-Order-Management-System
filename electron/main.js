@@ -15,7 +15,7 @@ let mainWindow = null;
 let expressServer = null;
 
 function createWindow() {
-  const iconPath = path.join(__dirname, '../public/favicon.ico');
+  const iconPath = path.join(__dirname, '../public/favicon.png');
   const windowOptions = {
     width: 1200,
     height: 800,
