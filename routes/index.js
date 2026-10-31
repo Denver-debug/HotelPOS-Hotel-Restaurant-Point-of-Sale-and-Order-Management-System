@@ -41,6 +41,7 @@ import apiRoutes from "./api.js";
 import paymentRoutes from "./payments.js";
 import receiptRoutes from "./receipts.js";
 import guestChargeRoutes from "./guestCharges.js";
+import discountRoutes from "./discounts.js";
 
 const router = express.Router();
 
@@ -59,6 +60,7 @@ router.use("/orders", orderRoutes);
 router.use("/payments", paymentRoutes);
 router.use("/receipts", receiptRoutes);
 router.use("/guest-charges", guestChargeRoutes);
+router.use("/discounts", discountRoutes);
 router.use("/api", apiRoutes);
 
 export default router;

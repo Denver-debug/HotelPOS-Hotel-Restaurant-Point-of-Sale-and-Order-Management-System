@@ -1,0 +1,42 @@
+{{#> page-header heading=discount.name subtitle=(concat discount.code " · " (humanize discount.scope) " discount")}}
+  <a href="/discounts/{{discount.id}}/edit" class="btn btn-secondary">{{icon "edit" "w-4 h-4"}}Edit</a>
+{{/page-header}}
+<div class="grid gap-6 lg:grid-cols-3">
+  <div class="card">
+    <div class="card-header"><h3 class="card-title">Rule</h3>{{statusBadge discount.status}}</div>
+    <dl class="card-body dl">
+      <dt>Value</dt><dd>{{#if (eq discount.discountType "PERCENTAGE")}}{{discount.value}}%{{else}}{{money discount.value}}{{/if}}</dd>
+      <dt>Applies to</dt><dd>{{#if (eq discount.scope "ITEM")}}One item{{else}}Whole order{{/if}}</dd>
+      <dt>Minimum</dt><dd>{{#if discount.minOrderAmount}}{{money discount.minOrderAmount}}{{else}}—{{/if}}</dd>
+      <dt>Valid</dt><dd>{{#if discount.validFrom}}{{datetime discount.validFrom}}{{else}}Any time{{/if}} → {{#if discount.validTo}}{{datetime discount.validTo}}{{else}}no end{{/if}}</dd>
+      <dt>Uses</dt><dd>{{discount.timesUsed}}{{#if discount.maxUses}} of {{discount.maxUses}}{{/if}}</dd>
+      <dt>Approval</dt><dd>{{#if discount.requiresAuthorization}}Supervisor required{{else}}Not required{{/if}}</dd>
+      <dt>Outlets</dt><dd>{{#each discount.outlets}}{{name}}<br>{{else}}All outlets{{/each}}</dd>
+      <dt>Products</dt><dd>{{#each discount.products}}{{name}}<br>{{else}}All products{{/each}}</dd>
+    </dl>
+  </div>
+  <div class="card lg:col-span-2">
+    <div class="card-header"><h3 class="card-title">Usage history</h3><span class="text-sm text-slate-600">Total discounted: <strong>{{money totalDiscounted}}</strong></span></div>
+    {{#if usage.length}}
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Order</th><th>Completed</th><th>Outlet</th><th>Applied by</th><th>Authorized by</th><th class="text-right">Amount</th></tr></thead>
+        <tbody>
+          {{#each usage}}
+          <tr>
+            <td><a class="font-mono text-xs text-brand-700 hover:underline" href="/orders/{{order_id}}">{{order_number}}</a></td>
+            <td class="text-xs">{{datetime completed_at}}</td>
+            <td>{{outlet_code}}</td>
+            <td>{{applied_by}}</td>
+            <td>{{default authorized_by "—"}}</td>
+            <td class="text-right">{{money amount}}</td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    </div>
+    {{else}}
+      {{> empty-state message="This discount has not been used on a completed order yet." icon="percent"}}
+    {{/if}}
+  </div>
+</div>

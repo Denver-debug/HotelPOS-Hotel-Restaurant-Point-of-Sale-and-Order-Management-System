@@ -1,0 +1,65 @@
+{{#> page-header heading=title subtitle="Completed transactions keep a snapshot of the discount, so later edits never change history."}}{{/page-header}}
+{{> form-error}}
+<form method="POST" action="{{#if editing}}/discounts/{{discount.id}}{{else}}/discounts{{/if}}" class="grid gap-6 lg:grid-cols-3">
+  <input type="hidden" name="_csrf" value="{{csrfToken}}">
+  <div class="card lg:col-span-2">
+    <div class="card-body grid gap-4 sm:grid-cols-2">
+      <div><label class="label" for="code">Code</label><input class="input font-mono uppercase" id="code" name="code" value="{{discount.code}}" maxlength="30" required></div>
+      <div><label class="label" for="name">Name</label><input class="input" id="name" name="name" value="{{discount.name}}" maxlength="100" required></div>
+      <div class="sm:col-span-2"><label class="label" for="description">Description</label><input class="input" id="description" name="description" value="{{discount.description}}" maxlength="255"></div>
+      <div>
+        <label class="label" for="discountType">Type</label>
+        <select class="input" id="discountType" name="discountType">
+          <option value="PERCENTAGE" {{selected "PERCENTAGE" discount.discountType}}>Percentage (%)</option>
+          <option value="FIXED" {{selected "FIXED" discount.discountType}}>Fixed amount ({{currencySymbol}})</option>
+        </select>
+      </div>
+      <div><label class="label" for="value">Value</label><input class="input" id="value" name="value" type="number" step="0.01" min="0.01" value="{{discount.value}}" required></div>
+      <div>
+        <label class="label" for="scope">Applies to</label>
+        <select class="input" id="scope" name="scope">
+          <option value="ORDER" {{selected "ORDER" discount.scope}}>Whole order</option>
+          <option value="ITEM" {{selected "ITEM" discount.scope}}>A single order item</option>
+        </select>
+      </div>
+      <div><label class="label" for="minOrderAmount">Minimum order subtotal <span class="text-slate-400">(optional)</span></label><input class="input" id="minOrderAmount" name="minOrderAmount" type="number" step="0.01" min="0" value="{{discount.minOrderAmount}}"></div>
+      <div><label class="label" for="validFrom">Valid from</label><input class="input" id="validFrom" name="validFrom" type="datetime-local" value="{{dtlocal discount.validFrom}}"></div>
+      <div><label class="label" for="validTo">Valid until</label><input class="input" id="validTo" name="validTo" type="datetime-local" value="{{dtlocal discount.validTo}}"></div>
+      <div><label class="label" for="maxUses">Maximum uses <span class="text-slate-400">(optional)</span></label><input class="input" id="maxUses" name="maxUses" type="number" min="1" value="{{discount.maxUses}}"></div>
+      <div>
+        <label class="label" for="status">Status</label>
+        <select class="input" id="status" name="status">
+          <option value="ACTIVE" {{selected "ACTIVE" discount.status}}>Active</option>
+          <option value="INACTIVE" {{selected "INACTIVE" discount.status}}>Inactive</option>
+          <option value="ARCHIVED" {{selected "ARCHIVED" discount.status}}>Archived</option>
+        </select>
+      </div>
+      <label class="flex items-center gap-3 text-sm sm:col-span-2">
+        <input type="checkbox" name="requiresAuthorization" value="1" class="h-4 w-4 rounded border-slate-300" {{checked discount.requiresAuthorization}}>
+        Requires supervisor authorization at the terminal
+      </label>
+    </div>
+  </div>
+  <div class="space-y-6">
+    <div class="card">
+      <div class="card-header"><h3 class="card-title">Outlets</h3><span class="text-xs text-slate-500">None = all</span></div>
+      <div class="card-body max-h-64 space-y-1 overflow-y-auto">
+        {{#each outlets}}
+          <label class="flex items-center gap-3 text-sm"><input type="checkbox" name="outletIds" value="{{id}}" class="h-4 w-4 rounded border-slate-300" {{#if (includes ../discount.outletIds id)}}checked{{/if}}>{{name}}</label>
+        {{/each}}
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><h3 class="card-title">Products</h3><span class="text-xs text-slate-500">Item discounts; none = all</span></div>
+      <div class="card-body max-h-64 space-y-1 overflow-y-auto">
+        {{#each products}}
+          <label class="flex items-center gap-3 text-sm"><input type="checkbox" name="productIds" value="{{id}}" class="h-4 w-4 rounded border-slate-300" {{#if (includes ../discount.productIds id)}}checked{{/if}}>{{name}} <span class="text-xs text-slate-400">{{code}}</span></label>
+        {{/each}}
+      </div>
+    </div>
+  </div>
+  <div class="flex justify-end gap-2 lg:col-span-3">
+    <a href="/discounts" class="btn btn-secondary">Cancel</a>
+    <button class="btn btn-primary" type="submit">Save discount</button>
+  </div>
+</form>
