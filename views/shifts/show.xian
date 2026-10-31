@@ -1,0 +1,77 @@
+{{#> page-header heading=(concat "Shift " shift.shiftNumber) subtitle=(concat shift.cashier.fullName " · " shift.outlet.name)}}
+  <button type="button" class="btn btn-secondary no-print" data-print>{{icon "printer" "w-4 h-4"}}Print report</button>
+{{/page-header}}
+<div class="grid gap-6 lg:grid-cols-3">
+  <div class="space-y-6 lg:col-span-2">
+    <div class="grid gap-4 sm:grid-cols-4">
+      <div class="stat"><p class="stat-label">Completed orders</p><p class="stat-value">{{summary.completedCount}}</p></div>
+      <div class="stat"><p class="stat-label">Gross sales</p><p class="stat-value">{{money summary.grossSales}}</p></div>
+      <div class="stat"><p class="stat-label">Room charges</p><p class="stat-value">{{money summary.roomCharges.amount}}</p><p class="text-xs text-slate-500">{{summary.roomCharges.count}} posted</p></div>
+      <div class="stat"><p class="stat-label">Refunds</p><p class="stat-value">{{money summary.refunds.amount}}</p><p class="text-xs text-slate-500">{{summary.refunds.count}} processed</p></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><h3 class="card-title">Collections by payment method</h3></div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Method</th><th class="text-right">Transactions</th><th class="text-right">Amount</th></tr></thead>
+          <tbody>
+            {{#each summary.byMethod}}<tr><td>{{name}}</td><td class="text-right">{{count}}</td><td class="text-right">{{money amount}}</td></tr>
+            {{else}}<tr><td colspan="3" class="text-center text-slate-500">No payments in this shift.</td></tr>{{/each}}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><h3 class="card-title">Orders by status</h3></div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Status</th><th class="text-right">Orders</th><th class="text-right">Total</th></tr></thead>
+          <tbody>
+            {{#each summary.orders}}<tr><td>{{statusBadge status}}</td><td class="text-right">{{count}}</td><td class="text-right">{{money amount}}</td></tr>
+            {{else}}<tr><td colspan="3" class="text-center text-slate-500">No orders in this shift.</td></tr>{{/each}}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="space-y-6">
+    <div class="card">
+      <div class="card-header"><h3 class="card-title">Cash reconciliation</h3>{{statusBadge shift.status}}</div>
+      <dl class="card-body dl">
+        <dt>Opened</dt><dd>{{datetime shift.openedAt}}</dd>
+        <dt>Opening cash</dt><dd>{{money shift.openingCash}}</dd>
+        <dt>Cash collected</dt><dd>{{money summary.cash.cashIn}}</dd>
+        <dt>Cash refunds</dt><dd>−{{money summary.cash.cashOut}}</dd>
+        <dt class="font-medium text-slate-700">Expected cash</dt><dd class="font-semibold">{{#if shift.expectedCash}}{{money shift.expectedCash}}{{else}}{{money summary.cash.expected}}{{/if}}</dd>
+        {{#if shift.closedAt}}
+          <dt>Counted cash</dt><dd>{{money shift.actualCash}}</dd>
+          <dt>Variance</dt><dd class="font-semibold {{#if (lt shift.cashVariance 0)}}text-rose-700{{else}}{{#if (gt shift.cashVariance 0)}}text-amber-700{{else}}text-emerald-700{{/if}}{{/if}}">{{money shift.cashVariance}}</dd>
+          <dt>Closed</dt><dd>{{datetime shift.closedAt}} by {{shift.closer.fullName}}</dd>
+          {{#if shift.closingNotes}}<dt>Notes</dt><dd>{{shift.closingNotes}}</dd>{{/if}}
+        {{/if}}
+        {{#if shift.reconciledAt}}<dt>Reconciled</dt><dd>{{datetime shift.reconciledAt}} by {{shift.reconciler.fullName}}</dd>{{/if}}
+      </dl>
+    </div>
+    {{#if canClose}}
+    <form class="card no-print" method="POST" action="/shifts/{{shift.id}}/close" data-confirm="Close this shift? You will not be able to take payments on it afterwards." data-confirm-label="Close shift">
+      <input type="hidden" name="_csrf" value="{{csrfToken}}">
+      <div class="card-header"><h3 class="card-title">Close shift</h3></div>
+      <div class="card-body space-y-4">
+        <div>
+          <label class="label" for="actualCash">Counted cash in drawer</label>
+          <input class="input text-lg" id="actualCash" name="actualCash" type="number" min="0" step="0.01" required>
+        </div>
+        <div><label class="label" for="closingNotes">Notes</label><input class="input" id="closingNotes" name="closingNotes" maxlength="255"></div>
+        <button class="btn btn-danger w-full" type="submit">Close shift</button>
+      </div>
+    </form>
+    {{/if}}
+    {{#if canReconcile}}
+    <form class="card card-body no-print" method="POST" action="/shifts/{{shift.id}}/reconcile" data-confirm="Mark this shift as reconciled?" data-confirm-danger="false">
+      <input type="hidden" name="_csrf" value="{{csrfToken}}">
+      <p class="mb-3 text-sm text-slate-600">Verify the counted cash and variance, then approve the shift.</p>
+      <button class="btn btn-primary w-full" type="submit">Approve &amp; reconcile</button>
+    </form>
+    {{/if}}
+  </div>
+</div>

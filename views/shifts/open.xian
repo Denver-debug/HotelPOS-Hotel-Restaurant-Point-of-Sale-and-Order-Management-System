@@ -1,0 +1,26 @@
+{{#> page-header heading="Open cashier shift" subtitle="Count the cash float in your drawer before you start."}}{{/page-header}}
+{{> form-error}}
+<form method="POST" action="/shifts/open" class="card max-w-lg">
+  <input type="hidden" name="_csrf" value="{{csrfToken}}">
+  <input type="hidden" name="next" value="{{shift.next}}">
+  <div class="card-body space-y-4">
+    <div>
+      <label class="label" for="outletId">Outlet</label>
+      <select class="input" id="outletId" name="outletId" required>
+        {{#each outlets}}<option value="{{id}}" {{selected id ../shift.outletId}}>{{name}}</option>{{/each}}
+      </select>
+    </div>
+    <div>
+      <label class="label" for="openingCash">Opening cash ({{currencySymbol}})</label>
+      <input class="input text-lg" id="openingCash" name="openingCash" type="number" min="0" step="0.01" value="{{shift.openingCash}}" required autofocus>
+    </div>
+    <div>
+      <label class="label" for="openingNotes">Notes</label>
+      <input class="input" id="openingNotes" name="openingNotes" value="{{shift.openingNotes}}" maxlength="255">
+    </div>
+  </div>
+  <div class="flex justify-end gap-2 border-t border-slate-100 px-5 py-4">
+    <a href="/shifts" class="btn btn-secondary">Cancel</a>
+    <button class="btn btn-primary" type="submit">Open shift</button>
+  </div>
+</form>

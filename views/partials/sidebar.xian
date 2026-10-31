@@ -1,5 +1,5 @@
 <div id="sidebar-backdrop" class="fixed inset-0 z-30 hidden bg-slate-900/50 lg:hidden" data-sidebar-close></div>
-<aside id="sidebar" class="fixed inset-y-0 left-0 z-40 flex w-64 -translate-x-full flex-col bg-brand-900 transition-transform lg:translate-x-0">
+<aside id="sidebar" class="no-print fixed inset-y-0 left-0 z-40 flex w-64 -translate-x-full flex-col bg-brand-900 transition-transform lg:translate-x-0">
   <div class="flex h-16 shrink-0 items-center gap-3 border-b border-white/10 px-5">
     <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-accent-500 text-white">{{icon "key" "w-5 h-5"}}</div>
     <div class="min-w-0">

@@ -34,6 +34,7 @@ import outletRoutes from "./outlets.js";
 import categoryRoutes from "./categories.js";
 import productRoutes from "./products.js";
 import inventoryRoutes from "./inventory.js";
+import shiftRoutes from "./shifts.js";
 
 const router = express.Router();
 
@@ -46,5 +47,6 @@ router.use("/outlets", outletRoutes);
 router.use("/categories", categoryRoutes);
 router.use("/products", productRoutes);
 router.use("/inventory", inventoryRoutes);
+router.use("/shifts", shiftRoutes);
 
 export default router;

@@ -1,5 +1,5 @@
 {{#if breadcrumbs}}
-<nav class="mb-4 text-sm" aria-label="Breadcrumb">
+<nav class="no-print mb-4 text-sm" aria-label="Breadcrumb">
   <ol class="flex flex-wrap items-center gap-1 text-slate-500">
     <li><a href="/dashboard" class="hover:text-brand-700">Home</a></li>
     {{#each breadcrumbs}}

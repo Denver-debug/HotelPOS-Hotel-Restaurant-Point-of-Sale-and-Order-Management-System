@@ -1,0 +1,55 @@
+{{#> page-header heading="Cashier Shifts" subtitle="Opening float, collections, cash count and variance per shift."}}
+  {{#if openShift}}
+    <a href="/shifts/{{openShift.id}}" class="btn btn-success">My open shift</a>
+  {{else}}
+    {{#if (can "shifts.open")}}<a href="/shifts/open" class="btn btn-primary">{{icon "clock" "w-4 h-4"}}Open shift</a>{{/if}}
+  {{/if}}
+{{/page-header}}
+<div class="card">
+  <form class="grid gap-3 border-b border-slate-100 p-4 sm:grid-cols-3 lg:grid-cols-6" method="GET">
+    <select class="input" name="outletId" data-autosubmit>
+      <option value="">All outlets</option>
+      {{#each outlets}}<option value="{{id}}" {{selected id ../filters.outletId}}>{{name}}</option>{{/each}}
+    </select>
+    {{#if canSeeOthers}}
+    <select class="input" name="userId" data-autosubmit>
+      <option value="">All cashiers</option>
+      {{#each cashiers}}<option value="{{id}}" {{selected id ../filters.userId}}>{{fullName}}</option>{{/each}}
+    </select>
+    {{/if}}
+    <select class="input" name="status" data-autosubmit>
+      <option value="">All statuses</option>
+      <option value="OPEN" {{selected "OPEN" filters.status}}>Open</option>
+      <option value="CLOSED" {{selected "CLOSED" filters.status}}>Closed</option>
+      <option value="RECONCILED" {{selected "RECONCILED" filters.status}}>Reconciled</option>
+    </select>
+    <input class="input" type="date" name="from" value="{{filters.from}}" aria-label="From">
+    <div class="flex gap-2"><input class="input" type="date" name="to" value="{{filters.to}}" aria-label="To"><button class="btn btn-secondary" type="submit">Go</button></div>
+  </form>
+  {{#if shifts.length}}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Shift</th><th>Cashier</th><th>Outlet</th><th>Opened</th><th>Closed</th><th class="text-right">Opening</th><th class="text-right">Expected</th><th class="text-right">Counted</th><th class="text-right">Variance</th><th>Status</th></tr></thead>
+      <tbody>
+        {{#each shifts}}
+        <tr>
+          <td><a class="font-mono text-xs text-brand-700 hover:underline" href="/shifts/{{id}}">{{shiftNumber}}</a></td>
+          <td>{{cashier.fullName}}</td>
+          <td>{{outlet.code}}</td>
+          <td class="whitespace-nowrap text-xs">{{datetime openedAt}}</td>
+          <td class="whitespace-nowrap text-xs">{{default (datetime closedAt) "—"}}</td>
+          <td class="text-right">{{money openingCash}}</td>
+          <td class="text-right">{{#if expectedCash}}{{money expectedCash}}{{else}}—{{/if}}</td>
+          <td class="text-right">{{#if actualCash}}{{money actualCash}}{{else}}—{{/if}}</td>
+          <td class="text-right font-medium {{#if (lt cashVariance 0)}}text-rose-700{{else}}{{#if (gt cashVariance 0)}}text-amber-700{{/if}}{{/if}}">{{#if cashVariance}}{{money cashVariance}}{{else}}—{{/if}}</td>
+          <td>{{statusBadge status}}</td>
+        </tr>
+        {{/each}}
+      </tbody>
+    </table>
+  </div>
+  {{else}}
+    {{> empty-state message="No shifts in this period." icon="clock"}}
+  {{/if}}
+  {{> pagination}}
+</div>
