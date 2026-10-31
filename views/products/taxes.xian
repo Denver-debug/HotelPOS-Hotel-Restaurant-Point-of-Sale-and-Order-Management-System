@@ -1,0 +1,44 @@
+{{#> page-header heading="Taxes" subtitle="Tax classifications assigned to products. Inclusive taxes are already part of the selling price."}}{{/page-header}}
+<div class="grid gap-6 lg:grid-cols-3">
+  <div class="card lg:col-span-2">
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Code</th><th>Name</th><th class="text-right">Rate</th><th>Type</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          {{#each taxes}}
+          <tr>
+            <td class="font-mono text-xs">{{code}}</td>
+            <td>{{name}}</td>
+            <td class="text-right">{{percent rate}}</td>
+            <td>{{#if isInclusive}}Inclusive{{else}}Added on top{{/if}}</td>
+            <td>{{statusBadge status}}</td>
+            <td class="text-right"><a class="btn btn-secondary btn-sm" href="/products/taxes?edit={{id}}">Edit</a></td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <form class="card h-fit" method="POST" action="{{#if editing}}/products/taxes/{{tax.id}}{{else}}/products/taxes{{/if}}">
+    <input type="hidden" name="_csrf" value="{{csrfToken}}">
+    <div class="card-header"><h3 class="card-title">{{#if editing}}Edit tax{{else}}New tax{{/if}}</h3></div>
+    <div class="card-body space-y-4">
+      {{> form-error}}
+      <div><label class="label" for="code">Code</label><input class="input font-mono uppercase" id="code" name="code" value="{{tax.code}}" maxlength="20" required></div>
+      <div><label class="label" for="name">Name</label><input class="input" id="name" name="name" value="{{tax.name}}" maxlength="80" required></div>
+      <div><label class="label" for="ratePercent">Rate (%)</label><input class="input" id="ratePercent" name="ratePercent" type="number" step="0.01" min="0" max="99.99" value="{{tax.ratePercent}}" required></div>
+      <label class="flex items-center gap-3 text-sm"><input type="checkbox" name="isInclusive" value="1" class="h-4 w-4 rounded border-slate-300" {{checked tax.isInclusive}}>Prices already include this tax</label>
+      <div>
+        <label class="label" for="status">Status</label>
+        <select class="input" id="status" name="status">
+          <option value="ACTIVE" {{selected "ACTIVE" tax.status}}>Active</option>
+          <option value="INACTIVE" {{selected "INACTIVE" tax.status}}>Inactive</option>
+        </select>
+      </div>
+    </div>
+    <div class="flex justify-end gap-2 border-t border-slate-100 px-5 py-4">
+      {{#if editing}}<a href="/products/taxes" class="btn btn-secondary">Cancel</a>{{/if}}
+      <button class="btn btn-primary" type="submit">Save tax</button>
+    </div>
+  </form>
+</div>

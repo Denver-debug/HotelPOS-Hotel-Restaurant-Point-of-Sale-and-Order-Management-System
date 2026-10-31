@@ -1,0 +1,81 @@
+{{#> page-header heading=title subtitle="Prices are set per outlet on the product page after saving."}}{{/page-header}}
+{{> form-error}}
+<form method="POST" enctype="multipart/form-data"
+      action="{{#if editing}}/products/{{product.id}}{{else}}/products{{/if}}?_csrf={{csrfToken}}" class="grid gap-6 lg:grid-cols-3">
+  <div class="card lg:col-span-2">
+    <div class="card-body grid gap-4 sm:grid-cols-2">
+      <div>
+        <label class="label" for="code">Code / SKU</label>
+        <input class="input font-mono uppercase" id="code" name="code" value="{{product.code}}" maxlength="40" required placeholder="FD-010">
+      </div>
+      <div>
+        <label class="label" for="name">Name</label>
+        <input class="input" id="name" name="name" value="{{product.name}}" maxlength="120" required>
+      </div>
+      <div>
+        <label class="label" for="categoryId">Category</label>
+        <select class="input" id="categoryId" name="categoryId" required>
+          <option value="">Select a category</option>
+          {{#each categories}}<option value="{{id}}" {{selected id ../product.categoryId}}>{{name}}</option>{{/each}}
+        </select>
+      </div>
+      <div>
+        <label class="label" for="itemType">Type</label>
+        <select class="input" id="itemType" name="itemType">
+          <option value="PRODUCT" {{selected "PRODUCT" product.itemType}}>Product</option>
+          <option value="SERVICE" {{selected "SERVICE" product.itemType}}>Service</option>
+        </select>
+      </div>
+      <div>
+        <label class="label" for="unit">Unit of measurement</label>
+        <input class="input" id="unit" name="unit" value="{{product.unit}}" maxlength="20" required placeholder="pc, glass, session">
+      </div>
+      <div>
+        <label class="label" for="taxId">Tax classification</label>
+        <select class="input" id="taxId" name="taxId">
+          <option value="">No tax</option>
+          {{#each taxes}}<option value="{{id}}" {{selected id ../product.taxId}}>{{name}}</option>{{/each}}
+        </select>
+      </div>
+      <div>
+        <label class="label" for="status">Availability</label>
+        <select class="input" id="status" name="status">
+          <option value="AVAILABLE" {{selected "AVAILABLE" product.status}}>Available</option>
+          <option value="UNAVAILABLE" {{selected "UNAVAILABLE" product.status}}>Unavailable (hidden from POS)</option>
+          <option value="ARCHIVED" {{selected "ARCHIVED" product.status}}>Archived</option>
+        </select>
+      </div>
+      <div class="sm:col-span-2">
+        <label class="label" for="description">Description</label>
+        <textarea class="input" id="description" name="description" rows="3">{{product.description}}</textarea>
+      </div>
+      <div class="space-y-2 sm:col-span-2">
+        <label class="flex items-center gap-3 text-sm">
+          <input type="checkbox" name="isInventoryTracked" value="1" class="h-4 w-4 rounded border-slate-300" {{checked product.isInventoryTracked}}>
+          Track inventory (stock is deducted when an order is completed)
+        </label>
+        {{#unless editing}}
+        <label class="ml-7 flex items-center gap-3 text-sm text-slate-600">
+          <input type="checkbox" name="createInventoryItem" value="1" class="h-4 w-4 rounded border-slate-300" checked>
+          Create a matching inventory item (1 unit sold = 1 unit of stock). Untick to define an ingredient recipe later.
+        </label>
+        {{/unless}}
+      </div>
+    </div>
+  </div>
+  <div class="card h-fit">
+    <div class="card-header"><h3 class="card-title">Image</h3></div>
+    <div class="card-body space-y-3">
+      {{#if product.imagePath}}
+        <img src="{{product.imagePath}}" alt="" class="aspect-square w-full rounded-lg object-cover">
+        <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="removeImage" value="1" class="h-4 w-4 rounded border-slate-300">Remove image</label>
+      {{/if}}
+      <input class="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3 file:py-2 file:text-brand-700" type="file" name="image" accept="image/jpeg,image/png,image/webp">
+      <p class="help">JPG, PNG or WebP, up to 2 MB.</p>
+    </div>
+  </div>
+  <div class="flex justify-end gap-2 lg:col-span-3">
+    <a href="{{#if editing}}/products/{{product.id}}{{else}}/products{{/if}}" class="btn btn-secondary">Cancel</a>
+    <button class="btn btn-primary" type="submit">{{#if editing}}Save changes{{else}}Create item{{/if}}</button>
+  </div>
+</form>

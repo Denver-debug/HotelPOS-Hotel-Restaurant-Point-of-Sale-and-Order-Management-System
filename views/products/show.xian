@@ -1,0 +1,92 @@
+{{#> page-header heading=product.name subtitle=(concat product.code " · " product.category.name " · " (humanize product.itemType))}}
+  {{#if canManage}}<a href="/products/{{product.id}}/edit" class="btn btn-secondary">{{icon "edit" "w-4 h-4"}}Edit</a>{{/if}}
+{{/page-header}}
+<div class="grid gap-6 lg:grid-cols-3">
+  <div class="space-y-6">
+    <div class="card overflow-hidden">
+      {{#if product.imagePath}}<img src="{{product.imagePath}}" alt="" class="aspect-video w-full object-cover">{{/if}}
+      <dl class="card-body dl">
+        <dt>Status</dt><dd>{{statusBadge product.status}}</dd>
+        <dt>Unit</dt><dd>{{product.unit}}</dd>
+        <dt>Tax</dt><dd>{{#if product.tax}}{{product.tax.name}}{{else}}None{{/if}}</dd>
+        <dt>Inventory</dt><dd>{{#if product.isInventoryTracked}}Tracked{{else}}Not tracked{{/if}}</dd>
+        <dt>Description</dt><dd>{{default product.description "—"}}</dd>
+      </dl>
+    </div>
+    {{#if product.isInventoryTracked}}
+    <div class="card">
+      <div class="card-header"><h3 class="card-title">Stock recipe</h3><a href="/inventory/recipes/{{product.id}}" class="text-sm text-brand-700 hover:underline">Manage</a></div>
+      <div class="card-body text-sm">
+        {{#each product.recipes}}
+          <div class="flex justify-between py-1"><span>{{item.name}} <span class="text-xs text-slate-400">{{item.sku}}</span></span><span>{{qty quantity}} {{item.unit}}</span></div>
+        {{else}}
+          <p class="text-amber-700">No recipe defined — sales of this item will not deduct stock until one is added.</p>
+        {{/each}}
+      </div>
+    </div>
+    {{/if}}
+  </div>
+
+  <div class="space-y-6 lg:col-span-2">
+    <div class="card" id="prices">
+      <div class="card-header"><h3 class="card-title">Outlet prices</h3><span class="text-xs text-slate-500">Changing a price keeps the old one in history</span></div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Outlet</th><th class="text-right">Current price</th><th>Since</th>{{#if canManage}}<th>Set price</th>{{/if}}</tr></thead>
+          <tbody>
+            {{#each outletPrices}}
+            <tr>
+              <td><span class="font-medium">{{outlet.name}}</span><div class="font-mono text-xs text-slate-400">{{outlet.code}}</div></td>
+              <td class="text-right">{{#if current}}<span class="font-semibold">{{money current.price}}</span>{{#unless current.isAvailable}}<div>{{statusBadge "UNAVAILABLE"}}</div>{{/unless}}{{else}}<span class="text-slate-400">Not sold</span>{{/if}}</td>
+              <td class="text-xs text-slate-500">{{#if current}}{{datetime current.effectiveFrom}}{{/if}}</td>
+              {{#if ../canManage}}
+              <td>
+                <div class="flex flex-wrap items-center gap-2">
+                  <form method="POST" action="/products/{{../product.id}}/prices" class="flex items-center gap-2">
+                    <input type="hidden" name="_csrf" value="{{../csrfToken}}">
+                    <input type="hidden" name="outletId" value="{{outlet.id}}">
+                    <input class="input w-28" name="price" type="number" min="0" step="0.01" value="{{current.price}}" placeholder="0.00" required aria-label="Price at {{outlet.name}}">
+                    <label class="flex items-center gap-1 text-xs"><input type="checkbox" name="isAvailable" value="1" {{#if current}}{{checked current.isAvailable}}{{else}}checked{{/if}}>Available</label>
+                    <button class="btn btn-primary btn-sm" type="submit">Save</button>
+                  </form>
+                  {{#if current}}
+                  <form method="POST" action="/products/{{../product.id}}/prices/{{outlet.id}}/remove" data-confirm="Stop selling {{../product.name}} at {{outlet.name}}?">
+                    <input type="hidden" name="_csrf" value="{{../csrfToken}}">
+                    <button class="btn btn-ghost btn-sm" type="submit" title="Remove from outlet">{{icon "x" "w-4 h-4"}}</button>
+                  </form>
+                  {{/if}}
+                </div>
+              </td>
+              {{/if}}
+            </tr>
+            {{/each}}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><h3 class="card-title">Price history</h3></div>
+      {{#if history.length}}
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Outlet</th><th class="text-right">Price</th><th>From</th><th>To</th><th>Set by</th></tr></thead>
+          <tbody>
+            {{#each history}}
+            <tr>
+              <td>{{outlet.name}}</td>
+              <td class="text-right">{{money price}}{{#unless isAvailable}} <span class="text-xs text-slate-400">(unavailable)</span>{{/unless}}</td>
+              <td class="text-xs">{{datetime effectiveFrom}}</td>
+              <td class="text-xs">{{#if effectiveTo}}{{datetime effectiveTo}}{{else}}<span class="badge badge-green">Current</span>{{/if}}</td>
+              <td class="text-xs">{{default creator.fullName "—"}}</td>
+            </tr>
+            {{/each}}
+          </tbody>
+        </table>
+      </div>
+      {{else}}
+        {{> empty-state message="No prices have been set yet." icon="tag"}}
+      {{/if}}
+    </div>
+  </div>
+</div>

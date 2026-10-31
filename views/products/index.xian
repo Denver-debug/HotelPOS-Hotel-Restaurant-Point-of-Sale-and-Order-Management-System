@@ -1,0 +1,55 @@
+{{#> page-header heading="Products & Services" subtitle="Catalog items with outlet-specific prices."}}
+  {{#if canManage}}
+    <a href="/products/taxes" class="btn btn-secondary">Taxes</a>
+    <a href="/products/new" class="btn btn-primary">{{icon "plus" "w-4 h-4"}}New item</a>
+  {{/if}}
+{{/page-header}}
+<div class="card">
+  <form class="grid gap-3 border-b border-slate-100 p-4 sm:grid-cols-2 lg:grid-cols-6" method="GET">
+    <input class="input lg:col-span-2" type="search" name="search" value="{{filters.search}}" placeholder="Search name or code">
+    <select class="input" name="categoryId" data-autosubmit>
+      <option value="">All categories</option>
+      {{#each categories}}<option value="{{id}}" {{selected id ../filters.categoryId}}>{{name}}</option>{{/each}}
+    </select>
+    <select class="input" name="outletId" data-autosubmit>
+      <option value="">All outlets</option>
+      {{#each outlets}}<option value="{{id}}" {{selected id ../filters.outletId}}>{{name}}</option>{{/each}}
+    </select>
+    <select class="input" name="itemType" data-autosubmit>
+      <option value="">Products &amp; services</option>
+      <option value="PRODUCT" {{selected "PRODUCT" filters.itemType}}>Products</option>
+      <option value="SERVICE" {{selected "SERVICE" filters.itemType}}>Services</option>
+    </select>
+    <select class="input" name="status" data-autosubmit>
+      <option value="">Active (not archived)</option>
+      <option value="AVAILABLE" {{selected "AVAILABLE" filters.status}}>Available</option>
+      <option value="UNAVAILABLE" {{selected "UNAVAILABLE" filters.status}}>Unavailable</option>
+      <option value="ARCHIVED" {{selected "ARCHIVED" filters.status}}>Archived</option>
+      <option value="ALL" {{selected "ALL" filters.status}}>All</option>
+    </select>
+  </form>
+  {{#if products.length}}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th></th><th>Code</th><th>Name</th><th>Category</th><th>Type</th><th>Outlet prices</th><th>Stock</th><th>Status</th></tr></thead>
+      <tbody>
+        {{#each products}}
+        <tr>
+          <td class="w-12">{{#if imagePath}}<img src="{{imagePath}}" alt="" class="h-10 w-10 rounded-lg object-cover">{{else}}<div class="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 text-slate-400">{{icon "tag" "w-5 h-5"}}</div>{{/if}}</td>
+          <td class="font-mono text-xs">{{code}}</td>
+          <td><a href="/products/{{id}}" class="font-medium text-brand-700 hover:underline">{{name}}</a><div class="text-xs text-slate-500">per {{unit}}</div></td>
+          <td>{{category.name}}</td>
+          <td>{{humanize itemType}}</td>
+          <td class="text-xs">{{#each prices}}<span class="mr-1 inline-block whitespace-nowrap rounded bg-slate-100 px-1.5 py-0.5">{{outlet.code}} {{money price}}</span>{{else}}<span class="text-slate-400">Not priced</span>{{/each}}</td>
+          <td>{{#if isInventoryTracked}}<span class="badge badge-blue">Tracked</span>{{else}}<span class="text-xs text-slate-400">—</span>{{/if}}</td>
+          <td>{{statusBadge status}}</td>
+        </tr>
+        {{/each}}
+      </tbody>
+    </table>
+  </div>
+  {{else}}
+    {{> empty-state message="No products match your filters." icon="tag"}}
+  {{/if}}
+  {{> pagination}}
+</div>

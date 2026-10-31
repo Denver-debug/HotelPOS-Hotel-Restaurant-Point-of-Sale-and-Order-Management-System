@@ -32,6 +32,7 @@ import userRoutes from "./users.js";
 import roleRoutes from "./roles.js";
 import outletRoutes from "./outlets.js";
 import categoryRoutes from "./categories.js";
+import productRoutes from "./products.js";
 
 const router = express.Router();
 
@@ -42,5 +43,6 @@ router.use("/users", userRoutes);
 router.use("/roles", roleRoutes);
 router.use("/outlets", outletRoutes);
 router.use("/categories", categoryRoutes);
+router.use("/products", productRoutes);
 
 export default router;
