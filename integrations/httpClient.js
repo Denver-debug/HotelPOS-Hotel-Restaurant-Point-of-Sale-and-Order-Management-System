@@ -1,5 +1,9 @@
 // Minimal JSON HTTP client for real ERP integrations (native fetch + timeout).
 import { IntegrationError } from "./integrationLogger.js";
+import { currentCorrelationId } from "../utils/requestContext.js";
+
+// new URL("rooms/1", "https://pms/api/v1") drops "v1"; a trailing slash keeps every segment.
+export const resolveUrl = (baseUrl, path) => new URL(String(path).replace(/^\/+/, ""), baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`);
 
 export async function requestJson({ baseUrl, apiKey, timeoutMs, method = "GET", path, body, idempotencyKey, correlationId }) {
   if (!baseUrl) throw new IntegrationError("NOT_CONFIGURED", "Integration base URL is not configured.");
@@ -9,11 +13,12 @@ export async function requestJson({ baseUrl, apiKey, timeoutMs, method = "GET", 
   if (body !== undefined) headers["Content-Type"] = "application/json";
   if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
   if (idempotencyKey) headers["Idempotency-Key"] = idempotencyKey;
-  if (correlationId) headers["X-Correlation-Id"] = correlationId;
+  const correlation = correlationId || currentCorrelationId();
+  if (correlation) headers["X-Correlation-Id"] = correlation;
 
   let res;
   try {
-    res = await fetch(new URL(path, baseUrl), {
+    res = await fetch(resolveUrl(baseUrl, path), {
       method,
       headers,
       body: body === undefined ? undefined : JSON.stringify(body),

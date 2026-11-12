@@ -110,7 +110,7 @@ export async function createOrder(req, body) {
   if (!req.user.outletIds.includes(outletId)) throw forbidden("You are not assigned to this outlet.");
   return sequelize.transaction(async (transaction) => {
     const outlet = await Outlet.findByPk(outletId, { transaction });
-    if (!outlet || outlet.status !== "ACTIVE") throw new AppError("This outlet is not active.", 422);
+    if (!outlet || outlet.status !== "ACTIVE") throw new AppError("This outlet is not active.", 422, "OUTLET_INACTIVE");
     const header = parseHeader(body, outlet);
     const shiftId = req.openShift && req.openShift.outletId === outletId ? req.openShift.id : null;
     const order = await Order.create(
@@ -191,9 +191,9 @@ async function markEdited(order, transaction) {
 
 async function currentPrice(order, productId, transaction) {
   const product = await Product.findByPk(productId, { include: [{ model: Tax, as: "tax" }], transaction });
-  if (!product || product.status !== "AVAILABLE") throw new AppError("This product is not available.", 422, "UNAVAILABLE");
+  if (!product || product.status !== "AVAILABLE") throw new AppError("This product is not available.", 422, "PRODUCT_UNAVAILABLE");
   const price = await ProductPrice.findOne({ where: { productId, outletId: order.outletId, effectiveTo: null }, transaction });
-  if (!price || !price.isAvailable) throw new AppError(`${product.name} is not sold at this outlet.`, 422, "UNAVAILABLE");
+  if (!price || !price.isAvailable) throw new AppError(`${product.name} is not sold at this outlet.`, 422, "PRODUCT_UNAVAILABLE");
   const tax = product.tax && product.tax.status === "ACTIVE" ? product.tax : null;
   return { product, price, tax };
 }
@@ -267,7 +267,7 @@ export const removeItem = (req, orderId, itemId) => updateItem(req, orderId, ite
 export async function updateHeader(req, orderId, body) {
   return sequelize.transaction(async (transaction) => {
     const order = await lockOrder(req, orderId, transaction);
-    if (!EDITABLE_STATUSES.includes(order.status)) throw new AppError("This order can no longer be edited.", 409);
+    if (!EDITABLE_STATUSES.includes(order.status)) throw new AppError("This order can no longer be edited.", 409, "NOT_EDITABLE");
     const outlet = await Outlet.findByPk(order.outletId, { transaction });
     const header = parseHeader({ orderType: order.orderType, ...body }, outlet);
     const before = { orderType: order.orderType, tableOrLocation: order.tableOrLocation, guestCount: order.guestCount, notes: order.notes };
@@ -316,10 +316,10 @@ export async function voidOrder(req, orderId, body) {
   }
   return sequelize.transaction(async (transaction) => {
     const order = await lockOrder(req, orderId, transaction);
-    if (!VOIDABLE_STATUSES.includes(order.status)) throw new AppError(`A ${order.status.replace(/_/g, " ").toLowerCase()} order cannot be voided. Use a refund instead.`, 409);
-    if (toCents(order.amountPaid) > 0) throw new AppError("Payments were collected on this order; process a refund instead of a void.", 409);
+    if (!VOIDABLE_STATUSES.includes(order.status)) throw new AppError(`A ${order.status.replace(/_/g, " ").toLowerCase()} order cannot be voided. Use a refund instead.`, 409, "NOT_VOIDABLE");
+    if (toCents(order.amountPaid) > 0) throw new AppError("Payments were collected on this order; process a refund instead of a void.", 409, "NOT_VOIDABLE");
     const activeCharge = await GuestCharge.count({ where: { orderId: order.id, status: { [Op.in]: ["PENDING", "UNKNOWN", "POSTED"] } }, transaction });
-    if (activeCharge) throw new AppError("A room charge is pending or posted for this order; it cannot be voided.", 409);
+    if (activeCharge) throw new AppError("A room charge is pending or posted for this order; it cannot be voided.", 409, "NOT_VOIDABLE");
 
     assertTransition(order.status, "VOIDED");
     const before = order.status;

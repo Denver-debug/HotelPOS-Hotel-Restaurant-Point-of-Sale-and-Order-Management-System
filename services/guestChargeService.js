@@ -11,8 +11,8 @@
 //                  max attempts from settings).
 // Only external guest/room/folio IDs are stored (TC-09); the guest name is never persisted.
 import crypto from "crypto";
-import { Op } from "sequelize";
-import { sequelize, GuestCharge, Order, Outlet, User } from "../models/index.js";
+import { Op, UniqueConstraintError } from "sequelize";
+import { sequelize, GuestCharge, Order, Outlet, User, RoomChargeValidation } from "../models/index.js";
 import { AppError, notFound, forbidden } from "../utils/http.js";
 import { toCents } from "../utils/money.js";
 import * as v from "../utils/validate.js";
@@ -26,6 +26,7 @@ import { getPmsGateway } from "../integrations/pms/pmsGateway.js";
 import { logged, IntegrationError } from "../integrations/integrationLogger.js";
 
 const VALIDATION_TTL_MS = 5 * 60 * 1000;
+const hashToken = (token) => crypto.createHash("sha256").update(String(token)).digest("hex");
 
 const REASON_MESSAGES = {
   ROOM_NOT_FOUND: (room) => `Room ${room} does not exist in the PMS.`,
@@ -44,12 +45,12 @@ async function assertChargeable(req, order, transaction) {
       "NOT_SETTLEABLE"
     );
   }
-  if (toCents(order.amountPaid) > 0) throw new AppError("Part of this order was already paid directly; settle the balance by direct payment.", 409);
-  if (toCents(order.totalAmount) <= 0) throw new AppError("There is nothing to charge.", 422);
+  if (toCents(order.amountPaid) > 0) throw new AppError("Part of this order was already paid directly; settle the balance by direct payment.", 409, "PARTIALLY_PAID");
+  if (toCents(order.totalAmount) <= 0) throw new AppError("There is nothing to charge.", 422, "NOTHING_TO_CHARGE");
   const outlet = await Outlet.findByPk(order.outletId, { transaction });
-  if (!outlet.allowsRoomCharge) throw new AppError(`${outlet.name} does not allow charges to guest rooms.`, 409);
+  if (!outlet.allowsRoomCharge) throw new AppError(`${outlet.name} does not allow charges to guest rooms.`, 409, "ROOM_CHARGE_NOT_ALLOWED");
   const active = await GuestCharge.findOne({ where: { orderId: order.id, status: { [Op.in]: ["PENDING", "UNKNOWN", "POSTED"] } }, transaction });
-  if (active) throw new AppError(`Room charge ${active.chargeNumber} is already ${active.status.toLowerCase()} for this order.`, 409);
+  if (active) throw new AppError(`Room charge ${active.chargeNumber} is already ${active.status.toLowerCase()} for this order.`, 409, "ROOM_CHARGE_IN_PROGRESS");
   await resolveShift(req, order.outletId);
 }
 
@@ -79,19 +80,22 @@ export async function validateRoom(req, orderId, body) {
     throw new AppError(message, 422, result.reason || "ROOM_NOT_FOUND");
   }
 
-  const token = crypto.randomBytes(16).toString("hex");
-  req.session.roomValidations = req.session.roomValidations || {};
-  req.session.roomValidations[order.id] = {
-    token,
+  // Single-use token, stored as a hash in the database (not the session) so API clients and
+  // several app instances can complete the charge. The guest name is returned, never stored.
+  const token = crypto.randomBytes(24).toString("hex");
+  await RoomChargeValidation.create({
+    tokenHash: hashToken(token),
+    orderId: order.id,
+    userId: req.user.id,
     roomNumber: result.room.number,
     externalRoomId: result.room.id,
     externalGuestId: result.guest.id,
     externalFolioId: result.folio.id,
     amount: order.totalAmount,
-    version: order.version,
+    orderVersion: order.version,
     isMock: pms.isMock,
-    expiresAt: Date.now() + VALIDATION_TTL_MS,
-  };
+    expiresAt: new Date(Date.now() + VALIDATION_TTL_MS),
+  });
   await audit({ req, action: "ROOM_VALIDATED", entityType: "order", entityId: order.id, newValues: { roomNumber, externalFolioId: result.folio.id } });
 
   return {
@@ -135,10 +139,14 @@ async function applyPmsResult(req, chargeId, result) {
 }
 
 async function markUnknown(req, chargeId, err) {
-  const charge = await GuestCharge.findByPk(chargeId);
-  await charge.update({ status: "UNKNOWN", lastError: String(err.message).slice(0, 500) });
-  await audit({ req, action: "ROOM_CHARGE_UNKNOWN", entityType: "order", entityId: charge.orderId, newValues: { chargeNumber: charge.chargeNumber, error: err.message } });
-  return charge;
+  return sequelize.transaction(async (transaction) => {
+    const charge = await GuestCharge.findByPk(chargeId, { transaction, lock: transaction.LOCK.UPDATE });
+    // A concurrent verify may already have resolved it; never move a final charge back.
+    if (!["PENDING", "UNKNOWN"].includes(charge.status)) return charge;
+    await charge.update({ status: "UNKNOWN", lastError: String(err.message).slice(0, 500) }, { transaction });
+    await audit({ req, action: "ROOM_CHARGE_UNKNOWN", entityType: "order", entityId: charge.orderId, newValues: { chargeNumber: charge.chargeNumber, error: err.message }, transaction });
+    return charge;
+  });
 }
 
 const outcomeOf = (charge) =>
@@ -184,55 +192,75 @@ const respond = (charge) => {
   return { outcome, charge, message: (MESSAGES[outcome] || (() => ""))(charge) };
 };
 
+// The original outcome for a repeated idempotency key (double click, network retry).
+function replayCharge(existing, orderId) {
+  if (String(existing.orderId) !== String(orderId)) throw new AppError("This charge key belongs to another order.", 409, "IDEMPOTENCY_CONFLICT");
+  return { ...respond(existing), duplicate: true };
+}
+
 export async function postRoomCharge(req, orderId, body) {
   const validationToken = v.str(body.validationToken, "Validation", { required: true, max: 64 });
   const idempotencyKey = v.str(body.idempotencyKey, "Idempotency key", { required: true, min: 8, max: 100 });
 
-  // Duplicate submission (double click / network retry): report the original charge.
   const existing = await GuestCharge.findOne({ where: { idempotencyKey } });
-  if (existing) {
-    if (String(existing.orderId) !== String(orderId)) throw new AppError("This charge key belongs to another order.", 409);
-    return { ...respond(existing), duplicate: true };
-  }
+  if (existing) return replayCharge(existing, orderId);
 
-  const validation = req.session.roomValidations?.[orderId];
-  if (!validation || validation.token !== validationToken || validation.expiresAt < Date.now()) {
-    throw new AppError("The room validation has expired. Validate the room with the PMS again.", 409, "VALIDATION_EXPIRED");
-  }
+  let charge;
+  try {
+    charge = await sequelize.transaction(async (transaction) => {
+      const order = await lockOrder(req, orderId, transaction);
+      // A retry with the same key may have committed while this request waited for the lock.
+      const raced = await GuestCharge.findOne({ where: { idempotencyKey }, transaction });
+      if (raced) return { raced };
 
-  const charge = await sequelize.transaction(async (transaction) => {
-    const order = await lockOrder(req, orderId, transaction);
-    await assertChargeable(req, order, transaction);
-    if (order.version !== validation.version || order.totalAmount !== validation.amount) {
-      throw new AppError("The order changed after the room was validated. Validate the room again.", 409, "ORDER_CHANGED");
-    }
-    const created = await GuestCharge.create(
-      {
-        chargeNumber: await nextNumber("guestCharge", transaction),
-        orderId: order.id,
-        roomNumber: validation.roomNumber,
-        externalGuestId: validation.externalGuestId,
-        externalRoomId: validation.externalRoomId,
-        externalFolioId: validation.externalFolioId,
-        amount: order.totalAmount,
-        status: "PENDING",
-        idempotencyKey,
-        attempts: 1,
-        isMock: validation.isMock,
-        requestedBy: req.user.id,
-      },
-      { transaction }
-    );
-    assertTransition(order.status, "SETTLING");
-    await order.update({ status: "SETTLING", settlementType: "ROOM_CHARGE", version: order.version + 1 }, { transaction });
-    await audit({
-      req, action: "ROOM_CHARGE_SUBMITTED", entityType: "order", entityId: order.id,
-      newValues: { chargeNumber: created.chargeNumber, roomNumber: created.roomNumber, externalFolioId: created.externalFolioId, amount: created.amount },
-      transaction,
+      // The validation is consumed in this transaction, so it can back exactly one charge.
+      const validation = await RoomChargeValidation.findOne({
+        where: { tokenHash: hashToken(validationToken), orderId: order.id },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!validation || validation.usedAt || validation.userId !== req.user.id || new Date(validation.expiresAt) < new Date()) {
+        throw new AppError("The room validation has expired or was already used. Validate the room with the PMS again.", 409, "VALIDATION_EXPIRED");
+      }
+      await assertChargeable(req, order, transaction);
+      if (order.version !== validation.orderVersion || order.totalAmount !== validation.amount) {
+        throw new AppError("The order changed after the room was validated. Validate the room again.", 409, "ORDER_CHANGED");
+      }
+      await validation.update({ usedAt: new Date() }, { transaction });
+      const created = await GuestCharge.create(
+        {
+          chargeNumber: await nextNumber("guestCharge", transaction),
+          orderId: order.id,
+          roomNumber: validation.roomNumber,
+          externalGuestId: validation.externalGuestId,
+          externalRoomId: validation.externalRoomId,
+          externalFolioId: validation.externalFolioId,
+          amount: order.totalAmount,
+          status: "PENDING",
+          idempotencyKey,
+          attempts: 1,
+          isMock: validation.isMock,
+          requestedBy: req.user.id,
+        },
+        { transaction }
+      );
+      assertTransition(order.status, "SETTLING");
+      await order.update({ status: "SETTLING", settlementType: "ROOM_CHARGE", version: order.version + 1 }, { transaction });
+      await audit({
+        req, action: "ROOM_CHARGE_SUBMITTED", entityType: "order", entityId: order.id,
+        newValues: { chargeNumber: created.chargeNumber, roomNumber: created.roomNumber, externalFolioId: created.externalFolioId, amount: created.amount },
+        transaction,
+      });
+      return created;
     });
-    return created;
-  });
-  delete req.session.roomValidations[orderId]; // single use
+  } catch (err) {
+    // Two requests with the same key for different orders: the unique index decides.
+    if (err instanceof UniqueConstraintError && JSON.stringify(err.fields || {}).includes("idempotency")) {
+      return replayCharge(await GuestCharge.findOne({ where: { idempotencyKey } }), orderId);
+    }
+    throw err;
+  }
+  if (charge.raced) return replayCharge(charge.raced, orderId);
 
   const result = await sendToPms(req, charge);
   return respond(await GuestCharge.findByPk(result.charge.id));
@@ -268,9 +296,15 @@ export async function verifyCharge(req, chargeId) {
     await applyPmsResult(req, charge.id, { status: "REJECTED", reason: `The PMS has no record of the charge after ${charge.attempts} attempts.` });
     return respond(await GuestCharge.findByPk(charge.id));
   }
-  await charge.update({ attempts: charge.attempts + 1, status: "PENDING" });
-  await audit({ req, action: "ROOM_CHARGE_RETRY", entityType: "order", entityId: charge.orderId, newValues: { chargeNumber: charge.chargeNumber, attempt: charge.attempts } });
-  await sendToPms(req, charge);
+  // Claim the retry under a row lock so two verifies can't both re-post.
+  const claimed = await sequelize.transaction(async (transaction) => {
+    const locked = await GuestCharge.findByPk(charge.id, { transaction, lock: transaction.LOCK.UPDATE });
+    if (locked.status !== "UNKNOWN" || locked.attempts !== charge.attempts) return null;
+    await locked.update({ attempts: locked.attempts + 1, status: "PENDING" }, { transaction });
+    await audit({ req, action: "ROOM_CHARGE_RETRY", entityType: "order", entityId: locked.orderId, newValues: { chargeNumber: locked.chargeNumber, attempt: locked.attempts }, transaction });
+    return locked;
+  });
+  if (claimed) await sendToPms(req, claimed);
   return respond(await GuestCharge.findByPk(charge.id));
 }
 

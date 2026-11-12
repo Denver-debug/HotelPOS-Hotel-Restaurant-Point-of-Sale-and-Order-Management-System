@@ -66,3 +66,20 @@ export const config = {
     },
   },
 };
+
+// Adapter names are checked at startup. A typo used to fall back to the mock silently, which
+// in production would mean fake room charges and fake card approvals.
+const SUPPORTED_ADAPTERS = {
+  PMS_ADAPTER: [config.integrations.pms.adapter, ["mock", "http"]],
+  PAYMENT_ADAPTER: [config.integrations.payment.adapter, ["mock"]],
+  HR_ADAPTER: [config.integrations.hr.adapter, ["mock", "http"]],
+};
+for (const [name, [value, allowed]] of Object.entries(SUPPORTED_ADAPTERS)) {
+  if (!allowed.includes(value)) {
+    throw new Error(`${name}="${value}" is not supported. Use one of: ${allowed.join(", ")}.`);
+  }
+}
+const mocks = Object.entries(SUPPORTED_ADAPTERS).filter(([, [value]]) => value === "mock").map(([name]) => name);
+if (isProduction && mocks.length) {
+  console.warn(`⚠️  Running in production with simulated integrations: ${mocks.join(", ")}. No real PMS/payment/HR calls are made.`);
+}

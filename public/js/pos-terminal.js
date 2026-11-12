@@ -88,7 +88,7 @@
   function handleError(err) {
     if (err?.body?.order) setOrder(err.body.order);
     if (handleSessionErrors(err)) return;
-    if (err?.body?.code === "UNAVAILABLE") refreshCatalog();
+    if (err?.body?.code === "PRODUCT_UNAVAILABLE") refreshCatalog();
     toast(err?.message || "Something went wrong.", "error");
   }
 
@@ -154,15 +154,14 @@
     m.classList.remove("hidden");
     m.classList.add("flex");
     keys.renderHints(m);
-    setTimeout(() => {
-      const target =
-        (focus && m.querySelector(focus)) ||
-        [...m.querySelectorAll("[data-autofocus]")].find(visible) ||
-        [...m.querySelectorAll("input:not([type=hidden]):not([type=checkbox]):not([disabled]), select, textarea")].find(visible) ||
-        [...m.querySelectorAll("[data-primary]")].find(visible);
-      target?.focus();
-      if (target?.select && target.tagName === "INPUT") target.select();
-    }, 30);
+    // Focus right away (not on a timer) so keys typed straight after F2/F4 land in the field.
+    const target =
+      (focus && m.querySelector(focus)) ||
+      [...m.querySelectorAll("[data-autofocus]")].find(visible) ||
+      [...m.querySelectorAll("input:not([type=hidden]):not([type=checkbox]):not([disabled]), select, textarea")].find(visible) ||
+      [...m.querySelectorAll("[data-primary]")].find(visible);
+    target?.focus();
+    if (target?.select && target.tagName === "INPUT") target.select();
   }
 
   function closeModal(el) {
@@ -599,11 +598,9 @@
   function focusPaymentField() {
     const m = selectedMethod();
     const target = m?.isCash ? "#pay-tendered" : m && (m.requiresReference || m.usesGateway) ? "#pay-reference" : "#pay-amount";
-    setTimeout(() => {
-      const el = $(target);
-      el.focus();
-      el.select?.();
-    }, 30);
+    const el = $(target);
+    el.focus();
+    el.select?.();
   }
 
   function chooseMethod(id) {

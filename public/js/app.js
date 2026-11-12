@@ -163,6 +163,8 @@
     if (e.target.closest("[data-sidebar-open]")) setSidebar(true);
     if (e.target.closest("[data-sidebar-close]")) setSidebar(false);
 
+    if (e.target.closest("[data-history-back]")) history.back();
+
     const printBtn = e.target.closest("[data-print]");
     if (printBtn) window.print();
 

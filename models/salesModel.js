@@ -174,6 +174,23 @@ export const GuestCharge = sequelize.define("GuestCharge", {
   postedAt: { type: DataTypes.DATE },
 }, { tableName: "guest_charges" });
 
+// Single-use, short-lived proof that the PMS validated a room for an order (hash only).
+export const RoomChargeValidation = sequelize.define("RoomChargeValidation", {
+  id: bigId,
+  tokenHash: { type: DataTypes.CHAR(64), allowNull: false, unique: true },
+  orderId: { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
+  userId: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
+  roomNumber: { type: DataTypes.STRING(20), allowNull: false },
+  externalRoomId: { type: DataTypes.STRING(60), allowNull: false },
+  externalGuestId: { type: DataTypes.STRING(60), allowNull: false },
+  externalFolioId: { type: DataTypes.STRING(60), allowNull: false },
+  amount: money(),
+  orderVersion: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
+  isMock: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+  expiresAt: { type: DataTypes.DATE(3), allowNull: false },
+  usedAt: { type: DataTypes.DATE(3) },
+}, { tableName: "room_charge_validations", updatedAt: false });
+
 export const Refund = sequelize.define("Refund", {
   refundNumber: { type: DataTypes.STRING(30), allowNull: false, unique: true },
   orderId: { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },

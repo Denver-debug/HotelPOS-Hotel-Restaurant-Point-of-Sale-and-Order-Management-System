@@ -1,6 +1,6 @@
 // Outlet-based inventory: stock levels, the append-only movement ledger, recipes,
 // sale deductions (idempotent) and refund returns.
-import { Op, QueryTypes } from "sequelize";
+import { Op, QueryTypes, UniqueConstraintError } from "sequelize";
 import {
   sequelize, InventoryItem, StockLevel, StockLocation, InventoryTransaction, ProductRecipe, Product, Outlet,
 } from "../models/index.js";
@@ -201,25 +201,44 @@ export async function recordManualMovement(req, body) {
   const reason = v.str(body.reason, "Reason", { required: type !== "STOCK_IN", max: 255 });
   const unitCost = type === "STOCK_IN" ? v.money(body.unitCost, "Unit cost", { required: false }) : null;
   const reference = v.str(body.reference, "Reference", { max: 40 });
+  // Optional client key (e.g. an ERP goods receipt retried after a timeout). Namespaced so it can
+  // never collide with the keys HotelPOS uses for sale and refund movements.
+  const clientKey = v.str(body.idempotencyKey, "Idempotency key", { min: 8, max: 90 });
+  const idempotencyKey = clientKey ? `EXT:${clientKey}` : null;
 
-  return sequelize.transaction(async (transaction) => {
-    const location = await defaultLocation(outletId, transaction);
-    let deltaMilli;
-    if (type === "ADJUSTMENT") {
-      const counted = toMilli(v.quantity(body.quantity, "Counted quantity", { allowZero: true }));
-      const level = await StockLevel.findOne({ where: { stockLocationId: location.id, inventoryItemId: itemId }, transaction, lock: transaction.LOCK.UPDATE });
-      deltaMilli = counted - (level ? toMilli(level.quantity) : 0);
-      if (deltaMilli === 0) throw new AppError("The counted quantity matches the system quantity; nothing to adjust.", 422);
-    } else {
-      deltaMilli = DIRECTION[type] * toMilli(v.quantity(body.quantity, "Quantity"));
+  const replay = async () => {
+    const row = await InventoryTransaction.findOne({ where: { idempotencyKey } });
+    if (String(row.inventoryItemId) !== String(itemId) || row.transactionType !== type) {
+      throw new AppError("This idempotency key was already used for a different stock movement.", 409, "IDEMPOTENCY_CONFLICT");
     }
-    const { row } = await applyMovement(
-      { itemId, locationId: location.id, type, deltaMilli, reason, unitCost, referenceType: reference ? "manual" : null, referenceId: reference, userId: req.user.id },
-      transaction
-    );
-    await audit({ req, action: `INVENTORY_${type}`, entityType: "inventory_item", entityId: itemId, newValues: { outletId, quantity: row.quantity, balanceAfter: row.balanceAfter, reason }, transaction });
+    row.duplicate = true;
     return row;
-  });
+  };
+  if (idempotencyKey && (await InventoryTransaction.count({ where: { idempotencyKey } }))) return replay();
+
+  try {
+    return await sequelize.transaction(async (transaction) => {
+      const location = await defaultLocation(outletId, transaction);
+      let deltaMilli;
+      if (type === "ADJUSTMENT") {
+        const counted = toMilli(v.quantity(body.quantity, "Counted quantity", { allowZero: true }));
+        const level = await StockLevel.findOne({ where: { stockLocationId: location.id, inventoryItemId: itemId }, transaction, lock: transaction.LOCK.UPDATE });
+        deltaMilli = counted - (level ? toMilli(level.quantity) : 0);
+        if (deltaMilli === 0) throw new AppError("The counted quantity matches the system quantity; nothing to adjust.", 422, "NOTHING_TO_ADJUST");
+      } else {
+        deltaMilli = DIRECTION[type] * toMilli(v.quantity(body.quantity, "Quantity"));
+      }
+      const { row } = await applyMovement(
+        { itemId, locationId: location.id, type, deltaMilli, reason, unitCost, referenceType: reference ? "manual" : null, referenceId: reference, idempotencyKey, userId: req.user.id },
+        transaction
+      );
+      await audit({ req, action: `INVENTORY_${type}`, entityType: "inventory_item", entityId: itemId, newValues: { outletId, quantity: row.quantity, balanceAfter: row.balanceAfter, reason }, transaction });
+      return row;
+    });
+  } catch (err) {
+    if (idempotencyKey && err instanceof UniqueConstraintError) return replay();
+    throw err;
+  }
 }
 
 // ── Queries ──────────────────────────────────────────────────────────────

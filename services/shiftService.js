@@ -20,9 +20,9 @@ export async function openShift(req, body) {
 
   return sequelize.transaction(async (transaction) => {
     const outlet = await Outlet.findByPk(outletId, { transaction });
-    if (!outlet || outlet.status !== "ACTIVE") throw new AppError("The selected outlet is not active.", 422);
+    if (!outlet || outlet.status !== "ACTIVE") throw new AppError("The selected outlet is not active.", 422, "OUTLET_INACTIVE");
     const existing = await getOpenShift(req.user.id, transaction);
-    if (existing) throw new AppError(`You already have an open shift (${existing.shiftNumber}). Close it before opening another.`, 409);
+    if (existing) throw new AppError(`You already have an open shift (${existing.shiftNumber}). Close it before opening another.`, 409, "SHIFT_ALREADY_OPEN");
     const shift = await Shift.create(
       { shiftNumber: await nextNumber("shift", transaction), userId: req.user.id, outletId, openingCash, openingNotes, openedAt: new Date() },
       { transaction }
@@ -76,9 +76,9 @@ export async function shiftSummary(shift) {
 }
 
 const assertCanActOn = (req, shift) => {
-  if (shift.userId !== req.user.id && !req.permissions.has("shifts.manage")) {
-    throw forbidden("Only a supervisor can close another cashier's shift.");
-  }
+  if (shift.userId === req.user.id) return;
+  if (!req.permissions.has("shifts.manage")) throw forbidden("Only a supervisor can close another cashier's shift.");
+  if (!req.user.outletIds.includes(shift.outletId)) throw forbidden("You are not assigned to this shift's outlet.");
 };
 
 export async function closeShift(req, id, body) {
@@ -89,7 +89,7 @@ export async function closeShift(req, id, body) {
     const shift = await Shift.findByPk(id, { transaction, lock: transaction.LOCK.UPDATE });
     if (!shift) throw notFound("Shift");
     assertCanActOn(req, shift);
-    if (shift.status !== "OPEN") throw new AppError("This shift is already closed.", 409);
+    if (shift.status !== "OPEN") throw new AppError("This shift is already closed.", 409, "SHIFT_NOT_OPEN");
 
     const [{ inflight }] = await sequelize.query(
       `SELECT (SELECT COUNT(*) FROM payments WHERE shift_id = :id AND status = 'PENDING')
@@ -97,7 +97,7 @@ export async function closeShift(req, id, body) {
       { replacements: { id }, type: QueryTypes.SELECT, transaction }
     );
     if (Number(inflight) > 0) {
-      throw new AppError("This shift has payments or room charges still being processed. Resolve them before closing.", 409);
+      throw new AppError("This shift has payments or room charges still being processed. Resolve them before closing.", 409, "SETTLEMENT_IN_PROGRESS");
     }
 
     const { expected } = await expectedCash(shift, transaction);
@@ -115,7 +115,8 @@ export async function reconcileShift(req, id) {
   return sequelize.transaction(async (transaction) => {
     const shift = await Shift.findByPk(id, { transaction, lock: transaction.LOCK.UPDATE });
     if (!shift) throw notFound("Shift");
-    if (shift.status !== "CLOSED") throw new AppError("Only closed shifts can be reconciled.", 409);
+    if (shift.status !== "CLOSED") throw new AppError("Only closed shifts can be reconciled.", 409, "SHIFT_NOT_CLOSED");
+    if (!req.user.outletIds.includes(shift.outletId)) throw forbidden("You are not assigned to this shift's outlet.");
     if (shift.userId === req.user.id) throw forbidden("A different supervisor must reconcile your own shift.");
     await shift.update({ status: "RECONCILED", reconciledBy: req.user.id, reconciledAt: new Date() }, { transaction });
     await audit({ req, action: "SHIFT_RECONCILED", entityType: "shift", entityId: id, newValues: { cashVariance: shift.cashVariance }, transaction });

@@ -12,8 +12,10 @@ export const apiPay = async (req, res) => {
   const result = await paymentService.processPayment(req, req.params.id, req.body);
   const order = orderService.toDto(await orderService.getOrder(req, req.params.id));
   const payment = result.payment.get({ plain: true });
+  // A decline is an error response that also carries the updated order and payment, so the
+  // caller can show the balance without another request. A replayed key returns the same shape.
   if (result.declined) {
-    return res.status(402).json({ ok: false, error: result.reason, code: "PAYMENT_DECLINED", order, payment });
+    return res.status(402).json({ ok: false, error: result.reason, code: "PAYMENT_DECLINED", order, payment, duplicate: Boolean(result.duplicate), requestId: req.id });
   }
   res.json({ ok: true, order, payment, receiptId: result.receipt?.id ?? null, duplicate: Boolean(result.duplicate) });
 };

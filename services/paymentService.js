@@ -3,8 +3,8 @@
 // Gateway methods follow F13: Payment Processing (PENDING, order SETTLING) → provider →
 // Paid (CAPTURED) or declined() back to Awaiting Settlement. A lost response leaves the
 // payment PENDING until it is verified with the provider — it is never blindly re-sent.
-import { Op } from "sequelize";
-import { sequelize, Order, Payment, PaymentMethod, GuestCharge, Outlet, User } from "../models/index.js";
+import { Op, UniqueConstraintError } from "sequelize";
+import { sequelize, Order, Payment, PaymentMethod, GuestCharge, Outlet, User, Receipt } from "../models/index.js";
 import { AppError, notFound, forbidden } from "../utils/http.js";
 import { toCents, fromCents } from "../utils/money.js";
 import * as v from "../utils/validate.js";
@@ -48,6 +48,23 @@ async function applyCapture(req, order, payment, { externalTransactionId, settle
   return null;
 }
 
+// A repeated idempotency key returns the original outcome, in the same shape as the first
+// response: captured → ok with the receipt, declined → 402, still pending → 409.
+async function replayPayment(previous, orderId) {
+  if (String(previous.orderId) !== String(orderId)) throw new AppError("This payment key belongs to another order.", 409, "IDEMPOTENCY_CONFLICT");
+  if (previous.status === "FAILED") return { payment: previous, duplicate: true, declined: true, reason: previous.failureReason || "Payment was declined." };
+  if (previous.status === "PENDING") {
+    throw new AppError(
+      `Payment ${previous.paymentNumber} with this key is still being processed. Verify it before trying again.`,
+      409,
+      "SETTLEMENT_IN_PROGRESS",
+      { paymentId: previous.id }
+    );
+  }
+  const receipt = await Receipt.findOne({ where: { orderId: previous.orderId, refundId: null } });
+  return { payment: previous, duplicate: true, receipt };
+}
+
 export async function processPayment(req, orderId, body) {
   const paymentMethodId = v.id(body.paymentMethodId, "Payment method");
   const amount = v.money(body.amount, "Amount", { min: 0.01 });
@@ -56,72 +73,82 @@ export async function processPayment(req, orderId, body) {
 
   // A repeated submission returns the original result instead of charging twice.
   const previous = await Payment.findOne({ where: { idempotencyKey } });
-  if (previous) {
-    if (String(previous.orderId) !== String(orderId)) throw new AppError("This payment key belongs to another order.", 409);
-    return { payment: previous, duplicate: true };
-  }
+  if (previous) return replayPayment(previous, orderId);
 
   const method = await PaymentMethod.findByPk(paymentMethodId);
-  if (!method || method.status !== "ACTIVE") throw new AppError("Select an active payment method.", 422);
-  if (method.requiresReference && !reference) throw new AppError(`${method.name} requires a reference number.`, 422);
+  if (!method || method.status !== "ACTIVE") throw new AppError("Select an active payment method.", 422, "PAYMENT_METHOD_INACTIVE");
+  if (method.requiresReference && !reference) throw new AppError(`${method.name} requires a reference number.`, 422, "REFERENCE_REQUIRED");
 
   const gateway = method.usesGateway ? getPaymentGateway() : null;
 
   // Step 1: validate and record the payment (and capture it if it is local).
-  const step1 = await sequelize.transaction(async (transaction) => {
-    const order = await lockOrder(req, orderId, transaction);
-    if (order.status === "SETTLING") {
-      throw new AppError("A payment or room charge for this order is still being processed. Verify it before trying again.", 409, "SETTLEMENT_IN_PROGRESS");
-    }
-    if (!SETTLEABLE_STATUSES.includes(order.status)) {
-      throw new AppError(`Order ${order.orderNumber} is ${order.status.replace(/_/g, " ").toLowerCase()}; request settlement first.`, 409, "NOT_SETTLEABLE");
-    }
-    const pendingCharge = await GuestCharge.count({ where: { orderId: order.id, status: { [Op.in]: ["PENDING", "UNKNOWN", "POSTED"] } }, transaction });
-    if (pendingCharge) throw new AppError("A room charge is in progress or posted for this order.", 409);
-    const pendingPayment = await Payment.count({ where: { orderId: order.id, status: "PENDING" }, transaction });
-    if (pendingPayment) throw new AppError("Another payment for this order is still being processed. Verify it first.", 409);
+  let step1;
+  try {
+    step1 = await sequelize.transaction(async (transaction) => {
+      const order = await lockOrder(req, orderId, transaction);
+      // A retry with the same key may have committed while this request waited for the lock.
+      const raced = await Payment.findOne({ where: { idempotencyKey }, transaction });
+      if (raced) return { raced };
+      if (order.status === "SETTLING") {
+        throw new AppError("A payment or room charge for this order is still being processed. Verify it before trying again.", 409, "SETTLEMENT_IN_PROGRESS");
+      }
+      if (!SETTLEABLE_STATUSES.includes(order.status)) {
+        throw new AppError(`Order ${order.orderNumber} is ${order.status.replace(/_/g, " ").toLowerCase()}; request settlement first.`, 409, "NOT_SETTLEABLE");
+      }
+      const pendingCharge = await GuestCharge.count({ where: { orderId: order.id, status: { [Op.in]: ["PENDING", "UNKNOWN", "POSTED"] } }, transaction });
+      if (pendingCharge) throw new AppError("A room charge is in progress or posted for this order.", 409, "ROOM_CHARGE_IN_PROGRESS");
+      const pendingPayment = await Payment.count({ where: { orderId: order.id, status: "PENDING" }, transaction });
+      if (pendingPayment) throw new AppError("Another payment for this order is still being processed. Verify it first.", 409, "SETTLEMENT_IN_PROGRESS");
 
-    const shift = await resolveShift(req, order.outletId);
-    const balance = toCents(order.totalAmount) - toCents(order.amountPaid);
-    if (balance <= 0) throw new AppError("This order is already fully paid.", 409);
-    if (toCents(amount) > balance) throw new AppError(`Amount exceeds the balance due (${fromCents(balance)}).`, 422);
+      const shift = await resolveShift(req, order.outletId);
+      const balance = toCents(order.totalAmount) - toCents(order.amountPaid);
+      if (balance <= 0) throw new AppError("This order is already fully paid.", 409, "ALREADY_PAID");
+      if (toCents(amount) > balance) throw new AppError(`Amount exceeds the balance due (${fromCents(balance)}).`, 422, "AMOUNT_EXCEEDS_BALANCE");
 
-    let tenderedAmount = null;
-    let changeAmount = "0.00";
-    if (method.isCash) {
-      tenderedAmount = v.money(body.tenderedAmount ?? amount, "Cash received");
-      if (toCents(tenderedAmount) < toCents(amount)) throw new AppError("Cash received is less than the amount to apply.", 422);
-      changeAmount = fromCents(toCents(tenderedAmount) - toCents(amount));
+      let tenderedAmount = null;
+      let changeAmount = "0.00";
+      if (method.isCash) {
+        tenderedAmount = v.money(body.tenderedAmount ?? amount, "Cash received");
+        if (toCents(tenderedAmount) < toCents(amount)) throw new AppError("Cash received is less than the amount to apply.", 422, "INSUFFICIENT_TENDER");
+        changeAmount = fromCents(toCents(tenderedAmount) - toCents(amount));
+      }
+
+      const payment = await Payment.create(
+        {
+          paymentNumber: await nextNumber("payment", transaction),
+          orderId: order.id,
+          shiftId: shift?.id ?? null,
+          paymentMethodId: method.id,
+          amount,
+          tenderedAmount,
+          changeAmount,
+          reference,
+          status: "PENDING",
+          gateway: gateway?.name ?? null,
+          idempotencyKey,
+          isMock: Boolean(gateway?.isMock),
+          processedBy: req.user.id,
+        },
+        { transaction }
+      );
+
+      if (!gateway) {
+        const receipt = await applyCapture(req, order, payment, { settledExternally: false }, transaction);
+        return { payment, receipt, done: true };
+      }
+      assertTransition(order.status, "SETTLING");
+      await order.update({ status: "SETTLING", version: order.version + 1 }, { transaction });
+      await audit({ req, action: "PAYMENT_SUBMITTED", entityType: "order", entityId: order.id, newValues: { paymentNumber: payment.paymentNumber, amount, method: method.code, isMock: gateway.isMock }, transaction });
+      return { payment, done: false };
+    });
+  } catch (err) {
+    // Same key used for two different orders at once: the unique index decides.
+    if (err instanceof UniqueConstraintError && JSON.stringify(err.fields || {}).includes("idempotency")) {
+      return replayPayment(await Payment.findOne({ where: { idempotencyKey } }), orderId);
     }
-
-    const payment = await Payment.create(
-      {
-        paymentNumber: await nextNumber("payment", transaction),
-        orderId: order.id,
-        shiftId: shift?.id ?? null,
-        paymentMethodId: method.id,
-        amount,
-        tenderedAmount,
-        changeAmount,
-        reference,
-        status: "PENDING",
-        gateway: gateway?.name ?? null,
-        idempotencyKey,
-        isMock: Boolean(gateway?.isMock),
-        processedBy: req.user.id,
-      },
-      { transaction }
-    );
-
-    if (!gateway) {
-      const receipt = await applyCapture(req, order, payment, { settledExternally: false }, transaction);
-      return { payment, receipt, done: true };
-    }
-    assertTransition(order.status, "SETTLING");
-    await order.update({ status: "SETTLING", version: order.version + 1 }, { transaction });
-    await audit({ req, action: "PAYMENT_SUBMITTED", entityType: "order", entityId: order.id, newValues: { paymentNumber: payment.paymentNumber, amount, method: method.code, isMock: gateway.isMock }, transaction });
-    return { payment, done: false };
-  });
+    throw err;
+  }
+  if (step1.raced) return replayPayment(step1.raced, orderId);
   if (step1.done) return step1;
 
   // Step 2: call the provider outside the DB transaction (no row locks held during I/O).
@@ -172,10 +199,16 @@ export async function verifyPayment(req, paymentId) {
   if (!req.user.outletIds.includes(payment.order.outletId)) throw forbidden();
   if (payment.status !== "PENDING") return { payment, done: payment.status === "CAPTURED" };
   const gateway = getPaymentGateway();
-  const result = await logged(
-    { system: "PAYMENT", operation: "getStatus", isMock: gateway.isMock, idempotencyKey: payment.idempotencyKey, referenceType: "payment", referenceId: payment.id, userId: req.user.id },
-    () => gateway.getStatus(payment.idempotencyKey)
-  );
+  let result;
+  try {
+    result = await logged(
+      { system: "PAYMENT", operation: "getStatus", isMock: gateway.isMock, idempotencyKey: payment.idempotencyKey, referenceType: "payment", referenceId: payment.id, userId: req.user.id },
+      () => gateway.getStatus(payment.idempotencyKey)
+    );
+  } catch (err) {
+    if (!(err instanceof IntegrationError)) throw err;
+    throw new AppError(`The payment provider is still not responding (${err.message}). Try again shortly; do not take the payment another way yet.`, 504, "PAYMENT_UNKNOWN", { paymentId: payment.id });
+  }
   return finalizeGatewayResult(req, payment.id, result);
 }
 

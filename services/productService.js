@@ -165,7 +165,7 @@ export async function setOutletPrice(req, productId, body) {
 export async function removeFromOutlet(req, productId, outletId) {
   return sequelize.transaction(async (transaction) => {
     const current = await ProductPrice.findOne({ where: { productId, outletId, effectiveTo: null }, transaction, lock: transaction.LOCK.UPDATE });
-    if (!current) throw new AppError("This product is not sold at that outlet.", 409);
+    if (!current) throw new AppError("This product is not sold at that outlet.", 409, "NOT_SOLD_AT_OUTLET");
     await current.update({ effectiveTo: new Date() }, { transaction });
     await audit({ req, action: "PRODUCT_REMOVED_FROM_OUTLET", entityType: "product", entityId: productId, oldValues: { outletId, price: current.price } });
   });

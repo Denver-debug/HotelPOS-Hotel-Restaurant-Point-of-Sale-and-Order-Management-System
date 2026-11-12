@@ -1,10 +1,28 @@
 // Shared HTTP helpers: application errors and async route wrapping.
 
+// Every error response carries a stable, machine-readable `code` (documented in docs/API.md).
+// Conditions an integrator needs to branch on have their own code; anything else gets the
+// generic code for its HTTP status.
+export const DEFAULT_ERROR_CODES = {
+  400: "BAD_REQUEST",
+  401: "UNAUTHENTICATED",
+  402: "PAYMENT_DECLINED",
+  403: "FORBIDDEN",
+  404: "NOT_FOUND",
+  409: "CONFLICT",
+  422: "VALIDATION_ERROR",
+  429: "RATE_LIMITED",
+  500: "SERVER_ERROR",
+  502: "UPSTREAM_ERROR",
+  503: "SERVICE_UNAVAILABLE",
+  504: "UPSTREAM_TIMEOUT",
+};
+
 export class AppError extends Error {
-  constructor(message, status = 400, code = "APP_ERROR", details = undefined) {
+  constructor(message, status = 400, code = undefined, details = undefined) {
     super(message);
     this.status = status;
-    this.code = code;
+    this.code = code || DEFAULT_ERROR_CODES[status] || "APP_ERROR";
     this.details = details;
   }
 }

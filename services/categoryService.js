@@ -45,7 +45,7 @@ export async function setCategoryStatus(req, id, status) {
   if (!category) throw notFound("Category");
   if (status === "ARCHIVED") {
     const active = await Product.count({ where: { categoryId: id, status: { [Op.ne]: "ARCHIVED" } } });
-    if (active > 0) throw new AppError(`Move or archive the ${active} product(s) in “${category.name}” before archiving it.`, 409);
+    if (active > 0) throw new AppError(`Move or archive the ${active} product(s) in “${category.name}” before archiving it.`, 409, "CATEGORY_IN_USE");
   }
   const before = category.status;
   await category.update({ status });

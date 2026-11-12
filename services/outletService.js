@@ -59,7 +59,7 @@ export async function updateOutlet(req, id, body) {
   if (!outlet) throw notFound("Outlet");
   if (data.status === "INACTIVE" && outlet.status === "ACTIVE") {
     const [{ n }] = await sequelize.query("SELECT COUNT(*) AS n FROM shifts WHERE outlet_id = ? AND status = 'OPEN'", { replacements: [id], type: QueryTypes.SELECT });
-    if (Number(n) > 0) throw new AppError("Close all open cashier shifts at this outlet before deactivating it.", 409);
+    if (Number(n) > 0) throw new AppError("Close all open cashier shifts at this outlet before deactivating it.", 409, "OPEN_SHIFTS");
   }
   return sequelize.transaction(async (transaction) => {
     const before = outlet.get({ plain: true });

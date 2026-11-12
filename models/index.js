@@ -6,7 +6,7 @@ import { Outlet, Category, Tax, Product, ProductPrice } from "./catalogModel.js"
 import { StockLocation, InventoryItem, ProductRecipe, StockLevel, InventoryTransaction } from "./inventoryModel.js";
 import {
   Shift, Order, OrderItem, Discount, DiscountProduct, DiscountOutlet, OrderDiscount,
-  PaymentMethod, Payment, GuestCharge, Refund, RefundItem, Receipt,
+  PaymentMethod, Payment, GuestCharge, Refund, RefundItem, Receipt, RoomChargeValidation,
 } from "./salesModel.js";
 import { SystemSetting, AuditLog, IntegrationLog, IntegrationEvent } from "./systemModel.js";
 
@@ -101,6 +101,6 @@ export {
   Outlet, Category, Tax, Product, ProductPrice,
   StockLocation, InventoryItem, ProductRecipe, StockLevel, InventoryTransaction,
   Shift, Order, OrderItem, Discount, DiscountProduct, DiscountOutlet, OrderDiscount,
-  PaymentMethod, Payment, GuestCharge, Refund, RefundItem, Receipt,
+  PaymentMethod, Payment, GuestCharge, Refund, RefundItem, Receipt, RoomChargeValidation,
   SystemSetting, AuditLog, IntegrationLog, IntegrationEvent,
 };

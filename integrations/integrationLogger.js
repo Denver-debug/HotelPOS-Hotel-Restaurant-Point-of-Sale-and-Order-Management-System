@@ -2,6 +2,7 @@
 // and writes an `integration_logs` row whether the call succeeds or fails.
 import crypto from "crypto";
 import { IntegrationLog } from "../models/index.js";
+import { currentRequestId, outboundContext } from "../utils/requestContext.js";
 
 export class IntegrationError extends Error {
   // kind: TIMEOUT | NETWORK | REJECTED | INVALID_RESPONSE | NOT_CONFIGURED
@@ -14,12 +15,20 @@ export class IntegrationError extends Error {
 }
 
 const SECRET_KEY = /(key|token|secret|password|authorization|card_?number|cvv|pin)/i;
+// Personal data owned by other subsystems (PMS guests, HR employees) is never stored here;
+// the PMS returns the guest's name for on-screen confirmation only.
+const PERSONAL_KEY = /^(display_?name|full_?name|guest_?name|first_?name|last_?name|name_on_card|email|phone|mobile)$/i;
+const MAX_DEPTH = 5;
 
 export const mask = (value, depth = 0) => {
-  if (value === null || value === undefined || depth > 5) return value ?? null;
+  if (value === null || value === undefined) return value ?? null;
+  // Deeper structures are summarised, never written unmasked.
+  if (depth > MAX_DEPTH) return typeof value === "object" ? "[truncated]" : value;
   if (Array.isArray(value)) return value.map((v) => mask(v, depth + 1));
   if (typeof value === "object") {
-    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, SECRET_KEY.test(k) ? "***" : mask(v, depth + 1)]));
+    return Object.fromEntries(
+      Object.entries(value).map(([k, v]) => [k, SECRET_KEY.test(k) || PERSONAL_KEY.test(k) ? "***" : mask(v, depth + 1)])
+    );
   }
   return value;
 };
@@ -37,11 +46,13 @@ const statusFor = (err) => {
  */
 export async function logged(meta, fn) {
   const started = Date.now();
-  const correlationId = crypto.randomUUID();
+  // The inbound request id links this call to the POS request that caused it; adapters send
+  // it as X-Correlation-Id (httpClient reads it from outboundContext).
+  const correlationId = currentRequestId() || crypto.randomUUID();
   let response;
   let error;
   try {
-    response = await fn(correlationId);
+    response = await outboundContext.run({ correlationId }, () => fn(correlationId));
     return response;
   } catch (err) {
     error = err;

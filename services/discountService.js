@@ -133,11 +133,11 @@ export async function applyDiscount(req, orderId, body) {
 
   return sequelize.transaction(async (transaction) => {
     const order = await lockOrder(req, orderId, transaction);
-    if (!EDITABLE_STATUSES.includes(order.status) || toCents(order.amountPaid) > 0) throw new AppError("Discounts can only be applied before payment.", 409);
+    if (!EDITABLE_STATUSES.includes(order.status) || toCents(order.amountPaid) > 0) throw new AppError("Discounts can only be applied before payment.", 409, "NOT_EDITABLE");
     const eligible = await eligibleDiscounts(order, transaction);
-    if (!eligible.some((d) => d.id === discount.id)) throw new AppError(`${discount.name} is not valid at this outlet right now.`, 409);
+    if (!eligible.some((d) => d.id === discount.id)) throw new AppError(`${discount.name} is not valid at this outlet right now.`, 409, "DISCOUNT_NOT_ELIGIBLE");
     if (discount.minOrderAmount && toCents(order.subtotal) < toCents(discount.minOrderAmount)) {
-      throw new AppError(`${discount.name} requires a minimum order of ${discount.minOrderAmount}.`, 409);
+      throw new AppError(`${discount.name} requires a minimum order of ${discount.minOrderAmount}.`, 409, "DISCOUNT_NOT_ELIGIBLE");
     }
 
     let item = null;
@@ -146,11 +146,11 @@ export async function applyDiscount(req, orderId, body) {
       item = await OrderItem.findOne({ where: { id: orderItemId, orderId: order.id }, transaction });
       if (!item) throw notFound("Order item");
       if (discount.products.length && !discount.products.some((p) => p.id === item.productId)) {
-        throw new AppError(`${discount.name} does not apply to ${item.productName}.`, 409);
+        throw new AppError(`${discount.name} does not apply to ${item.productName}.`, 409, "DISCOUNT_NOT_ELIGIBLE");
       }
-      if (await OrderDiscount.count({ where: { orderItemId: item.id }, transaction })) throw new AppError(`${item.productName} already has a discount.`, 409);
+      if (await OrderDiscount.count({ where: { orderItemId: item.id }, transaction })) throw new AppError(`${item.productName} already has a discount.`, 409, "DISCOUNT_ALREADY_APPLIED");
     } else if (await OrderDiscount.count({ where: { orderId: order.id, orderItemId: null }, transaction })) {
-      throw new AppError("This order already has an order-level discount. Remove it first.", 409);
+      throw new AppError("This order already has an order-level discount. Remove it first.", 409, "DISCOUNT_ALREADY_APPLIED");
     }
 
     const applied = await OrderDiscount.create(
@@ -181,7 +181,7 @@ export async function applyDiscount(req, orderId, body) {
 export async function removeDiscount(req, orderId, orderDiscountId) {
   return sequelize.transaction(async (transaction) => {
     const order = await lockOrder(req, orderId, transaction);
-    if (!EDITABLE_STATUSES.includes(order.status) || toCents(order.amountPaid) > 0) throw new AppError("Discounts can only be changed before payment.", 409);
+    if (!EDITABLE_STATUSES.includes(order.status) || toCents(order.amountPaid) > 0) throw new AppError("Discounts can only be changed before payment.", 409, "NOT_EDITABLE");
     const applied = await OrderDiscount.findOne({ where: { id: orderDiscountId, orderId: order.id }, transaction });
     if (!applied) throw notFound("Applied discount");
     await applied.destroy({ transaction });

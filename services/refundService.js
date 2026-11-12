@@ -62,7 +62,8 @@ function lineRefundCents(order, item, qtyMilli) {
   return lineCents + scShare;
 }
 
-export async function requestRefund(req, orderId, body) {
+export async function requestRefund(req, rawOrderId, body) {
+  const orderId = v.id(rawOrderId, "Order");
   const refundType = v.oneOf(body.refundType, "Refund type", ["FULL", "PARTIAL"]);
   const reason = v.str(body.reason, "Reason", { required: true, max: 255 });
   const restock = v.bool(body.restock);
@@ -72,9 +73,9 @@ export async function requestRefund(req, orderId, body) {
     await lockOrder(req, orderId, transaction);
     const { order, items, refundable } = await refundableState(orderId, transaction);
     if (!FINAL_SALE_STATUSES.includes(order.status) || order.status === "REFUNDED") {
-      throw new AppError("Only completed orders can be refunded. Use a void for unsettled orders.", 409);
+      throw new AppError("Only completed orders can be refunded. Use a void for unsettled orders.", 409, "NOT_REFUNDABLE");
     }
-    if (refundable <= 0) throw new AppError("Nothing is left to refund on this order (including pending requests).", 409);
+    if (refundable <= 0) throw new AppError("Nothing is left to refund on this order (including pending requests).", 409, "NOTHING_TO_REFUND");
 
     // Lines to refund
     let lines;
@@ -101,16 +102,16 @@ export async function requestRefund(req, orderId, body) {
     let methodId = null;
     if (order.settlementType === "ROOM_CHARGE") {
       const charge = order.guestCharges[0];
-      if (!charge) throw new AppError("No posted room charge found for this order.", 409);
+      if (!charge) throw new AppError("No posted room charge found for this order.", 409, "NOTHING_TO_REFUND");
       guestChargeId = charge.id;
     } else {
       const method = refundMethodId ? await PaymentMethod.findByPk(refundMethodId, { transaction }) : null;
       const original = order.payments.filter((p) => toCents(p.amount) - toCents(p.refundedAmount) > 0);
-      if (!original.length) throw new AppError("No refundable payment found on this order.", 409);
+      if (!original.length) throw new AppError("No refundable payment found on this order.", 409, "NOTHING_TO_REFUND");
       const chosen = method || original[0].method;
       if (chosen.usesGateway) {
         const payment = original.find((p) => p.paymentMethodId === chosen.id && toCents(p.amount) - toCents(p.refundedAmount) >= amount);
-        if (!payment) throw new AppError(`Refunds to ${chosen.name} must go back to an original ${chosen.name} payment with enough remaining balance.`, 422);
+        if (!payment) throw new AppError(`Refunds to ${chosen.name} must go back to an original ${chosen.name} payment with enough remaining balance.`, 422, "REFUND_METHOD_MISMATCH");
         paymentId = payment.id;
       }
       methodId = chosen.id;
@@ -160,7 +161,7 @@ export async function rejectRefund(req, id, body) {
   const rejectionReason = v.str(body.rejectionReason, "Rejection reason", { required: true, max: 255 });
   return sequelize.transaction(async (transaction) => {
     const refund = await loadRefund(req, id, transaction, true);
-    if (refund.status !== "REQUESTED") throw new AppError("Only pending refund requests can be rejected.", 409);
+    if (refund.status !== "REQUESTED") throw new AppError("Only pending refund requests can be rejected.", 409, "INVALID_REFUND_STATE");
     await refund.update({ status: "REJECTED", rejectionReason, approvedBy: req.user.id, approvedAt: new Date() }, { transaction });
     await audit({ req, action: "REFUND_REJECTED", entityType: "order", entityId: refund.orderId, newValues: { refundNumber: refund.refundNumber, rejectionReason }, transaction });
     return refund;
@@ -173,7 +174,7 @@ export async function approveAndProcess(req, id, body = {}) {
 
   const refund = await sequelize.transaction(async (transaction) => {
     const r = await loadRefund(req, id, transaction, true);
-    if (!["REQUESTED", "FAILED", "APPROVED"].includes(r.status)) throw new AppError(`This refund is already ${r.status.toLowerCase()}.`, 409);
+    if (!["REQUESTED", "FAILED", "APPROVED"].includes(r.status)) throw new AppError(`This refund is already ${r.status.toLowerCase()}.`, 409, "INVALID_REFUND_STATE");
     if (r.requestedBy === req.user.id) throw forbidden("A different supervisor must approve your own refund request.");
     if (r.status === "REQUESTED") {
       await r.update({ status: "APPROVED", approvedBy: req.user.id, approvedAt: new Date() }, { transaction });
@@ -191,7 +192,7 @@ export async function approveAndProcess(req, id, body = {}) {
       externalRef = await refundToGateway(req, refund);
     } else {
       const method = await PaymentMethod.findByPk(refund.refundMethodId);
-      if (!method?.isCash && !externalRef) throw new AppError(`Enter the ${method?.name ?? "bank"} refund reference before processing.`, 422);
+      if (!method?.isCash && !externalRef) throw new AppError(`Enter the ${method?.name ?? "bank"} refund reference before processing.`, 422, "REFERENCE_REQUIRED");
     }
   } catch (err) {
     const message = err instanceof IntegrationError ? `${err.message} (safe to retry: the request is idempotent)` : err.message;
