@@ -4,6 +4,12 @@
   <button type="button" class="text-emerald-700/70 hover:text-emerald-900" data-dismiss aria-label="Dismiss">{{icon "x" "w-4 h-4"}}</button>
 </div>
 {{/each}}
+{{#each warning_msg}}
+<div class="mb-4 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="status" data-dismissible>
+  {{icon "alert" "w-5 h-5 shrink-0"}}<span class="flex-1">{{this}}</span>
+  <button type="button" class="text-amber-700/70 hover:text-amber-900" data-dismiss aria-label="Dismiss">{{icon "x" "w-4 h-4"}}</button>
+</div>
+{{/each}}
 {{#each error_msg}}
 <div class="mb-4 flex items-start gap-3 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800" role="alert" data-dismissible>
   {{icon "alert" "w-5 h-5 shrink-0"}}<span class="flex-1">{{this}}</span>

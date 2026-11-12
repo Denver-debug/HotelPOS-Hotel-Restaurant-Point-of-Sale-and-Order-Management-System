@@ -14,6 +14,8 @@
           <td>{{#if isDefault}}<span class="badge badge-blue">Default</span>{{/if}}</td>
           <td>{{statusBadge status}}</td>
         </tr>
+          {{else}}
+          <tr><td colspan="6">{{> empty-state message="No stock locations yet." hint="Each outlet gets a default location when it is created." icon="box"}}</td></tr>
         {{/each}}
       </tbody>
     </table>

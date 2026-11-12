@@ -1,6 +1,6 @@
 {{#> page-header heading=title subtitle="Accounts are never deleted; set the status to Inactive to revoke access."}}{{/page-header}}
 {{> form-error}}
-<form method="POST" action="{{#if editing}}/users/{{user.id}}{{else}}/users{{/if}}" class="grid gap-6 lg:grid-cols-3">
+<form method="POST" action="{{#if editing}}/users/{{user.id}}{{else}}/users{{/if}}" class="grid gap-6 lg:grid-cols-3" {{#if editing}}data-confirm="Save {{user.username}} as inactive or locked? They are signed out and cannot sign in until reactivated." data-confirm-when='[name="status"]!=ACTIVE' data-confirm-label="Save"{{/if}}>
   <input type="hidden" name="_csrf" value="{{csrfToken}}">
   <div class="card lg:col-span-2">
     <div class="card-header"><h3 class="card-title">Account details</h3></div>

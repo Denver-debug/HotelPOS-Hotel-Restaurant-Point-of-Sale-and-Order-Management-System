@@ -4,17 +4,18 @@
 
 <div class="card">
   <form class="filter-bar" method="GET">
-    <input class="input filter-wide" type="search" name="search" value="{{filters.search}}" placeholder="Search name, username, email or employee ID">
-    <select class="input" name="roleId" data-autosubmit>
+    <input aria-label="Search name, username, email or employee ID" class="input filter-wide" type="search" name="search" value="{{filters.search}}" placeholder="Search name, username, email or employee ID">
+    <select aria-label="Role" class="input" name="roleId" data-autosubmit>
       <option value="">All roles</option>
       {{#each roles}}<option value="{{id}}" {{selected id ../filters.roleId}}>{{name}}</option>{{/each}}
     </select>
-    <select class="input" name="status" data-autosubmit>
+    <select aria-label="Status" class="input" name="status" data-autosubmit>
       <option value="">All statuses</option>
       <option value="ACTIVE" {{selected "ACTIVE" filters.status}}>Active</option>
       <option value="INACTIVE" {{selected "INACTIVE" filters.status}}>Inactive</option>
       <option value="LOCKED" {{selected "LOCKED" filters.status}}>Locked</option>
     </select>
+    <button class="btn btn-secondary" type="submit">Filter</button>
   </form>
   {{#if users.length}}
   <div class="table-wrap">

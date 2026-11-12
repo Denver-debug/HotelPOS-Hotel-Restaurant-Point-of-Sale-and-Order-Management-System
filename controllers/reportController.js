@@ -1,9 +1,10 @@
-import { User, Product, PaymentMethod } from "../models/index.js";
+import { Product } from "../models/index.js";
+import { staffOptions, paymentMethods } from "../services/lookupService.js";
 import { REPORTS } from "../services/reportDefinitions.js";
 import { audit } from "../services/auditService.js";
 import { parseDateRange, formatDateTime } from "../utils/dates.js";
 import { parsePage, buildPagination } from "../utils/pagination.js";
-import { notFound } from "../utils/http.js";
+import { notFound, fullPath } from "../utils/http.js";
 
 export const index = (req, res) => {
   res.render("reports/index", {
@@ -70,10 +71,10 @@ export const show = async (req, res) => {
     filters: { ...req.query, from: filters.from, to: filters.to, granularity: filters.granularity, sort: filters.sort },
     show: { dates: needs.has("dates"), outlet: needs.has("outlet"), cashier: needs.has("cashier"), product: needs.has("product"), method: needs.has("method"), granularity: needs.has("granularity"), sort: needs.has("sort") },
     outlets: req.outlets,
-    cashiers: needs.has("cashier") ? (await User.findAll({ attributes: ["id", "fullName"], order: [["fullName", "ASC"]] })).map((u) => u.get({ plain: true })) : [],
+    cashiers: needs.has("cashier") ? await staffOptions() : [],
     products: needs.has("product") ? (await Product.findAll({ attributes: ["id", "name"], order: [["name", "ASC"]] })).map((p) => p.get({ plain: true })) : [],
-    methods: needs.has("method") ? (await PaymentMethod.findAll({ order: [["sortOrder", "ASC"]] })).map((m) => m.get({ plain: true })) : [],
-    exportUrl: `${req.path}?${new URLSearchParams({ ...req.query, format: "csv" }).toString()}`,
+    methods: needs.has("method") ? await paymentMethods() : [],
+    exportUrl: `${fullPath(req)}?${new URLSearchParams({ ...req.query, format: "csv" }).toString()}`,
     charts: def.chart && data.rows.length
       ? { extra: [{ id: "report-chart", kind: def.chart.kind, rows: data.rows.slice(0, 31).map((row) => ({ label: String(row[def.chart.label]), value: Number(row[def.chart.value]) })) }] }
       : null,

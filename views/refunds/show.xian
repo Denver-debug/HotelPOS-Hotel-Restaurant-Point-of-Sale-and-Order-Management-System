@@ -10,7 +10,7 @@
       <div class="table-wrap">
         <table class="table">
           <thead><tr><th>Item</th><th class="text-right">Qty</th><th class="text-right">Line amount</th><th>Restock</th></tr></thead>
-          <tbody>{{#each refund.items}}<tr><td>{{orderItem.productName}}</td><td class="text-right">{{qty quantity}}</td><td class="text-right">{{money amount}}</td><td>{{#if restock}}Yes{{else}}No{{/if}}</td></tr>{{/each}}</tbody>
+          <tbody>{{#each refund.items}}<tr><td>{{orderItem.productName}}</td><td class="text-right">{{qty quantity}}</td><td class="text-right">{{money amount}}</td><td>{{#if restock}}Yes{{else}}No{{/if}}</td></tr>{{else}}<tr><td colspan="4" class="text-sm text-slate-500">Amount-only refund: no items were returned.</td></tr>{{/each}}</tbody>
         </table>
       </div>
       <div class="flex justify-between border-t border-slate-200 px-5 py-4 text-base font-semibold"><span>Refund amount</span><span>{{money refund.amount}}</span></div>
@@ -25,7 +25,7 @@
         <button class="btn btn-success w-full" type="submit">Approve</button>
       </form>
       {{#if (eq refund.status "REQUESTED")}}
-      <form class="card card-body space-y-3" method="POST" action="/refunds/{{refund.id}}/reject">
+      <form class="card card-body space-y-3" method="POST" action="/refunds/{{refund.id}}/reject" data-confirm="Reject refund {{refund.refundNumber}}? The guest is not refunded and a new request would be needed." data-confirm-label="Reject refund">
         <input type="hidden" name="_csrf" value="{{csrfToken}}">
         <h3 class="card-title">Reject</h3>
         <input class="input" name="rejectionReason" maxlength="255" required placeholder="Reason for rejection">

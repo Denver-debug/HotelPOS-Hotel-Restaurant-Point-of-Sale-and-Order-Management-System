@@ -1,4 +1,4 @@
-import { PaymentMethod } from "../models/index.js";
+import { paymentMethods } from "../services/lookupService.js";
 import * as refundService from "../services/refundService.js";
 import { getOrder } from "../services/orderService.js";
 import { parsePage, buildPagination, filtersFrom } from "../utils/pagination.js";
@@ -31,7 +31,7 @@ export const index = async (req, res) => {
 const formLocals = async (req, orderId, extra = {}) => {
   await getOrder(req, orderId); // access check
   const { order, items, refundable } = await refundService.refundableState(orderId);
-  const methods = (await PaymentMethod.findAll({ where: { status: "ACTIVE" }, order: [["sortOrder", "ASC"]] })).map((m) => m.get({ plain: true }));
+  const methods = await paymentMethods({ activeOnly: true });
   return {
     title: `Refund ${order.orderNumber}`,
     breadcrumbs: [{ label: "Orders", href: "/orders" }, { label: order.orderNumber, href: `/orders/${order.id}` }, { label: "Refund" }],

@@ -1,18 +1,18 @@
 {{#> page-header heading="Guest Room Charges" subtitle="Charges posted to guest folios through the PMS. Only external PMS references are stored."}}{{/page-header}}
 <div class="card">
   <form class="filter-bar" method="GET">
-    <input class="input filter-wide" type="search" name="search" value="{{filters.search}}" placeholder="Room, charge no. or PMS reference">
-    <select class="input" name="outletId" data-autosubmit>
+    <input aria-label="Room, charge no. or PMS reference" class="input filter-wide" type="search" name="search" value="{{filters.search}}" placeholder="Room, charge no. or PMS reference">
+    <select aria-label="Outlet" class="input" name="outletId" data-autosubmit>
       <option value="">All outlets</option>
       {{#each outlets}}<option value="{{id}}" {{selected id ../filters.outletId}}>{{name}}</option>{{/each}}
     </select>
-    <select class="input" name="status" data-autosubmit>
+    <select aria-label="Status" class="input" name="status" data-autosubmit>
       <option value="">All statuses</option>
       {{#each statuses}}<option value="{{this}}" {{selected this ../filters.status}}>{{humanize this}}</option>{{/each}}
     </select>
     <input class="input" type="date" name="from" value="{{filters.from}}" aria-label="From">
     <input class="input" type="date" name="to" value="{{filters.to}}" aria-label="To">
-    <button class="btn btn-secondary" type="submit">Go</button>
+    <button class="btn btn-secondary" type="submit">Filter</button>
   </form>
   {{#if charges.length}}
   <div class="table-wrap">

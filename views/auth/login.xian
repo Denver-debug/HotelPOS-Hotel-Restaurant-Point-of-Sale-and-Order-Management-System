@@ -4,8 +4,11 @@
   {{#if error}}
     <div class="mt-5 flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800" role="alert">{{icon "alert" "w-5 h-5 shrink-0"}}<span>{{error}}</span></div>
   {{/if}}
+  {{#each warning_msg}}
+    <div class="mt-5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800" role="status">{{this}}</div>
+  {{/each}}
   {{#each error_msg}}
-    <div class="mt-5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800" role="alert">{{this}}</div>
+    <div class="mt-5 flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800" role="alert">{{icon "alert" "w-5 h-5 shrink-0"}}<span>{{this}}</span></div>
   {{/each}}
   <form class="mt-6 space-y-5" method="POST" action="/login" novalidate>
     <input type="hidden" name="_csrf" value="{{csrfToken}}">

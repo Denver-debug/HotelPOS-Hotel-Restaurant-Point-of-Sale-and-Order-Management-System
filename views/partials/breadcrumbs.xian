@@ -4,7 +4,7 @@
     <li><a href="/dashboard" class="hover:text-brand-700">Home</a></li>
     {{#each breadcrumbs}}
       <li aria-hidden="true">/</li>
-      <li>{{#if href}}<a href="{{href}}" class="hover:text-brand-700">{{label}}</a>{{else}}<span class="text-slate-700">{{label}}</span>{{/if}}</li>
+      <li>{{#if href}}<a href="{{href}}" class="hover:text-brand-700">{{label}}</a>{{else}}<span class="text-slate-700" aria-current="page">{{label}}</span>{{/if}}</li>
     {{/each}}
   </ol>
 </nav>

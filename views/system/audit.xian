@@ -1,16 +1,16 @@
 {{#> page-header heading="Audit Logs" subtitle="Read-only trail of security-relevant and financial activity. Records cannot be edited or deleted."}}{{/page-header}}
 <div class="card">
   <form class="filter-bar" method="GET">
-    <select class="input" name="userId" data-autosubmit>
+    <select aria-label="User" class="input" name="userId" data-autosubmit>
       <option value="">All users</option>
       {{#each users}}<option value="{{id}}" {{selected id ../filters.userId}}>{{fullName}}</option>{{/each}}
     </select>
-    <input class="input" name="action" value="{{filters.action}}" placeholder="Action (e.g. REFUND)">
-    <select class="input" name="entityType" data-autosubmit>
+    <input aria-label="Action (e.g. REFUND)" class="input" name="action" value="{{filters.action}}" placeholder="Action (e.g. REFUND)">
+    <select aria-label="Record type" class="input" name="entityType" data-autosubmit>
       <option value="">All modules</option>
       {{#each entityTypes}}<option value="{{this}}" {{selected this ../filters.entityType}}>{{humanize this}}</option>{{/each}}
     </select>
-    <input class="input" name="entityId" value="{{filters.entityId}}" placeholder="Record ID">
+    <input aria-label="Record ID" class="input" name="entityId" value="{{filters.entityId}}" placeholder="Record ID">
     <input class="input" type="date" name="from" value="{{filters.from}}" aria-label="From">
     <input class="input" type="date" name="to" value="{{filters.to}}" aria-label="To">
     <button class="btn btn-secondary" type="submit">Filter</button>

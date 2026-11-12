@@ -1,4 +1,4 @@
-import { User } from "../models/index.js";
+import { staffOptions } from "../services/lookupService.js";
 import * as shiftService from "../services/shiftService.js";
 import { parsePage, buildPagination, filtersFrom } from "../utils/pagination.js";
 import { parseDateRange } from "../utils/dates.js";
@@ -19,7 +19,7 @@ export const index = async (req, res) => {
     shifts: rows.map((s) => s.get({ plain: true })),
     filters,
     outlets: req.outlets,
-    cashiers: canSeeOthers ? (await User.findAll({ order: [["fullName", "ASC"]], attributes: ["id", "fullName"] })).map((u) => u.get({ plain: true })) : [],
+    cashiers: canSeeOthers ? await staffOptions() : [],
     canSeeOthers,
     pagination: buildPagination(req, count, page),
   });

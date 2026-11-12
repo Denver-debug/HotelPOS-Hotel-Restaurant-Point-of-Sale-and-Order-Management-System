@@ -1,6 +1,7 @@
 import { Category } from "../models/index.js";
 import * as categoryService from "../services/categoryService.js";
 import { handleForm } from "../utils/forms.js";
+import { notFound } from "../utils/http.js";
 
 const render = async (res, extra = {}) =>
   res.render("categories/index", {
@@ -12,6 +13,7 @@ const render = async (res, extra = {}) =>
 
 export const index = async (req, res) => {
   const editing = req.query.edit ? (await Category.findByPk(req.query.edit))?.get({ plain: true }) : null;
+  if (req.query.edit && !editing) throw notFound("Category");
   await render(res, { category: editing || {}, editing: Boolean(editing) });
 };
 

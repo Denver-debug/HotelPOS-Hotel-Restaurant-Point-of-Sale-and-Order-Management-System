@@ -13,7 +13,7 @@
         <dt>Description</dt><dd>{{default outlet.description "—"}}</dd>
       </dl>
     </div>
-    <form class="card" method="POST" action="/outlets/{{outlet.id}}/users">
+    <form class="card" method="POST" action="/outlets/{{outlet.id}}/users" data-confirm="Save the staff list for {{outlet.name}}? Anyone unticked loses access to this outlet immediately." data-confirm-danger="false" data-confirm-label="Save staff">
       <input type="hidden" name="_csrf" value="{{csrfToken}}">
       <div class="card-header"><h3 class="card-title">Assigned users</h3><button class="btn btn-primary btn-sm" type="submit">Save</button></div>
       <div class="card-body max-h-96 space-y-1 overflow-y-auto">
@@ -22,6 +22,8 @@
             <input type="checkbox" name="userIds" value="{{id}}" class="h-4 w-4 rounded border-slate-300" {{#if (includes ../assignedIds id)}}checked{{/if}}>
             <span class="flex-1">{{fullName}}</span><span class="text-xs text-slate-400">{{role.name}}</span>
           </label>
+        {{else}}
+          <p class="px-2 py-4 text-sm text-slate-500">No staff accounts exist yet. Create users first, then assign them here.</p>
         {{/each}}
       </div>
     </form>

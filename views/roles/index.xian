@@ -15,6 +15,8 @@
           <td class="text-right">{{userCount}}</td>
           <td class="text-right"><a class="btn btn-secondary btn-sm" href="/roles/{{id}}">{{icon "edit" "w-4 h-4"}}Edit</a></td>
         </tr>
+          {{else}}
+          <tr><td colspan="6">{{> empty-state message="No roles yet." icon="shield"}}</td></tr>
         {{/each}}
       </tbody>
     </table>

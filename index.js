@@ -116,8 +116,12 @@ try {
 app.use(loadCurrentUser);
 app.use(csrfProtection);
 app.use((req, res, next) => {
-  res.locals.success_msg = req.flash("success_msg");
-  res.locals.error_msg = req.flash("error_msg");
+  // JSON/API calls (e.g. from the POS terminal) must not consume flash messages that were
+  // set for the next page the browser loads.
+  const isApi = req.originalUrl.startsWith("/api/");
+  res.locals.success_msg = isApi ? [] : req.flash("success_msg");
+  res.locals.warning_msg = isApi ? [] : req.flash("warning_msg");
+  res.locals.error_msg = isApi ? [] : req.flash("error_msg");
   res.locals.appName = config.appName;
   res.locals.currencySymbol = config.currencySymbol;
   next();

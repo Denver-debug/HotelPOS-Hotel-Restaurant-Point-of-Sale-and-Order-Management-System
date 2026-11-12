@@ -59,7 +59,7 @@ export const loadCurrentUser = async (req, res, next) => {
 export const requireAuth = (req, res, next) => {
   if (req.user) return next();
   if (wantsJson(req)) return next(new AppError("Your session has expired. Please sign in again.", 401, "UNAUTHENTICATED"));
-  req.flash("error_msg", "Please sign in to continue.");
+  req.flash("warning_msg", "Please sign in to continue.");
   const nextUrl = req.method === "GET" ? `?next=${encodeURIComponent(req.originalUrl)}` : "";
   res.redirect(`/login${nextUrl}`);
 };

@@ -1,4 +1,5 @@
 // Pagination helpers shared by list pages and the pagination partial.
+import { fullPath } from "./http.js";
 
 export const parsePage = (query, defaultLimit = 20) => {
   const page = Math.max(1, Number.parseInt(query.page, 10) || 1);
@@ -11,7 +12,7 @@ export const buildPagination = (req, total, { page, limit }) => {
   const link = (p) => {
     const params = new URLSearchParams(req.query);
     params.set("page", p);
-    return `${req.path}?${params.toString()}`;
+    return `${fullPath(req)}?${params.toString()}`;
   };
   const start = Math.max(1, page - 2);
   const end = Math.min(pages, start + 4);

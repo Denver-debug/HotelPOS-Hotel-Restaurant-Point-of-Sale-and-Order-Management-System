@@ -1,10 +1,11 @@
-import { PaymentMethod, User } from "../models/index.js";
+import { staffOptions, paymentMethods } from "../services/lookupService.js";
 import { PAYMENT_STATUSES } from "../models/salesModel.js";
 import * as paymentService from "../services/paymentService.js";
 import * as orderService from "../services/orderService.js";
 import { parsePage, buildPagination, filtersFrom } from "../utils/pagination.js";
 import { parseDateRange } from "../utils/dates.js";
 import { can } from "../middleware/auth.js";
+import { backUrl } from "../utils/http.js";
 
 // POST /api/orders/:id/payments
 export const apiPay = async (req, res) => {
@@ -28,9 +29,9 @@ export const index = async (req, res) => {
     payments: rows.map((p) => p.get({ plain: true })),
     filters,
     outlets: req.outlets,
-    methods: (await PaymentMethod.findAll({ order: [["sortOrder", "ASC"]] })).map((m) => m.get({ plain: true })),
+    methods: await paymentMethods(),
     statuses: PAYMENT_STATUSES,
-    cashiers: (await User.findAll({ attributes: ["id", "fullName"], order: [["fullName", "ASC"]] })).map((u) => u.get({ plain: true })),
+    cashiers: await staffOptions(),
     canVerify: can(req, "payments.process"),
     pagination: buildPagination(req, count, page),
   });
@@ -40,6 +41,6 @@ export const verify = async (req, res) => {
   const result = await paymentService.verifyPayment(req, req.params.id);
   if (result.done) req.flash("success_msg", `Payment ${result.payment.paymentNumber} was confirmed by the provider.`);
   else if (result.declined) req.flash("error_msg", `Payment ${result.payment.paymentNumber} failed: ${result.reason}`);
-  else req.flash("success_msg", `Payment ${result.payment.paymentNumber} is ${result.payment.status.toLowerCase()}.`);
-  res.redirect(req.get("referer")?.includes("/payments") ? req.get("referer") : "/payments");
+  else req.flash("warning_msg", `Payment ${result.payment.paymentNumber} is still ${result.payment.status.toLowerCase()}. Check it again shortly.`);
+  res.redirect(backUrl(req, "/payments"));
 };

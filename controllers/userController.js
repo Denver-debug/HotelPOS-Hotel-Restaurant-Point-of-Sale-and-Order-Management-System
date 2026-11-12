@@ -2,6 +2,7 @@ import { Role, Outlet } from "../models/index.js";
 import * as userService from "../services/userService.js";
 import { parsePage, buildPagination, filtersFrom } from "../utils/pagination.js";
 import { handleForm } from "../utils/forms.js";
+import { notFound } from "../utils/http.js";
 
 const formOptions = async () => ({
   roles: (await Role.findAll({ order: [["name", "ASC"]] })).map((r) => r.get({ plain: true })),
@@ -68,7 +69,7 @@ export const rolesIndex = async (req, res) => {
 
 export const roleForm = async (req, res) => {
   const role = req.params.id ? (await Role.findByPk(req.params.id))?.get({ plain: true }) : {};
-  if (req.params.id && !role) return res.redirect("/roles");
+  if (req.params.id && !role) throw notFound("Role");
   res.render("roles/form", {
     title: role.id ? `Role: ${role.name}` : "New role",
     breadcrumbs: [{ label: "Roles & Permissions", href: "/roles" }, { label: role.name || "New" }],

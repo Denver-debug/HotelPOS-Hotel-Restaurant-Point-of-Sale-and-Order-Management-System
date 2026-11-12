@@ -12,6 +12,7 @@ import { publishPending } from "../integrations/events/eventPublisher.js";
 import { getPmsGateway } from "../integrations/pms/pmsGateway.js";
 import { getHrGateway } from "../integrations/hr/hrGateway.js";
 import { can } from "../middleware/auth.js";
+import { staffOptions, paymentMethods } from "../services/lookupService.js";
 
 // ── Audit logs (no edit/delete routes exist; the table is append-only in MySQL) ──
 
@@ -37,7 +38,7 @@ export const auditIndex = async (req, res) => {
     breadcrumbs: [{ label: "Audit Logs" }],
     logs: rows.map((r) => r.get({ plain: true })),
     filters,
-    users: (await User.findAll({ attributes: ["id", "fullName"], order: [["fullName", "ASC"]] })).map((u) => u.get({ plain: true })),
+    users: await staffOptions(),
     entityTypes: entityTypes.map((e) => e.t),
     pagination: buildPagination(req, count, page),
   });
@@ -111,7 +112,7 @@ export const settings = async (req, res) => {
     title: "Settings",
     breadcrumbs: [{ label: "Settings" }],
     posSettings: (await SystemSetting.findAll({ order: [["sortOrder", "ASC"]] })).map((s) => s.get({ plain: true })),
-    methods: (await PaymentMethod.findAll({ order: [["sortOrder", "ASC"]] })).map((m) => m.get({ plain: true })),
+    methods: await paymentMethods(),
     env: { appName: config.appName, timezone: config.timezone, currency: config.currencySymbol, environment: config.env, database: config.db.name },
   });
 };

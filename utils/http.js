@@ -44,7 +44,11 @@ export const duplicateMessage = (err) => {
   return `A record with this ${label} already exists.`;
 };
 
-export const clientIp =(req) => (req ? req.ip || req.socket?.remoteAddress || null : null);
+export const clientIp = (req) => (req ? req.ip || req.socket?.remoteAddress || null : null);
+
+// Full path of the current request, including the router's mount prefix. Inside a router
+// mounted at /orders, req.path is "/" — links built from it would point at the site root.
+export const fullPath = (req) => (req.baseUrl + req.path).replace(/(.)\/$/, "$1") || "/";
 
 // Redirect back to the referring page within this app, falling back to a default path.
 export const backUrl = (req, fallback = "/dashboard") => {

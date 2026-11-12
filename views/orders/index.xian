@@ -3,31 +3,31 @@
 {{/page-header}}
 <div class="card">
   <form class="filter-bar" method="GET">
-    <input class="input filter-wide" type="search" name="search" value="{{filters.search}}" placeholder="Order number">
-    <select class="input" name="outletId" data-autosubmit>
+    <input aria-label="Order number" class="input filter-wide" type="search" name="search" value="{{filters.search}}" placeholder="Order number">
+    <select aria-label="Outlet" class="input" name="outletId" data-autosubmit>
       <option value="">All outlets</option>
       {{#each outlets}}<option value="{{id}}" {{selected id ../filters.outletId}}>{{name}}</option>{{/each}}
     </select>
-    <select class="input" name="status" data-autosubmit>
+    <select aria-label="Status" class="input" name="status" data-autosubmit>
       <option value="">All statuses</option>
       {{#each statuses}}<option value="{{this}}" {{selected this ../filters.status}}>{{humanize this}}</option>{{/each}}
     </select>
-    <select class="input" name="orderType" data-autosubmit>
+    <select aria-label="Order type" class="input" name="orderType" data-autosubmit>
       <option value="">All types</option>
       {{#each types}}<option value="{{this}}" {{selected this ../filters.orderType}}>{{humanize this}}</option>{{/each}}
     </select>
-    <select class="input" name="settlementType" data-autosubmit>
+    <select aria-label="Settlement type" class="input" name="settlementType" data-autosubmit>
       <option value="">Any settlement</option>
       <option value="DIRECT_PAYMENT" {{selected "DIRECT_PAYMENT" filters.settlementType}}>Direct payment</option>
       <option value="ROOM_CHARGE" {{selected "ROOM_CHARGE" filters.settlementType}}>Room charge</option>
     </select>
     <input class="input" type="date" name="from" value="{{filters.from}}" aria-label="From">
     <input class="input" type="date" name="to" value="{{filters.to}}" aria-label="To">
-    <select class="input filter-wide" name="cashierId" data-autosubmit>
+    <select aria-label="Cashier" class="input filter-wide" name="cashierId" data-autosubmit>
       <option value="">Any staff member</option>
       {{#each cashiers}}<option value="{{id}}" {{selected id ../filters.cashierId}}>{{fullName}}</option>{{/each}}
     </select>
-    <button class="btn btn-secondary" type="submit">Go</button>
+    <button class="btn btn-secondary" type="submit">Filter</button>
   </form>
   {{#if orders.length}}
   <div class="table-wrap">

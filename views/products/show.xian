@@ -15,7 +15,7 @@
     </div>
     {{#if product.isInventoryTracked}}
     <div class="card">
-      <div class="card-header"><h3 class="card-title">Stock recipe</h3><a href="/inventory/recipes/{{product.id}}" class="text-sm text-brand-700 hover:underline">Manage</a></div>
+      <div class="card-header"><h3 class="card-title">Stock recipe</h3>{{#if (can "products.manage")}}<a href="/inventory/recipes/{{product.id}}" class="text-sm text-brand-700 hover:underline">Manage</a>{{/if}}</div>
       <div class="card-body text-sm">
         {{#each product.recipes}}
           <div class="flex justify-between py-1"><span>{{item.name}} <span class="text-xs text-slate-400">{{item.sku}}</span></span><span>{{qty quantity}} {{item.unit}}</span></div>

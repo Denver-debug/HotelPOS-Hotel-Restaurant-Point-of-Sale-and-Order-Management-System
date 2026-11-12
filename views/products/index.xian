@@ -6,27 +6,28 @@
 {{/page-header}}
 <div class="card">
   <form class="filter-bar" method="GET">
-    <input class="input filter-wide" type="search" name="search" value="{{filters.search}}" placeholder="Search name or code">
-    <select class="input" name="categoryId" data-autosubmit>
+    <input aria-label="Search name or code" class="input filter-wide" type="search" name="search" value="{{filters.search}}" placeholder="Search name or code">
+    <select aria-label="Category" class="input" name="categoryId" data-autosubmit>
       <option value="">All categories</option>
       {{#each categories}}<option value="{{id}}" {{selected id ../filters.categoryId}}>{{name}}</option>{{/each}}
     </select>
-    <select class="input" name="outletId" data-autosubmit>
+    <select aria-label="Outlet" class="input" name="outletId" data-autosubmit>
       <option value="">All outlets</option>
       {{#each outlets}}<option value="{{id}}" {{selected id ../filters.outletId}}>{{name}}</option>{{/each}}
     </select>
-    <select class="input" name="itemType" data-autosubmit>
+    <select aria-label="Item type" class="input" name="itemType" data-autosubmit>
       <option value="">Products &amp; services</option>
       <option value="PRODUCT" {{selected "PRODUCT" filters.itemType}}>Products</option>
       <option value="SERVICE" {{selected "SERVICE" filters.itemType}}>Services</option>
     </select>
-    <select class="input" name="status" data-autosubmit>
+    <select aria-label="Status" class="input" name="status" data-autosubmit>
       <option value="">Active (not archived)</option>
       <option value="AVAILABLE" {{selected "AVAILABLE" filters.status}}>Available</option>
       <option value="UNAVAILABLE" {{selected "UNAVAILABLE" filters.status}}>Unavailable</option>
       <option value="ARCHIVED" {{selected "ARCHIVED" filters.status}}>Archived</option>
       <option value="ALL" {{selected "ALL" filters.status}}>All</option>
     </select>
+    <button class="btn btn-secondary" type="submit">Filter</button>
   </form>
   {{#if products.length}}
   <div class="table-wrap">

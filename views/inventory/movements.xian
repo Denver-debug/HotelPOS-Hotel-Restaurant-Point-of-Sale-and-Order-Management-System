@@ -4,21 +4,21 @@
 {{> inventory-tabs}}
 <div class="card">
   <form class="filter-bar" method="GET">
-    <select class="input filter-wide" name="itemId" data-autosubmit>
+    <select aria-label="Inventory item" class="input filter-wide" name="itemId" data-autosubmit>
       <option value="">All items</option>
       {{#each items}}<option value="{{id}}" {{selected id ../filters.itemId}}>{{name}}</option>{{/each}}
     </select>
-    <select class="input" name="outletId" data-autosubmit>
+    <select aria-label="Outlet" class="input" name="outletId" data-autosubmit>
       <option value="">All my outlets</option>
       {{#each outlets}}<option value="{{id}}" {{selected id ../filters.outletId}}>{{name}}</option>{{/each}}
     </select>
-    <select class="input" name="type" data-autosubmit>
+    <select aria-label="Type" class="input" name="type" data-autosubmit>
       <option value="">All types</option>
       {{#each types}}<option value="{{this}}" {{selected this ../filters.type}}>{{humanize this}}</option>{{/each}}
     </select>
     <input class="input" type="date" name="from" value="{{filters.from}}" aria-label="From date">
     <input class="input" type="date" name="to" value="{{filters.to}}" aria-label="To date">
-    <button class="btn btn-secondary" type="submit">Go</button>
+    <button class="btn btn-secondary" type="submit">Filter</button>
   </form>
   {{#if movements.length}}
   <div class="table-wrap">

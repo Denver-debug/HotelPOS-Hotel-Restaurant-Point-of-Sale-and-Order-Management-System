@@ -1,4 +1,5 @@
-// Sidebar structure. Items are shown only when the user holds the permission.
+// Sidebar structure. An item is shown when the user holds its permission, or any of them
+// when it lists several (keep these in step with the route's requirePermission(...)).
 
 export const NAVIGATION = [
   { section: null, items: [{ label: "Dashboard", href: "/dashboard", icon: "home", permission: "dashboard.view" }] },
@@ -10,13 +11,13 @@ export const NAVIGATION = [
       { label: "Payments", href: "/payments", icon: "card", permission: "payments.view" },
       { label: "Guest Room Charges", href: "/guest-charges", icon: "key", permission: "room_charges.view" },
       { label: "Receipts", href: "/receipts", icon: "receipt", permission: "receipts.view" },
-      { label: "Refunds & Voids", href: "/refunds", icon: "undo", permission: "refunds.view" },
+      { label: "Refunds & Voids", href: "/refunds", icon: "undo", permission: ["refunds.view", "refunds.approve"] },
     ],
   },
   {
     section: "Management",
     items: [
-      { label: "Products & Services", href: "/products", icon: "tag", permission: "products.view" },
+      { label: "Products & Services", href: "/products", icon: "tag", permission: ["products.view", "products.manage"] },
       { label: "Categories", href: "/categories", icon: "folder", permission: "categories.manage" },
       { label: "Outlets", href: "/outlets", icon: "building", permission: "outlets.manage" },
       { label: "Discounts", href: "/discounts", icon: "percent", permission: "discounts.manage" },
@@ -26,7 +27,7 @@ export const NAVIGATION = [
   {
     section: "Operations",
     items: [
-      { label: "Cashier Shifts", href: "/shifts", icon: "clock", permission: "shifts.view" },
+      { label: "Cashier Shifts", href: "/shifts", icon: "clock", permission: ["shifts.view", "shifts.manage"] },
       { label: "Reports", href: "/reports", icon: "chart", permission: "reports.view" },
     ],
   },
@@ -46,7 +47,7 @@ export const buildNavigation = (permissions, currentPath) =>
   NAVIGATION.map((group) => ({
     section: group.section,
     items: group.items
-      .filter((item) => permissions.has(item.permission))
+      .filter((item) => [].concat(item.permission).some((p) => permissions.has(p)))
       .map((item) => ({
         ...item,
         active: currentPath === item.href || currentPath.startsWith(item.href + "/"),

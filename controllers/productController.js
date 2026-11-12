@@ -3,6 +3,7 @@ import * as productService from "../services/productService.js";
 import { parsePage, buildPagination, filtersFrom } from "../utils/pagination.js";
 import { handleForm } from "../utils/forms.js";
 import { can } from "../middleware/auth.js";
+import { notFound } from "../utils/http.js";
 
 const formOptions = async () => ({
   categories: (await Category.findAll({ where: { status: "ACTIVE" }, order: [["sortOrder", "ASC"], ["name", "ASC"]] })).map((c) => c.get({ plain: true })),
@@ -87,6 +88,7 @@ export const removePrice = async (req, res) => {
 
 export const taxes = async (req, res) => {
   const editing = req.query.edit ? (await Tax.findByPk(req.query.edit))?.get({ plain: true }) : null;
+  if (req.query.edit && !editing) throw notFound("Tax");
   res.render("products/taxes", {
     title: "Taxes",
     breadcrumbs: crumbs("Taxes"),

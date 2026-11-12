@@ -2,13 +2,14 @@
   <a href="/discounts/new" class="btn btn-primary">{{icon "plus" "w-4 h-4"}}New discount</a>
 {{/page-header}}
 <div class="card">
-  <form class="border-b border-slate-200 p-4" method="GET">
-    <select class="input max-w-xs" name="status" data-autosubmit>
+  <form class="filter-bar" method="GET">
+    <select aria-label="Status" class="input max-w-xs" name="status" data-autosubmit>
       <option value="">Active and inactive</option>
       <option value="ACTIVE" {{selected "ACTIVE" filters.status}}>Active</option>
       <option value="INACTIVE" {{selected "INACTIVE" filters.status}}>Inactive</option>
       <option value="ARCHIVED" {{selected "ARCHIVED" filters.status}}>Archived</option>
     </select>
+    <button class="btn btn-secondary" type="submit">Filter</button>
   </form>
   {{#if discounts.length}}
   <div class="table-wrap">

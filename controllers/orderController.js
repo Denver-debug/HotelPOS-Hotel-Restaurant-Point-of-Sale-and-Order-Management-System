@@ -1,4 +1,5 @@
 import { AuditLog, User } from "../models/index.js";
+import { staffOptions } from "../services/lookupService.js";
 import { ORDER_TYPES, ORDER_STATUSES } from "../models/salesModel.js";
 import * as orderService from "../services/orderService.js";
 import { parsePage, buildPagination, filtersFrom } from "../utils/pagination.js";
@@ -20,7 +21,7 @@ export const index = async (req, res) => {
     outlets: req.outlets,
     statuses: ORDER_STATUSES,
     types: ORDER_TYPES,
-    cashiers: (await User.findAll({ attributes: ["id", "fullName"], order: [["fullName", "ASC"]] })).map((u) => u.get({ plain: true })),
+    cashiers: await staffOptions(),
     pagination: buildPagination(req, count, page),
   });
 };

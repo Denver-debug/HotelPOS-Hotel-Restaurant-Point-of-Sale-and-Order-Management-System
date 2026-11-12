@@ -1,6 +1,6 @@
 {{#> page-header heading="Record stock movement" subtitle="Every movement is permanent and appears in the inventory history."}}{{/page-header}}
 {{> form-error}}
-<form method="POST" action="/inventory/movements" class="card max-w-2xl">
+<form method="POST" action="/inventory/movements" class="card max-w-2xl" data-confirm="Record this stock movement? Movements are permanent; a mistake is corrected with a new adjustment." data-confirm-danger="false" data-confirm-label="Record movement">
   <input type="hidden" name="_csrf" value="{{csrfToken}}">
   <div class="card-body grid gap-4 sm:grid-cols-2">
     <div class="sm:col-span-2">

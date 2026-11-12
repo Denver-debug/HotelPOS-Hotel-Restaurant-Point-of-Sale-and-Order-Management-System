@@ -1,26 +1,26 @@
 {{#> page-header heading="Payments" subtitle="Direct payment history. Mock gateway transactions are labelled MOCK."}}{{/page-header}}
 <div class="card">
   <form class="filter-bar" method="GET">
-    <input class="input filter-wide" type="search" name="search" value="{{filters.search}}" placeholder="Payment number">
-    <select class="input" name="outletId" data-autosubmit>
+    <input aria-label="Payment number" class="input filter-wide" type="search" name="search" value="{{filters.search}}" placeholder="Payment number">
+    <select aria-label="Outlet" class="input" name="outletId" data-autosubmit>
       <option value="">All outlets</option>
       {{#each outlets}}<option value="{{id}}" {{selected id ../filters.outletId}}>{{name}}</option>{{/each}}
     </select>
-    <select class="input" name="methodId" data-autosubmit>
+    <select aria-label="Payment method" class="input" name="methodId" data-autosubmit>
       <option value="">All methods</option>
       {{#each methods}}<option value="{{id}}" {{selected id ../filters.methodId}}>{{name}}</option>{{/each}}
     </select>
-    <select class="input" name="status" data-autosubmit>
+    <select aria-label="Status" class="input" name="status" data-autosubmit>
       <option value="">All statuses</option>
       {{#each statuses}}<option value="{{this}}" {{selected this ../filters.status}}>{{humanize this}}</option>{{/each}}
     </select>
-    <select class="input" name="cashierId" data-autosubmit>
+    <select aria-label="Cashier" class="input" name="cashierId" data-autosubmit>
       <option value="">All cashiers</option>
       {{#each cashiers}}<option value="{{id}}" {{selected id ../filters.cashierId}}>{{fullName}}</option>{{/each}}
     </select>
     <input class="input" type="date" name="from" value="{{filters.from}}" aria-label="From">
     <input class="input" type="date" name="to" value="{{filters.to}}" aria-label="To">
-    <button class="btn btn-secondary" type="submit">Go</button>
+    <button class="btn btn-secondary" type="submit">Filter</button>
   </form>
   {{#if payments.length}}
   <div class="table-wrap">

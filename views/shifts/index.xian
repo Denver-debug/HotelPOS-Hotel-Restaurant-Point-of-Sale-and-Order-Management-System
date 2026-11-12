@@ -7,17 +7,17 @@
 {{/page-header}}
 <div class="card">
   <form class="filter-bar" method="GET">
-    <select class="input" name="outletId" data-autosubmit>
+    <select aria-label="Outlet" class="input" name="outletId" data-autosubmit>
       <option value="">All outlets</option>
       {{#each outlets}}<option value="{{id}}" {{selected id ../filters.outletId}}>{{name}}</option>{{/each}}
     </select>
     {{#if canSeeOthers}}
-    <select class="input" name="userId" data-autosubmit>
+    <select aria-label="User" class="input" name="userId" data-autosubmit>
       <option value="">All cashiers</option>
       {{#each cashiers}}<option value="{{id}}" {{selected id ../filters.userId}}>{{fullName}}</option>{{/each}}
     </select>
     {{/if}}
-    <select class="input" name="status" data-autosubmit>
+    <select aria-label="Status" class="input" name="status" data-autosubmit>
       <option value="">All statuses</option>
       <option value="OPEN" {{selected "OPEN" filters.status}}>Open</option>
       <option value="CLOSED" {{selected "CLOSED" filters.status}}>Closed</option>
@@ -25,7 +25,7 @@
     </select>
     <input class="input" type="date" name="from" value="{{filters.from}}" aria-label="From">
     <input class="input" type="date" name="to" value="{{filters.to}}" aria-label="To">
-    <button class="btn btn-secondary" type="submit">Go</button>
+    <button class="btn btn-secondary" type="submit">Filter</button>
   </form>
   {{#if shifts.length}}
   <div class="table-wrap">

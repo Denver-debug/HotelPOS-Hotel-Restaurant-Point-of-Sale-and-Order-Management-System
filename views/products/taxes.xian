@@ -14,6 +14,8 @@
             <td>{{statusBadge status}}</td>
             <td class="text-right"><a class="btn btn-secondary btn-sm" href="/products/taxes?edit={{id}}">Edit</a></td>
           </tr>
+          {{else}}
+          <tr><td colspan="6">{{> empty-state message="No taxes defined yet." hint="Add one with the form." icon="percent"}}</td></tr>
           {{/each}}
         </tbody>
       </table>

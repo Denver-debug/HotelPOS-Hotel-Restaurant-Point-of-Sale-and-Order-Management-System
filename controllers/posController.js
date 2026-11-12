@@ -1,4 +1,4 @@
-import { PaymentMethod } from "../models/index.js";
+import { paymentMethods } from "../services/lookupService.js";
 import { ORDER_TYPES } from "../models/salesModel.js";
 import * as productService from "../services/productService.js";
 import { getSetting } from "../services/settingsService.js";
@@ -24,7 +24,7 @@ export const terminal = async (req, res) => {
   }
   const catalog = await productService.outletCatalog(outlet.id);
   const categories = [...new Map(catalog.map((p) => [p.categoryId, { id: p.categoryId, name: p.categoryName }])).values()];
-  const methods = (await PaymentMethod.findAll({ where: { status: "ACTIVE" }, order: [["sortOrder", "ASC"]] })).map((m) => m.get({ plain: true }));
+  const methods = await paymentMethods({ activeOnly: true });
   const requireShift = await getSetting("require_shift_for_settlement", true);
 
   res.render("pos/terminal", {

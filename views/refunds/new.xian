@@ -23,6 +23,8 @@
             <td class="text-right">{{qty refundableQty}}</td>
             <td><input class="input" type="number" name="quantities[item_{{id}}]" min="0" max="{{qty refundableQty}}" step="0.001" value="0" {{#unless (gt refundableQty 0)}}disabled{{/unless}} aria-label="Refund quantity for {{productName}}"></td>
           </tr>
+          {{else}}
+          <tr><td colspan="5">{{> empty-state message="Nothing on this order can be refunded." icon="undo"}}</td></tr>
           {{/each}}
         </tbody>
       </table>

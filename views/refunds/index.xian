@@ -1,13 +1,13 @@
 {{#> page-header heading="Refunds & Voids" subtitle="Refunds reverse completed sales; voids cancel orders before any money was collected."}}{{/page-header}}
-<nav class="mb-6 flex gap-1 border-b border-slate-200">
-  <a href="/refunds?tab=refunds" class="-mb-px border-b-2 px-4 py-2 text-sm font-medium {{#if (eq tab "refunds")}}border-brand-700 text-brand-800{{else}}border-transparent text-slate-500 hover:text-slate-800{{/if}}">Refunds</a>
-  <a href="/refunds?tab=voids" class="-mb-px border-b-2 px-4 py-2 text-sm font-medium {{#if (eq tab "voids")}}border-brand-700 text-brand-800{{else}}border-transparent text-slate-500 hover:text-slate-800{{/if}}">Voided orders</a>
+<nav class="mb-6 flex gap-1 border-b border-slate-200" aria-label="Refund sections">
+  <a href="/refunds?tab=refunds" {{#if (eq tab "refunds")}}aria-current="page" {{/if}}class="-mb-px border-b-2 px-4 py-2 text-sm font-medium {{#if (eq tab "refunds")}}border-brand-700 text-brand-800{{else}}border-transparent text-slate-500 hover:text-slate-800{{/if}}">Refunds</a>
+  <a href="/refunds?tab=voids" {{#if (eq tab "voids")}}aria-current="page" {{/if}}class="-mb-px border-b-2 px-4 py-2 text-sm font-medium {{#if (eq tab "voids")}}border-brand-700 text-brand-800{{else}}border-transparent text-slate-500 hover:text-slate-800{{/if}}">Voided orders</a>
 </nav>
 <div class="card">
   <form class="filter-bar" method="GET">
     <input type="hidden" name="tab" value="{{tab}}">
     {{#if (eq tab "refunds")}}
-    <select class="input" name="status" data-autosubmit>
+    <select aria-label="Status" class="input" name="status" data-autosubmit>
       <option value="">All statuses</option>
       <option value="REQUESTED" {{selected "REQUESTED" filters.status}}>Awaiting approval</option>
       <option value="PROCESSED" {{selected "PROCESSED" filters.status}}>Processed</option>
@@ -17,7 +17,7 @@
     {{/if}}
     <input class="input" type="date" name="from" value="{{filters.from}}" aria-label="From">
     <input class="input" type="date" name="to" value="{{filters.to}}" aria-label="To">
-    <button class="btn btn-secondary" type="submit">Go</button>
+    <button class="btn btn-secondary" type="submit">Filter</button>
   </form>
   {{#if rows.length}}
   <div class="table-wrap">

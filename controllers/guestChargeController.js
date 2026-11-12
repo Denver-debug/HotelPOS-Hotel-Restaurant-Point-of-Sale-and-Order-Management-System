@@ -55,6 +55,7 @@ export const show = async (req, res) => {
 
 export const verify = async (req, res) => {
   const result = await guestChargeService.verifyCharge(req, req.params.id);
-  req.flash(result.outcome === "FAILED" ? "error_msg" : "success_msg", result.message || `Charge is ${result.charge.status}.`);
+  const kind = { FAILED: "error_msg", POSTED: "success_msg" }[result.outcome] || "warning_msg";
+  req.flash(kind, result.message || `Charge is ${result.charge.status}.`);
   res.redirect(`/guest-charges/${req.params.id}`);
 };

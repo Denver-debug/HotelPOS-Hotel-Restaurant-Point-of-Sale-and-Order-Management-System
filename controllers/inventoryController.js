@@ -6,6 +6,7 @@ import { parsePage, buildPagination, filtersFrom } from "../utils/pagination.js"
 import { parseDateRange } from "../utils/dates.js";
 import { handleForm } from "../utils/forms.js";
 import { can } from "../middleware/auth.js";
+import { backUrl, notFound } from "../utils/http.js";
 
 const crumbs = (label) => [{ label: "Inventory", href: "/inventory" }, ...(label ? [{ label }] : [])];
 const activeItems = async () => (await InventoryItem.findAll({ where: { status: "ACTIVE" }, order: [["name", "ASC"]] })).map((i) => i.get({ plain: true }));
@@ -70,6 +71,7 @@ export const items = async (req, res) => {
   const where = req.query.search ? { [Op.or]: [{ name: { [Op.like]: `%${req.query.search}%` } }, { sku: { [Op.like]: `%${req.query.search}%` } }] } : {};
   const list = (await InventoryItem.findAll({ where, order: [["status", "ASC"], ["name", "ASC"]] })).map((i) => i.get({ plain: true }));
   const editing = req.query.edit ? list.find((i) => String(i.id) === String(req.query.edit)) : null;
+  if (req.query.edit && !editing) throw notFound("Inventory item");
   res.render("inventory/items", { title: "Inventory items", breadcrumbs: crumbs("Items"), items: list, item: editing || { status: "ACTIVE", unit: "pc" }, editing: Boolean(editing), search: req.query.search || "" });
 };
 
@@ -93,12 +95,12 @@ export const saveItem = async (req, res) => {
 export const updateLevel = async (req, res) => {
   await inventoryService.updateStockLevelSettings(req, req.params.id, req.body);
   req.flash("success_msg", "Stock level settings were updated.");
-  res.redirect(req.get("referer")?.includes("/inventory") ? req.get("referer") : "/inventory");
+  res.redirect(backUrl(req, "/inventory"));
 };
 
 export const recipeForm = async (req, res) => {
   const product = await Product.findByPk(req.params.productId, { include: [{ model: ProductRecipe, as: "recipes", include: ["item"] }] });
-  if (!product) return res.redirect("/products");
+  if (!product) throw notFound("Product");
   const plain = product.get({ plain: true });
   res.render("inventory/recipe", {
     title: `Recipe: ${plain.name}`,

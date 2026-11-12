@@ -37,27 +37,23 @@
 
 <div class="card mt-6" id="payment-methods">
   <div class="card-header"><h3 class="card-title">Payment methods</h3><span class="text-xs text-slate-500">Card / e-wallet methods use the payment gateway adapter</span></div>
-  <div class="table-wrap">
-    <table class="table">
-      <thead><tr><th>Code</th><th>Name</th><th>Type</th><th>Requires reference</th><th>Order</th><th>Status</th><th></th></tr></thead>
-      <tbody>
-        {{#each methods}}
-        <tr>
-          <td class="font-mono text-xs">{{code}}</td>
-          <td colspan="6">
-            <form class="grid grid-cols-6 items-center gap-3" method="POST" action="/settings/payment-methods/{{id}}">
-              <input type="hidden" name="_csrf" value="{{../csrfToken}}">
-              <input class="input" name="name" value="{{name}}" maxlength="60" aria-label="Name">
-              <span class="text-sm text-slate-600">{{#if isCash}}Cash drawer{{else}}{{#if usesGateway}}Gateway{{else}}Manual{{/if}}{{/if}}</span>
-              <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="requiresReference" value="1" {{checked requiresReference}}>Required</label>
-              <input class="input w-20" name="sortOrder" type="number" min="0" value="{{sortOrder}}" aria-label="Display order">
-              <select class="input" name="status" aria-label="Status"><option value="ACTIVE" {{selected "ACTIVE" status}}>Active</option><option value="INACTIVE" {{selected "INACTIVE" status}}>Inactive</option></select>
-              <button class="btn btn-secondary btn-sm justify-self-end" type="submit">Save</button>
-            </form>
-          </td>
-        </tr>
-        {{/each}}
-      </tbody>
-    </table>
+  <div class="hidden gap-3 border-b border-slate-200 bg-slate-100 px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 md:grid md:grid-cols-[5rem_minmax(0,1fr)_7rem_8rem_5rem_8rem_5rem]" aria-hidden="true">
+    <span>Code</span><span>Name</span><span>Type</span><span>Reference</span><span>Order</span><span>Status</span><span></span>
+  </div>
+  <div class="divide-y divide-slate-200">
+    {{#each methods}}
+    <form class="grid grid-cols-2 items-center gap-3 px-5 py-3 md:grid-cols-[5rem_minmax(0,1fr)_7rem_8rem_5rem_8rem_5rem]" method="POST" action="/settings/payment-methods/{{id}}" data-confirm="Deactivate {{name}}? It disappears from every POS terminal immediately." data-confirm-when='[name="status"]=INACTIVE' data-confirm-label="Deactivate">
+      <input type="hidden" name="_csrf" value="{{../csrfToken}}">
+      <span class="col-span-2 font-mono text-xs md:col-span-1">{{code}}</span>
+      <input class="input col-span-2 md:col-span-1" name="name" value="{{name}}" maxlength="60" aria-label="Name of {{code}}">
+      <span class="text-sm text-slate-600">{{#if isCash}}Cash drawer{{else}}{{#if usesGateway}}Gateway{{else}}Manual{{/if}}{{/if}}</span>
+      <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="requiresReference" value="1" {{checked requiresReference}}>Reference required</label>
+      <input class="input w-full md:w-20" name="sortOrder" type="number" min="0" value="{{sortOrder}}" aria-label="Display order of {{code}}">
+      <select class="input" name="status" aria-label="Status of {{code}}"><option value="ACTIVE" {{selected "ACTIVE" status}}>Active</option><option value="INACTIVE" {{selected "INACTIVE" status}}>Inactive</option></select>
+      <button class="btn btn-secondary btn-sm col-span-2 justify-self-end md:col-span-1" type="submit">Save</button>
+    </form>
+    {{else}}
+    {{> empty-state message="No payment methods are configured." icon="card"}}
+    {{/each}}
   </div>
 </div>

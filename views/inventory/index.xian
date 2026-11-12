@@ -4,12 +4,13 @@
 {{> inventory-tabs}}
 <div class="card">
   <form class="filter-bar" method="GET">
-    <input class="input filter-wide" type="search" name="search" value="{{filters.search}}" placeholder="Search item or SKU">
-    <select class="input" name="outletId" data-autosubmit>
+    <input aria-label="Search item or SKU" class="input filter-wide" type="search" name="search" value="{{filters.search}}" placeholder="Search item or SKU">
+    <select aria-label="Outlet" class="input" name="outletId" data-autosubmit>
       <option value="">All my outlets</option>
       {{#each outlets}}<option value="{{id}}" {{selected id ../filters.outletId}}>{{name}}</option>{{/each}}
     </select>
     <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="low" value="1" data-autosubmit {{checked filters.low}}>Low stock only</label>
+    <button class="btn btn-secondary" type="submit">Filter</button>
   </form>
   {{#if levels.length}}
   <div class="table-wrap">

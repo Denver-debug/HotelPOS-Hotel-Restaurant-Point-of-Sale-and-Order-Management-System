@@ -1,6 +1,6 @@
 {{#> page-header heading=title subtitle="Completed transactions keep a snapshot of the discount, so later edits never change history."}}{{/page-header}}
 {{> form-error}}
-<form method="POST" action="{{#if editing}}/discounts/{{discount.id}}{{else}}/discounts{{/if}}" class="grid gap-6 lg:grid-cols-3">
+<form method="POST" action="{{#if editing}}/discounts/{{discount.id}}{{else}}/discounts{{/if}}" class="grid gap-6 lg:grid-cols-3" {{#if editing}}data-confirm="Archive this discount? Cashiers can no longer apply it." data-confirm-when='[name="status"]=ARCHIVED' data-confirm-label="Archive"{{/if}}>
   <input type="hidden" name="_csrf" value="{{csrfToken}}">
   <div class="card lg:col-span-2">
     <div class="card-body grid gap-4 sm:grid-cols-2">
@@ -46,6 +46,8 @@
       <div class="card-body max-h-64 space-y-1 overflow-y-auto">
         {{#each outlets}}
           <label class="flex items-center gap-3 text-sm"><input type="checkbox" name="outletIds" value="{{id}}" class="h-4 w-4 rounded border-slate-300" {{#if (includes ../discount.outletIds id)}}checked{{/if}}>{{name}}</label>
+        {{else}}
+          <p class="text-sm text-slate-500">No outlets exist yet.</p>
         {{/each}}
       </div>
     </div>
@@ -54,6 +56,8 @@
       <div class="card-body max-h-64 space-y-1 overflow-y-auto">
         {{#each products}}
           <label class="flex items-center gap-3 text-sm"><input type="checkbox" name="productIds" value="{{id}}" class="h-4 w-4 rounded border-slate-300" {{#if (includes ../discount.productIds id)}}checked{{/if}}>{{name}} <span class="text-xs text-slate-400">{{code}}</span></label>
+        {{else}}
+          <p class="text-sm text-slate-500">No products exist yet.</p>
         {{/each}}
       </div>
     </div>
