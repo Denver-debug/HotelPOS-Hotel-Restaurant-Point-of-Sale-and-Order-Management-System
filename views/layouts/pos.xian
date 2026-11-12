@@ -3,31 +3,36 @@
 <head>
   {{> head}}
 </head>
-<body class="h-full bg-ivory font-sans text-slate-800 antialiased">
-  <header class="flex h-14 items-center gap-3 bg-brand-900 px-3 text-white sm:px-4">
-    <a href="/dashboard" class="flex items-center rounded-lg px-2 py-1.5 text-lg hover:bg-white/10" title="Back to dashboard">
+<body class="h-full overflow-hidden bg-ivory font-sans text-slate-800 antialiased">
+  <header class="flex h-14 min-w-0 items-center gap-2 bg-brand-900 px-2 text-white sm:gap-3 sm:px-4">
+    <a href="/dashboard" class="flex shrink-0 items-center rounded-lg px-2 py-2 text-lg hover:bg-white/10" title="Back to dashboard">
       {{wordmark appName}}
     </a>
-    <form method="GET" action="/pos/terminal" class="ml-1">
+    <form method="GET" action="/pos/terminal" class="relative min-w-0">
       <label class="sr-only" for="pos-outlet">Outlet</label>
-      <select id="pos-outlet" name="outletId" class="rounded-lg border-0 bg-white/10 px-3 py-1.5 text-sm text-white focus:ring-2 focus:ring-accent-400" data-autosubmit>
+      <select id="pos-outlet" name="outletId" class="h-10 max-w-[38vw] truncate rounded-lg border-0 bg-white/10 py-1.5 pl-3 pr-8 text-sm text-white focus:ring-2 focus:ring-accent-400 sm:max-w-[16rem] sm:pr-16" data-autosubmit data-shortcut="outlet" data-shortcut-hint="none">
         {{#each outlets}}<option class="text-slate-900" value="{{id}}" {{selected id ../outlet.id}}>{{name}}</option>{{/each}}
       </select>
+      <span class="pointer-events-none absolute inset-y-0 right-7 hidden items-center text-brand-200 sm:flex" data-kbd-for="outlet"></span>
     </form>
-    <div class="ml-auto flex items-center gap-2 text-xs">
-      {{#if boot.mocks.pms}}<span class="hidden rounded-full bg-amber-400/20 px-2 py-1 font-medium text-amber-200 md:inline" title="PMS integration is simulated">MOCK PMS</span>{{/if}}
-      {{#if boot.mocks.payment}}<span class="hidden rounded-full bg-amber-400/20 px-2 py-1 font-medium text-amber-200 md:inline" title="Card/e-wallet processing is simulated">MOCK PAYMENTS</span>{{/if}}
+    <div class="ml-auto flex min-w-0 items-center gap-1 text-xs sm:gap-2">
+      {{#if boot.mocks.pms}}<span class="hidden rounded-full bg-amber-400/20 px-2 py-1 font-medium text-amber-200 xl:inline" title="PMS integration is simulated">MOCK PMS</span>{{/if}}
+      {{#if boot.mocks.payment}}<span class="hidden rounded-full bg-amber-400/20 px-2 py-1 font-medium text-amber-200 xl:inline" title="Card/e-wallet processing is simulated">MOCK PAYMENTS</span>{{/if}}
       {{#if openShift}}
-        <a href="/shifts/{{openShift.id}}" class="rounded-full bg-emerald-400/20 px-3 py-1 font-medium text-emerald-200">{{openShift.shiftNumber}}</a>
+        <a href="/shifts/{{openShift.id}}" class="inline-flex h-10 shrink-0 items-center rounded-full bg-emerald-400/20 px-3 font-medium text-emerald-200" title="Open shift {{openShift.shiftNumber}}"><span class="sm:hidden">Shift</span><span class="hidden sm:inline">{{openShift.shiftNumber}}</span></a>
       {{else}}
-        {{#if boot.can.openShift}}<a href="/shifts/open" class="rounded-full bg-rose-400/20 px-3 py-1 font-medium text-rose-200">No open shift</a>{{/if}}
+        {{#if boot.can.openShift}}<a href="/shifts/open?next=pos&outletId={{outlet.id}}" class="inline-flex h-10 shrink-0 items-center whitespace-nowrap rounded-full bg-rose-400/20 px-3 font-medium text-rose-200"><span class="sm:hidden">No shift</span><span class="hidden sm:inline">No open shift</span></a>{{/if}}
       {{/if}}
-      <span class="hidden text-brand-200 sm:inline">{{currentUser.fullName}}</span>
-      <a href="/orders" class="rounded-lg px-2 py-1 text-brand-100 hover:bg-white/10">Orders</a>
+      <button type="button" class="hidden h-10 items-center gap-1.5 rounded-lg px-2.5 text-brand-100 hover:bg-white/10 md:inline-flex" data-action="help" data-shortcut="help" title="Keyboard shortcuts">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6h20v12H2zM6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></svg>Shortcuts
+      </button>
+      <span class="hidden text-brand-200 lg:inline">{{currentUser.fullName}}</span>
+      <a href="/orders" class="hidden h-10 shrink-0 items-center rounded-lg px-2.5 text-brand-100 hover:bg-white/10 sm:inline-flex">Orders</a>
     </div>
   </header>
   {{{body}}}
   {{> modal}}
+  <script type="application/json" id="pos-flash">{"success":{{json success_msg}},"error":{{json error_msg}},"warning":{{json warning_msg}} }</script>
   {{> scripts}}
 </body>
 </html>

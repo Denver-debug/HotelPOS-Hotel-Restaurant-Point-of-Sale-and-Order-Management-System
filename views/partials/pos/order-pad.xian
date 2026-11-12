@@ -1,20 +1,31 @@
-<div class="flex items-center gap-2 border-b border-slate-200 px-4 py-3">
+{{!-- Current order panel. Key badges are appended by pos-shortcuts.js from data-shortcut ids. --}}
+<div class="flex shrink-0 items-center gap-2 border-b border-slate-200 px-4 py-3">
   <div class="min-w-0 flex-1">
     <p class="text-xs uppercase tracking-wide text-slate-500">Current order</p>
-    <p class="flex flex-wrap items-center gap-2 font-semibold text-slate-900"><span id="order-number" class="font-mono text-sm">New order</span><span id="order-status"></span></p>
+    <p class="flex flex-wrap items-center gap-x-2 gap-y-1 font-semibold text-slate-900"><span id="order-number" class="whitespace-nowrap font-mono text-sm">New order</span><span id="order-status"></span></p>
   </div>
-  <button type="button" class="btn btn-secondary btn-sm" data-action="open-orders" title="Open orders">{{icon "list" "w-4 h-4"}}Open</button>
-  <button type="button" class="btn btn-secondary btn-sm" data-action="new-order" title="New order (F8)">{{icon "plus" "w-4 h-4"}}New</button>
+  <button type="button" class="btn btn-secondary h-10" data-action="open-orders" data-shortcut="open-orders" title="Open orders">Open</button>
+  <button type="button" class="btn btn-secondary h-10" data-action="new-order" data-shortcut="new-order" title="New order">New</button>
 </div>
 
-<div class="grid grid-cols-2 gap-2 border-b border-slate-200 px-4 py-3">
-  <select id="order-type" class="input py-1.5 text-sm" aria-label="Order type"></select>
-  <input id="order-location" class="input py-1.5 text-sm" placeholder="Table / room / location" maxlength="60" aria-label="Table or location">
+<div class="grid shrink-0 grid-cols-2 gap-2 border-b border-slate-200 px-4 py-3">
+  <div class="relative">
+    <select id="order-type" class="input h-10 text-sm sm:pr-14" aria-label="Order type" data-shortcut="order-type" data-shortcut-hint="none"></select>
+    <span class="pointer-events-none absolute inset-y-0 right-7 hidden items-center text-slate-500 sm:flex" data-kbd-for="order-type"></span>
+  </div>
+  <div class="relative">
+    <input id="order-location" class="input h-10 text-sm sm:pr-12" placeholder="Table / room" maxlength="60" aria-label="Table or location" data-shortcut="order-location" data-shortcut-hint="none">
+    <span class="pointer-events-none absolute inset-y-0 right-2 hidden items-center text-slate-500 sm:flex" data-kbd-for="order-location"></span>
+  </div>
 </div>
 
-<div id="order-items" class="scroll-thin min-h-[12rem] flex-1 overflow-y-auto px-2 py-2" aria-live="polite"></div>
+<div class="flex shrink-0 items-center justify-between px-4 pt-2 text-[11px] text-slate-500">
+  <span>Items</span>
+  <span class="pos-hint flex items-center gap-1" data-kbd-for="line-prev line-next" data-label="select line"></span>
+</div>
+<div id="order-items" class="scroll-thin min-h-[8rem] flex-1 overflow-y-auto px-2 py-1" role="list" aria-live="polite" aria-label="Order lines"></div>
 
-<div class="border-t border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+<div class="shrink-0 border-t border-slate-200 bg-slate-50 px-4 py-3 text-sm">
   <dl class="space-y-1">
     <div class="flex justify-between"><dt class="text-slate-500">Subtotal</dt><dd id="t-subtotal">0.00</dd></div>
     <div class="flex justify-between"><dt class="text-slate-500">Discounts</dt><dd id="t-discount">0.00</dd></div>
@@ -27,18 +38,18 @@
   <div id="order-discounts" class="mt-2 space-y-1"></div>
 </div>
 
-<div class="space-y-2 border-t border-slate-200 p-3">
+<div class="shrink-0 space-y-2 border-t border-slate-200 p-3">
   <div class="grid grid-cols-3 gap-2">
-    <button type="button" class="btn btn-secondary btn-sm" data-action="order-note">{{icon "edit" "w-4 h-4"}}Note</button>
-    <button type="button" class="btn btn-secondary btn-sm" data-action="discount">{{icon "percent" "w-4 h-4"}}Discount</button>
-    <button type="button" class="btn btn-secondary btn-sm text-rose-700" data-action="void">{{icon "x" "w-4 h-4"}}Void</button>
+    <button type="button" class="btn btn-secondary h-11 px-2" data-action="order-note" data-shortcut="order-note">{{icon "edit" "w-4 h-4"}}Note</button>
+    <button type="button" class="btn btn-secondary h-11 px-2" data-action="discount" data-shortcut="discount">{{icon "percent" "w-4 h-4"}}Discount</button>
+    <button type="button" class="btn btn-secondary h-11 px-2 text-rose-700" data-action="void" data-shortcut="void">{{icon "x" "w-4 h-4"}}Void</button>
   </div>
   <div class="grid grid-cols-2 gap-2">
-    <button type="button" class="btn btn-primary btn-lg flex-col gap-0 py-4" data-action="pay">
-      <span class="flex items-center gap-2">{{icon "cash" "w-5 h-5"}}Direct Payment</span><span class="text-xs font-normal opacity-75">F2</span>
+    <button type="button" class="btn btn-primary btn-lg flex-col gap-1 py-4" data-action="pay" data-shortcut="pay">
+      <span class="flex items-center gap-2">{{icon "cash" "w-5 h-5"}}Direct Payment</span><span data-kbd-slot class="leading-none"></span>
     </button>
-    <button type="button" class="btn btn-accent btn-lg flex-col gap-0 py-4" data-action="room-charge">
-      <span class="flex items-center gap-2">{{icon "door" "w-5 h-5"}}Charge to Room</span><span class="text-xs font-normal opacity-75">F4</span>
+    <button type="button" class="btn btn-accent btn-lg flex-col gap-1 py-4" data-action="room-charge" data-shortcut="room-charge">
+      <span class="flex items-center gap-2">{{icon "door" "w-5 h-5"}}Charge to Room</span><span data-kbd-slot class="leading-none"></span>
     </button>
   </div>
   <p id="pos-shift-warning" class="hidden rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800"></p>

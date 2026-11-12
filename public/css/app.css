@@ -82,3 +82,44 @@ html::-webkit-scrollbar-thumb:hover,
   .card { box-shadow: none !important; break-inside: avoid; }
   .receipt-paper { box-shadow: none !important; border: 0 !important; margin: 0 !important; }
 }
+
+/* ── POS terminal ──────────────────────────────────────────────────────────── */
+
+/* Key badge. Uses currentColor so it reads on light buttons and on brand/accent fills. */
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5em;
+  height: 1.45em;
+  padding: 0 0.35em;
+  border: 1px solid currentColor;
+  border-radius: 0.3rem;
+  font: 600 10.5px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: nowrap;
+  opacity: 0.72;
+}
+.btn .kbd { margin-left: 0.15rem; }
+/* Badges can be hidden per terminal from the F1 overlay (touch-only stations). */
+body.pos-hints-off .pos-hint { display: none !important; }
+
+/* The terminal is an app shell at every width: header + this = the viewport.
+   dvh keeps the bottom buttons above mobile browser toolbars (iPad Safari). */
+#pos-app { height: calc(100vh - 3.5rem); height: calc(100dvh - 3.5rem); }
+
+/* Below lg one pane shows at a time; the bottom bar switches between them. */
+@media (max-width: 1023.98px) {
+  #pos-app[data-view="products"] #pos-order-pane { display: none; }
+  #pos-app[data-view="order"] #pos-products-pane { display: none; }
+}
+
+/* Selected order line and keyboard focus inside the product grid. */
+.pos-line-selected { background: #F0F6F1; box-shadow: inset 3px 0 0 #3F7957; }
+#pos-products [data-product]:focus-visible { outline: 3px solid #4D8C66; outline-offset: 2px; }
+#orders-list [aria-selected="true"] td { background: #F0F6F1; }
+/* Keep toasts above the phone bottom bar on the terminal. */
+@media (max-width: 1023.98px) {
+  body:has(#pos-mobile-bar) #toast-root { bottom: 5rem; }
+}

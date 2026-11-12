@@ -128,5 +128,6 @@
     if (e.target.matches("[data-autosubmit]")) e.target.form?.requestSubmit();
   });
 
-  window.HotelPOS = { api, toast, confirm: confirmDialog, csrfToken };
+  // Merge: page scripts (e.g. pos-shortcuts.js) may have attached their own members first.
+  window.HotelPOS = Object.assign(window.HotelPOS || {}, { api, toast, confirm: confirmDialog, csrfToken });
 })();

@@ -1,26 +1,46 @@
-<div id="pos-app" class="flex flex-col lg:h-[calc(100vh-3.5rem)] lg:flex-row">
-  <!-- Product selection -->
-  <section class="flex min-w-0 flex-1 flex-col lg:h-full">
-    <div class="space-y-3 border-b border-slate-200 bg-white p-3">
-      <div class="relative">
-        <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">{{icon "search" "w-5 h-5"}}</span>
-        <input id="pos-search" type="search" class="input py-3 pl-10 text-base" placeholder="Search products or scan code  ( / )" autocomplete="off" aria-label="Search products">
-      </div>
-      <div id="pos-categories" class="scroll-thin flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Categories"></div>
-    </div>
-    <div class="scroll-thin flex-1 overflow-y-auto p-3">
-      <div id="pos-products" class="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"></div>
-      <div id="pos-products-empty" class="hidden">{{> empty-state message="No products match." hint="This outlet may not have prices set for these items." icon="tag"}}</div>
-    </div>
-  </section>
+<div id="pos-app" data-view="products" class="flex flex-col">
+  <!-- Session / offline / stale-page banner (filled by pos-terminal.js) -->
+  <div id="pos-banner" class="hidden items-center gap-3 border-b px-4 py-2 text-sm" role="alert"></div>
 
-  <!-- Current order -->
-  <aside class="flex w-full flex-col border-t border-slate-200 bg-white lg:h-full lg:w-[420px] lg:border-l lg:border-t-0">
-    {{> pos/order-pad}}
-  </aside>
+  <div class="flex min-h-0 flex-1 flex-col lg:flex-row">
+    <!-- Product selection -->
+    <section id="pos-products-pane" class="flex min-h-0 min-w-0 flex-1 flex-col" aria-label="Products">
+      <div class="space-y-3 border-b border-slate-200 bg-white p-3">
+        <div class="relative">
+          <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">{{icon "search" "w-5 h-5"}}</span>
+          <input id="pos-search" type="search" class="input py-3 pl-10 pr-24 text-base" placeholder="Search or scan · 3*CODE adds 3" autocomplete="off" aria-label="Search products" aria-controls="pos-products">
+          <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center gap-1 text-slate-500" data-kbd-for="search" data-kbd-all></span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="pos-hint hidden shrink-0 text-slate-400 sm:inline" data-kbd-for="cat-prev"></span>
+          <div id="pos-categories" class="scroll-thin flex min-w-0 flex-1 gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Categories"></div>
+          <span class="pos-hint hidden shrink-0 text-slate-400 sm:inline" data-kbd-for="cat-next"></span>
+        </div>
+      </div>
+      <div class="scroll-thin min-h-0 flex-1 overflow-y-auto p-3">
+        <div id="pos-products" class="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5" role="group" aria-label="Product tiles"></div>
+        <div id="pos-products-empty" class="hidden">{{> empty-state message="No products match." hint="This outlet may not have prices set for these items." icon="tag"}}</div>
+      </div>
+    </section>
+
+    <!-- Current order -->
+    <aside id="pos-order-pane" class="scroll-thin flex min-h-0 w-full flex-1 flex-col overflow-y-auto border-slate-200 bg-white lg:w-[420px] lg:flex-none lg:overflow-hidden lg:border-l" aria-label="Current order">
+      {{> pos/order-pad}}
+    </aside>
+  </div>
+
+  <!-- Phones and small tablets: switch between the catalog and the order; pay without scrolling -->
+  <nav id="pos-mobile-bar" class="flex items-stretch gap-2 border-t border-slate-200 bg-white p-2 lg:hidden" aria-label="Terminal views">
+    <button type="button" class="btn btn-secondary h-12 flex-1" data-view-switch="products" aria-pressed="true">{{icon "tag" "w-4 h-4"}}Products</button>
+    <button type="button" class="btn btn-secondary h-12 flex-[1.4] flex-col gap-0 leading-tight" data-view-switch="order" aria-pressed="false">
+      <span>Order <span id="mb-count" class="font-semibold">(0)</span></span><span id="mb-total" class="text-xs font-semibold text-brand-800">0.00</span>
+    </button>
+    <button type="button" class="btn btn-primary h-12 flex-1" data-action="pay" data-shortcut="pay">{{icon "cash" "w-4 h-4"}}Pay</button>
+  </nav>
 </div>
 
 {{> pos/modals}}
 
 <script type="application/json" id="pos-boot">{{json boot}}</script>
+<script src="/js/pos-shortcuts.js" defer></script>
 <script src="/js/pos-terminal.js" defer></script>

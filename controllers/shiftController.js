@@ -27,7 +27,9 @@ export const index = async (req, res) => {
 
 export const openForm = (req, res) => {
   if (req.openShift) return res.redirect(`/shifts/${req.openShift.id}`);
-  res.render("shifts/open", { title: "Open shift", breadcrumbs: crumbs("Open shift"), outlets: req.outlets, shift: { openingCash: "0.00" } });
+  // ?next=pos&outletId= comes from the POS header ("No open shift"): preselect and return there.
+  const shift = { openingCash: "0.00", next: req.query.next === "pos" ? "pos" : "", outletId: Number(req.query.outletId) || undefined };
+  res.render("shifts/open", { title: "Open shift", breadcrumbs: crumbs("Open shift"), outlets: req.outlets, shift });
 };
 
 export const open = async (req, res) => {
@@ -37,7 +39,7 @@ export const open = async (req, res) => {
   });
   if (!shift) return;
   req.flash("success_msg", `Shift ${shift.shiftNumber} is open. You can now take payments.`);
-  res.redirect(req.body.next === "pos" ? "/pos/terminal" : `/shifts/${shift.id}`);
+  res.redirect(req.body.next === "pos" ? `/pos/terminal?outletId=${shift.outletId}` : `/shifts/${shift.id}`);
 };
 
 export const show = async (req, res) => {
