@@ -9,6 +9,7 @@ import { AppError, notFound } from "../utils/http.js";
 import * as v from "../utils/validate.js";
 import { audit, diff } from "./auditService.js";
 import { config } from "../config/env.js";
+import { recordEvent } from "../integrations/events/eventPublisher.js";
 
 export async function listProducts({ search, categoryId, status, outletId, itemType }, { limit, offset }) {
   const where = {};
@@ -158,6 +159,13 @@ export async function setOutletPrice(req, productId, body) {
       newValues: { outletId, price, isAvailable },
       transaction,
     });
+    await recordEvent(
+      "ProductPriceChanged",
+      "product",
+      productId,
+      { productId, productCode: product.code, productName: product.name, outletId, currency: config.currencyCode, oldPrice: current?.price ?? null, price, isAvailable, removed: false, effectiveFrom: now },
+      transaction
+    );
     return row;
   });
 }
@@ -166,8 +174,18 @@ export async function removeFromOutlet(req, productId, outletId) {
   return sequelize.transaction(async (transaction) => {
     const current = await ProductPrice.findOne({ where: { productId, outletId, effectiveTo: null }, transaction, lock: transaction.LOCK.UPDATE });
     if (!current) throw new AppError("This product is not sold at that outlet.", 409, "NOT_SOLD_AT_OUTLET");
-    await current.update({ effectiveTo: new Date() }, { transaction });
-    await audit({ req, action: "PRODUCT_REMOVED_FROM_OUTLET", entityType: "product", entityId: productId, oldValues: { outletId, price: current.price } });
+    const now = new Date();
+    await current.update({ effectiveTo: now }, { transaction });
+    await audit({ req, action: "PRODUCT_REMOVED_FROM_OUTLET", entityType: "product", entityId: productId, oldValues: { outletId, price: current.price }, transaction });
+    const product = await Product.findByPk(productId, { attributes: ["code", "name"], transaction });
+    await recordEvent(
+      "ProductPriceChanged",
+      "product",
+      productId,
+      { productId: Number(productId), productCode: product?.code, productName: product?.name, outletId: Number(outletId), currency: config.currencyCode, oldPrice: current.price, price: null, isAvailable: false, removed: true, effectiveFrom: now },
+      transaction,
+      { outletId: Number(outletId) }
+    );
   });
 }
 

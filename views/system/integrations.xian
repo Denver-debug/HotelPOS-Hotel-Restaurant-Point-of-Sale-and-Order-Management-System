@@ -73,12 +73,23 @@
       {{/if}}
     </div>
     <div class="card-body space-y-3 text-sm">
-      <div class="grid grid-cols-3 gap-2 text-center">
+      <div class="grid grid-cols-2 gap-2 text-center sm:grid-cols-4">
         <div class="rounded-lg bg-amber-50 p-2"><p class="text-xs text-amber-700">Pending</p><p class="text-lg font-semibold">{{default outbox.PENDING 0}}</p></div>
-        <div class="rounded-lg bg-emerald-50 p-2"><p class="text-xs text-emerald-700">Published</p><p class="text-lg font-semibold">{{default outbox.PUBLISHED 0}}</p></div>
-        <div class="rounded-lg bg-rose-50 p-2"><p class="text-xs text-rose-700">Failed</p><p class="text-lg font-semibold">{{default outbox.FAILED 0}}</p></div>
+        <div class="rounded-lg bg-emerald-50 p-2"><p class="text-xs text-emerald-700">Delivered</p><p class="text-lg font-semibold">{{default outbox.PUBLISHED 0}}</p></div>
+        <div class="rounded-lg bg-rose-50 p-2"><p class="text-xs text-rose-700">Retrying</p><p class="text-lg font-semibold">{{default outbox.FAILED 0}}</p></div>
+        <div class="rounded-lg bg-slate-100 p-2"><p class="text-xs text-slate-600">Gave up</p><p class="text-lg font-semibold">{{default outbox.DEAD 0}}</p></div>
       </div>
-      <p class="text-xs text-slate-500">Events such as <code>OrderCompleted</code> are written in the same transaction as the sale. No event bus is configured yet, so dispatching uses a MOCK publisher.</p>
+      <p class="text-xs text-slate-500">
+        Events such as <code>OrderCompleted</code> are written in the same transaction as the sale, then
+        {{#if eventDelivery.isMock}}recorded as delivered by the <strong>log-only</strong> publisher (set <code>EVENTS_PUBLISHER=webhook</code> to push them to the ERP){{else}}POSTed, signed, by <strong>{{eventDelivery.publisher}}</strong>{{/if}}
+        {{#if eventDelivery.intervalSeconds}}every {{eventDelivery.intervalSeconds}} s{{else}}when dispatched{{/if}}.
+        Failed deliveries back off and give up after {{eventDelivery.maxAttempts}} attempts. Other systems can also read them from <code>GET /api/v1/events</code>.
+      </p>
+      {{#if canManage}}{{#if outbox.DEAD}}
+      <form method="POST" action="/integrations/events/retry" data-confirm="Try delivering the events that gave up again?" data-confirm-danger="false" data-confirm-label="Retry">
+        <input type="hidden" name="_csrf" value="{{csrfToken}}"><button class="btn btn-secondary btn-sm w-full" type="submit">Retry events that gave up</button>
+      </form>
+      {{/if}}{{/if}}
       <ul class="divide-y divide-slate-200">
         {{#each events}}<li class="flex items-center justify-between py-2 text-xs"><span><span class="font-mono">{{eventType}}</span> · {{aggregateType}} {{aggregateId}}</span>{{statusBadge status}}</li>{{else}}<li class="py-3 text-xs text-slate-500">No events recorded yet. Completed sales and refunds add them.</li>{{/each}}
       </ul>

@@ -2,6 +2,8 @@
 // Expected cash = opening cash + captured cash payments − processed cash refunds.
 import { Op, QueryTypes } from "sequelize";
 import { sequelize, Shift, Outlet, User } from "../models/index.js";
+import { recordEvent } from "../integrations/events/eventPublisher.js";
+import { config } from "../config/env.js";
 import { AppError, notFound, forbidden } from "../utils/http.js";
 import { toCents, fromCents } from "../utils/money.js";
 import * as v from "../utils/validate.js";
@@ -28,6 +30,7 @@ export async function openShift(req, body) {
       { transaction }
     );
     await audit({ req, action: "SHIFT_OPENED", entityType: "shift", entityId: shift.id, newValues: { shiftNumber: shift.shiftNumber, outletId, openingCash }, transaction });
+    await recordEvent("ShiftOpened", "shift", shift.id, { shiftNumber: shift.shiftNumber, outletId, cashierId: req.user.id, currency: config.currencyCode, openingCash, openedAt: shift.openedAt }, transaction);
     return shift;
   });
 }
@@ -107,6 +110,13 @@ export async function closeShift(req, id, body) {
       { transaction }
     );
     await audit({ req, action: "SHIFT_CLOSED", entityType: "shift", entityId: id, newValues: { expectedCash: expected, actualCash, cashVariance: variance }, transaction });
+    await recordEvent(
+      "ShiftClosed",
+      "shift",
+      shift.id,
+      { shiftNumber: shift.shiftNumber, outletId: shift.outletId, cashierId: shift.userId, closedBy: req.user.id, currency: config.currencyCode, openingCash: shift.openingCash, expectedCash: expected, actualCash, cashVariance: variance, openedAt: shift.openedAt, closedAt: shift.closedAt },
+      transaction
+    );
     return shift;
   });
 }
@@ -120,6 +130,7 @@ export async function reconcileShift(req, id) {
     if (shift.userId === req.user.id) throw forbidden("A different supervisor must reconcile your own shift.");
     await shift.update({ status: "RECONCILED", reconciledBy: req.user.id, reconciledAt: new Date() }, { transaction });
     await audit({ req, action: "SHIFT_RECONCILED", entityType: "shift", entityId: id, newValues: { cashVariance: shift.cashVariance }, transaction });
+    await recordEvent("ShiftReconciled", "shift", shift.id, { shiftNumber: shift.shiftNumber, outletId: shift.outletId, cashierId: shift.userId, reconciledBy: req.user.id, cashVariance: shift.cashVariance, reconciledAt: shift.reconciledAt }, transaction);
     return shift;
   });
 }

@@ -9,6 +9,7 @@ import { toMilli, fromMilli } from "../utils/money.js";
 import * as v from "../utils/validate.js";
 import { audit, diff } from "./auditService.js";
 import { nextNumber } from "./numberingService.js";
+import { recordEvent } from "../integrations/events/eventPublisher.js";
 
 // Sign of each movement type; ADJUSTMENT is computed from a physical count.
 const DIRECTION = { STOCK_IN: 1, RETURN: 1, REFUND_RETURN: 1, STOCK_OUT: -1, SALE: -1, DAMAGE: -1, WASTE: -1 };
@@ -233,6 +234,18 @@ export async function recordManualMovement(req, body) {
         transaction
       );
       await audit({ req, action: `INVENTORY_${type}`, entityType: "inventory_item", entityId: itemId, newValues: { outletId, quantity: row.quantity, balanceAfter: row.balanceAfter, reason }, transaction });
+      const item = await InventoryItem.findByPk(itemId, { attributes: ["sku", "name", "unit"], transaction });
+      await recordEvent(
+        "StockMovementRecorded",
+        "inventory_item",
+        itemId,
+        {
+          transactionNumber: row.transactionNumber, type, outletId, stockLocationId: location.id, item: { id: itemId, sku: item?.sku, name: item?.name, unit: item?.unit },
+          quantity: row.quantity, balanceAfter: row.balanceAfter, negativeStock: Number(row.balanceAfter) < 0, unitCost: row.unitCost ?? null,
+          reason: reason ?? null, reference: reference ?? null, recordedBy: req.user.id, recordedAt: row.createdAt,
+        },
+        transaction
+      );
       return row;
     });
   } catch (err) {

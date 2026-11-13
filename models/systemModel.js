@@ -43,14 +43,19 @@ export const IntegrationLog = sequelize.define("IntegrationLog", {
   createdBy: { type: DataTypes.INTEGER.UNSIGNED },
 }, { tableName: "integration_logs", updatedAt: false });
 
+// Transactional outbox: one row per domain event, written in the same transaction as the change.
 export const IntegrationEvent = sequelize.define("IntegrationEvent", {
   id: { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
+  eventUid: { type: DataTypes.CHAR(36), allowNull: false, unique: true },
   eventType: { type: DataTypes.STRING(60), allowNull: false },
+  schemaVersion: { type: DataTypes.SMALLINT.UNSIGNED, allowNull: false, defaultValue: 1 },
   aggregateType: { type: DataTypes.STRING(40), allowNull: false },
   aggregateId: { type: DataTypes.STRING(60), allowNull: false },
+  outletId: { type: DataTypes.INTEGER.UNSIGNED },
   payload: { type: DataTypes.JSON, allowNull: false },
-  status: { type: DataTypes.ENUM("PENDING", "PUBLISHED", "FAILED"), allowNull: false, defaultValue: "PENDING" },
+  status: { type: DataTypes.ENUM("PENDING", "PUBLISHED", "FAILED", "DEAD"), allowNull: false, defaultValue: "PENDING" },
   attempts: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, defaultValue: 0 },
+  nextAttemptAt: { type: DataTypes.DATE(3) },
   lastError: { type: DataTypes.STRING(500) },
   publishedAt: { type: DataTypes.DATE },
 }, { tableName: "integration_events", updatedAt: false });

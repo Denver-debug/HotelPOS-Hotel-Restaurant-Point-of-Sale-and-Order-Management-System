@@ -82,6 +82,9 @@ router.get("/inventory/levels", requirePermission("inventory.view"), asyncHandle
 router.get("/inventory/movements", requirePermission("inventory.view"), asyncHandler(api.movements));
 router.post("/inventory/movements", requirePermission("inventory.manage", "inventory.adjust"), asyncHandler(api.movementCreate));
 
+// ── Events (pull feed over the outbox) ───────────────────────────────────
+router.get("/events", requirePermission("integrations.view"), asyncHandler(api.events));
+
 // ── Reports ──────────────────────────────────────────────────────────────
 router.get("/reports", requirePermission("reports.view"), api.reports);
 router.get("/reports/:key", requirePermission("reports.view"), asyncHandler(api.report));

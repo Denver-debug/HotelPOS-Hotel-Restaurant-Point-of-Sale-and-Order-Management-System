@@ -19,6 +19,7 @@ import { parseDateRange } from "../utils/dates.js";
 import { AppError, notFound, forbidden } from "../utils/http.js";
 import { config } from "../config/env.js";
 import { buildOpenApi } from "../config/openapi.js";
+import { eventFeed } from "../integrations/events/eventPublisher.js";
 
 const pkg = createRequire(import.meta.url)("../package.json");
 const oneOf = (value, allowed, name) => {
@@ -331,4 +332,19 @@ export const report = async (req, res) => {
     summary: data.summary ?? null,
     secondary: def.secondary ? { title: def.secondary.title, columns: def.secondary.columns.map((c) => ({ key: c.key, label: c.label, type: c.type || "text" })), rows: data.secondaryRows || [] } : null,
   });
+};
+
+// ── Events ───────────────────────────────────────────────────────────────
+
+// GET /events?after=<sequence>&limit&type=A,B — the outbox as a feed. Keep the returned
+// nextAfter and pass it next time; delivery is at-least-once, so de-duplicate on event id.
+export const events = async (req, res) => {
+  const after = Number.parseInt(req.query.after ?? "0", 10);
+  if (!Number.isInteger(after) || after < 0) throw new AppError("after must be a non-negative integer (the last sequence you processed).", 422, "VALIDATION_ERROR");
+  const limit = Math.min(500, Math.max(1, Number.parseInt(req.query.limit, 10) || 100));
+  const types = req.query.type ? String(req.query.type).split(",").map((t) => t.trim()).filter(Boolean) : null;
+  // Callers without every-outlet access only see events of their outlets (and global ones).
+  const outletIds = req.user.allOutlets ? null : req.user.outletIds;
+  const feed = await eventFeed({ after, limit, types, outletIds });
+  res.json({ ok: true, ...feed });
 };

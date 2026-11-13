@@ -24,6 +24,8 @@ import { resolveShift } from "./paymentService.js";
 import { assertTransition, SETTLEABLE_STATUSES } from "./orderStateMachine.js";
 import { getPmsGateway } from "../integrations/pms/pmsGateway.js";
 import { logged, IntegrationError } from "../integrations/integrationLogger.js";
+import { config } from "../config/env.js";
+import { recordEvent } from "../integrations/events/eventPublisher.js";
 
 const VALIDATION_TTL_MS = 5 * 60 * 1000;
 const hashToken = (token) => crypto.createHash("sha256").update(String(token)).digest("hex");
@@ -124,6 +126,17 @@ async function applyPmsResult(req, chargeId, result) {
         newValues: { chargeNumber: charge.chargeNumber, roomNumber: charge.roomNumber, externalFolioId: charge.externalFolioId, pmsTransactionId: result.transactionId, amount: charge.amount },
         transaction,
       });
+      await recordEvent(
+        "RoomChargePosted",
+        "order",
+        order.id,
+        {
+          chargeNumber: charge.chargeNumber, orderId: order.id, orderNumber: order.orderNumber, outletId: order.outletId, roomNumber: charge.roomNumber,
+          externalGuestId: charge.externalGuestId, externalRoomId: charge.externalRoomId, externalFolioId: charge.externalFolioId,
+          currency: config.currencyCode, amount: charge.amount, pmsTransactionId: result.transactionId, isMock: Boolean(charge.isMock), postedAt: charge.postedAt,
+        },
+        transaction
+      );
       await completeOrder(order, { req, userId: req.user.id, settledExternally: true }, transaction);
       return { charge, order };
     }
@@ -168,7 +181,7 @@ async function sendToPms(req, charge) {
           roomId: charge.externalRoomId,
           guestId: charge.externalGuestId,
           amount: charge.amount,
-          currency: "PHP",
+          currency: config.currencyCode,
           description: `${order.outlet.name} ${order.orderNumber}`,
           reference: order.orderNumber,
           idempotencyKey: charge.idempotencyKey,

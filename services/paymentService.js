@@ -15,6 +15,8 @@ import { lockOrder, completeOrder } from "./orderService.js";
 import { assertTransition, SETTLEABLE_STATUSES } from "./orderStateMachine.js";
 import { getPaymentGateway } from "../integrations/payments/paymentGateway.js";
 import { logged, IntegrationError } from "../integrations/integrationLogger.js";
+import { config } from "../config/env.js";
+import { recordEvent } from "../integrations/events/eventPublisher.js";
 
 export async function resolveShift(req, outletId) {
   const required = await getSetting("require_shift_for_settlement", true);
@@ -35,6 +37,19 @@ async function applyCapture(req, order, payment, { externalTransactionId, settle
   const paid = toCents(order.amountPaid) + toCents(payment.amount);
   await order.update({ amountPaid: fromCents(paid), settlementType: "DIRECT_PAYMENT", version: order.version + 1 }, { transaction });
   await audit({ req, action: "PAYMENT_CAPTURED", entityType: "order", entityId: order.id, newValues: { paymentNumber: payment.paymentNumber, amount: payment.amount, isMock: payment.isMock }, transaction });
+  const method = await PaymentMethod.findByPk(payment.paymentMethodId, { attributes: ["code", "name", "isCash"], transaction });
+  await recordEvent(
+    "PaymentCaptured",
+    "order",
+    order.id,
+    {
+      paymentNumber: payment.paymentNumber, orderId: order.id, orderNumber: order.orderNumber, outletId: order.outletId, shiftId: payment.shiftId ?? null,
+      method: method?.code ?? null, isCash: Boolean(method?.isCash), currency: config.currencyCode, amount: payment.amount,
+      tenderedAmount: payment.tenderedAmount ?? null, changeAmount: payment.changeAmount, reference: payment.reference ?? null,
+      externalTransactionId: payment.externalTransactionId ?? null, isMock: Boolean(payment.isMock), capturedAt: payment.capturedAt, processedBy: payment.processedBy,
+    },
+    transaction
+  );
 
   if (paid >= toCents(order.totalAmount)) {
     if (order.status === "AWAITING_SETTLEMENT" || order.status === "CHARGE_FAILED") {
@@ -159,7 +174,7 @@ export async function processPayment(req, orderId, body) {
         system: "PAYMENT", operation: "authorizeAndCapture", isMock: gateway.isMock, idempotencyKey,
         referenceType: "payment", referenceId: step1.payment.id, request: { amount, methodCode: method.code, reference }, userId: req.user.id,
       },
-      () => gateway.authorizeAndCapture({ amount, currency: "PHP", methodCode: method.code, reference, idempotencyKey })
+      () => gateway.authorizeAndCapture({ amount, currency: config.currencyCode, methodCode: method.code, reference, idempotencyKey })
     );
   } catch (err) {
     if (!(err instanceof IntegrationError)) throw err;

@@ -18,6 +18,7 @@ import { findShortages, deductForOrder } from "./inventoryService.js";
 import { authorizeSupervisor } from "./authService.js";
 import { generateSaleReceipt } from "./receiptService.js";
 import { recordEvent } from "../integrations/events/eventPublisher.js";
+import { config } from "../config/env.js";
 
 const DEFAULT_ORDER_TYPE = { ROOM_SERVICE: "ROOM_SERVICE", MINIBAR: "MINIBAR", SPA: "SPA", RESTAURANT: "DINE_IN", BAR: "DINE_IN", OTHER: "OTHER" };
 
@@ -388,6 +389,13 @@ export async function voidOrder(req, orderId, body) {
       { transaction }
     );
     await audit({ req, action: "ORDER_VOIDED", entityType: "order", entityId: order.id, oldValues: { status: before }, newValues: { status: "VOIDED", reason, approvedBy: approver.id, total: order.totalAmount }, transaction });
+    await recordEvent(
+      "OrderVoided",
+      "order",
+      order.id,
+      { orderNumber: order.orderNumber, externalReference: order.externalReference ?? null, outletId: order.outletId, previousStatus: before, totalAmount: order.totalAmount, reason, requestedBy: req.user.id, approvedBy: approver.id, voidedAt: order.voidedAt },
+      transaction
+    );
     return order.id;
   });
 }
@@ -409,21 +417,40 @@ export async function completeOrder(order, { req, userId, settledExternally }, t
 
   const receipt = await generateSaleReceipt(order.id, { userId }, transaction);
   const charge = order.settlementType === "ROOM_CHARGE" ? await GuestCharge.findOne({ where: { orderId: order.id, status: "POSTED" }, transaction }) : null;
+  const payments = await Payment.findAll({ where: { orderId: order.id, status: "CAPTURED" }, include: [{ model: PaymentMethod, as: "method", attributes: ["code", "isCash"] }], order: [["id", "ASC"]], transaction });
+  // Everything an accounting/GL or BI system needs to post the sale without calling back.
   await recordEvent(
     "OrderCompleted",
     "order",
     order.id,
     {
       orderNumber: order.orderNumber,
+      externalReference: order.externalReference ?? null,
       outletId: order.outletId,
+      shiftId: order.shiftId ?? null,
       orderType: order.orderType,
+      tableOrLocation: order.tableOrLocation ?? null,
       settlementType: order.settlementType,
-      totalAmount: order.totalAmount,
+      currency: config.currencyCode,
+      subtotal: order.subtotal,
+      discountAmount: order.discountAmount,
       taxAmount: order.taxAmount,
       serviceChargeAmount: order.serviceChargeAmount,
+      totalAmount: order.totalAmount,
+      createdBy: order.createdBy,
+      completedBy: userId,
       completedAt: order.completedAt,
       receiptNumber: receipt.receiptNumber,
-      guestCharge: charge ? { externalFolioId: charge.externalFolioId, externalGuestId: charge.externalGuestId, pmsTransactionId: charge.pmsTransactionId } : null,
+      lines: items.map((i) => ({
+        orderItemId: i.id, productId: i.productId, productCode: i.productCode, productName: i.productName, itemType: i.itemType, unit: i.unit,
+        quantity: i.quantity, unitPrice: i.unitPrice, grossAmount: i.grossAmount, discountAmount: i.discountAmount,
+        taxRate: i.taxRate, taxInclusive: Boolean(i.taxInclusive), taxAmount: i.taxAmount, netAmount: i.netAmount, lineTotal: i.lineTotal,
+      })),
+      discounts: discounts.map((d) => ({ code: d.discountCode, name: d.discountName, type: d.discountType, value: d.discountValue, amount: d.amount, orderItemId: d.orderItemId ?? null })),
+      payments: payments.map((p) => ({ paymentNumber: p.paymentNumber, method: p.method?.code ?? null, isCash: Boolean(p.method?.isCash), amount: p.amount, externalTransactionId: p.externalTransactionId ?? null })),
+      guestCharge: charge
+        ? { chargeNumber: charge.chargeNumber, roomNumber: charge.roomNumber, externalFolioId: charge.externalFolioId, externalGuestId: charge.externalGuestId, externalRoomId: charge.externalRoomId, pmsTransactionId: charge.pmsTransactionId, amount: charge.amount }
+        : null,
     },
     transaction
   );

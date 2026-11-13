@@ -8,7 +8,7 @@ import { AppError, notFound } from "../utils/http.js";
 import * as v from "../utils/validate.js";
 import { audit } from "../services/auditService.js";
 import { invalidateSettings } from "../services/settingsService.js";
-import { publishPending } from "../integrations/events/eventPublisher.js";
+import { publishPending, getEventPublisher, retryEvents } from "../integrations/events/eventPublisher.js";
 import { getPmsGateway } from "../integrations/pms/pmsGateway.js";
 import { getHrGateway } from "../integrations/hr/hrGateway.js";
 import { can } from "../middleware/auth.js";
@@ -60,7 +60,10 @@ const adapterInfo = () => {
     { system: "PMS", name: "Front Desk / PMS", adapter: getPmsGateway().name, isMock: getPmsGateway().isMock, endpoint: host(pms.baseUrl), credentials: Boolean(pms.apiKey), timeoutMs: pms.timeoutMs },
     { system: "PAYMENT", name: "Payment provider", adapter: payment.adapter === "mock" ? "MockPaymentAdapter" : payment.adapter, isMock: payment.adapter === "mock", endpoint: host(payment.baseUrl), credentials: Boolean(payment.apiKey), timeoutMs: payment.timeoutMs },
     { system: "HR", name: "HR and Staff Payroll", adapter: getHrGateway().name, isMock: getHrGateway().isMock, endpoint: host(hr.baseUrl), credentials: Boolean(hr.apiKey), timeoutMs: hr.timeoutMs },
-    { system: "EVENT", name: "ERP event bus (outbox)", adapter: "LogOnlyPublisher", isMock: true, endpoint: null, credentials: false, timeoutMs: null },
+    (() => {
+      const publisher = getEventPublisher();
+      return { system: "EVENT", name: "ERP events (outbox)", adapter: publisher.name, isMock: publisher.isMock, endpoint: host(publisher.endpoint), credentials: Boolean(config.events.webhookSecret), timeoutMs: publisher.isMock ? null : config.events.timeoutMs };
+    })(),
   ];
 };
 
@@ -87,6 +90,12 @@ export const integrations = async (req, res) => {
     logs: rows.map((r) => r.get({ plain: true })),
     outbox: Object.fromEntries(outbox.map((o) => [o.status, Number(o.n)])),
     events: events.map((e) => e.get({ plain: true })),
+    eventDelivery: {
+      publisher: getEventPublisher().name,
+      isMock: getEventPublisher().isMock,
+      intervalSeconds: config.events.dispatchIntervalMs ? Math.round(config.events.dispatchIntervalMs / 1000) : null,
+      maxAttempts: config.events.maxAttempts,
+    },
     filters,
     canManage: can(req, "integrations.manage"),
     pagination: buildPagination(req, count, page),
@@ -102,7 +111,16 @@ export const integrationLog = async (req, res) => {
 export const dispatchEvents = async (req, res) => {
   const result = await publishPending({ userId: req.user.id });
   await audit({ req, action: "EVENTS_DISPATCHED", entityType: "integration", entityId: "EVENT", newValues: result });
-  req.flash("success_msg", `Dispatched ${result.published} of ${result.attempted} pending event(s) (MOCK publisher — no event bus configured).`);
+  const via = getEventPublisher().isMock ? "log only — no webhook configured" : result.publisher;
+  const problems = result.failed + result.dead;
+  req.flash(problems ? "warning_msg" : "success_msg", `Delivered ${result.published} of ${result.attempted} due event(s) (${via}).${problems ? ` ${problems} failed and will be retried later${result.dead ? `; ${result.dead} gave up` : ""}.` : ""}`);
+  res.redirect("/integrations");
+};
+
+export const retryDeadEvents = async (req, res) => {
+  const count = await retryEvents({ statuses: ["DEAD"] });
+  await audit({ req, action: "EVENTS_RETRIED", entityType: "integration", entityId: "EVENT", newValues: { count } });
+  req.flash("success_msg", `${count} event(s) will be delivered again.`);
   res.redirect("/integrations");
 };
 

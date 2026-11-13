@@ -20,6 +20,7 @@ import { assertTransition, FINAL_SALE_STATUSES } from "./orderStateMachine.js";
 import { returnForRefund } from "./inventoryService.js";
 import { generateRefundReceipt } from "./receiptService.js";
 import { recordEvent } from "../integrations/events/eventPublisher.js";
+import { config } from "../config/env.js";
 import { getPaymentGateway } from "../integrations/payments/paymentGateway.js";
 import { getPmsGateway } from "../integrations/pms/pmsGateway.js";
 import { logged, IntegrationError } from "../integrations/integrationLogger.js";
@@ -259,15 +260,18 @@ async function finalizeRefund(req, refundId, externalReference) {
       const refunded = toCents(payment.refundedAmount) + amount;
       await payment.update({ refundedAmount: fromCents(refunded), status: refunded >= toCents(payment.amount) ? "REFUNDED" : "PARTIALLY_REFUNDED" }, { transaction });
     }
+    let charge = null;
     if (refund.guestChargeId) {
-      const charge = await GuestCharge.findByPk(refund.guestChargeId, { transaction, lock: transaction.LOCK.UPDATE });
+      charge = await GuestCharge.findByPk(refund.guestChargeId, { transaction, lock: transaction.LOCK.UPDATE });
       const reversed = toCents(charge.reversedAmount) + amount;
       await charge.update({ reversedAmount: fromCents(reversed), status: reversed >= toCents(charge.amount) ? "REVERSED" : "PARTIALLY_REVERSED" }, { transaction });
     }
 
     const lines = [];
+    const refundedLines = [];
     for (const ri of refund.items) {
       const item = await OrderItem.findByPk(ri.orderItemId, { transaction });
+      refundedLines.push({ orderItemId: item.id, productId: item.productId, productCode: item.productCode, productName: item.productName, quantity: ri.quantity, amount: ri.amount, restock: Boolean(ri.restock) });
       await item.update({ quantityRefunded: fromMilli(toMilli(item.quantityRefunded) + toMilli(ri.quantity)) }, { transaction });
       if (ri.restock) lines.push({ productId: item.productId, quantity: ri.quantity, refundItemId: ri.id, refundId: refund.id, refundNumber: refund.refundNumber });
     }
@@ -283,7 +287,32 @@ async function finalizeRefund(req, refundId, externalReference) {
       { transaction }
     );
     const receipt = await generateRefundReceipt(refund.id, { userId: req.user.id }, transaction);
-    await recordEvent("OrderRefunded", "order", order.id, { orderNumber: order.orderNumber, refundNumber: refund.refundNumber, amount: refund.amount, settlementType: refund.settlementType, externalReference: refund.externalReference }, transaction);
+    if (charge) {
+      await recordEvent(
+        "RoomChargeReversed",
+        "order",
+        order.id,
+        {
+          chargeNumber: charge.chargeNumber, orderId: order.id, orderNumber: order.orderNumber, outletId: order.outletId, refundNumber: refund.refundNumber,
+          externalFolioId: charge.externalFolioId, externalGuestId: charge.externalGuestId, pmsTransactionId: charge.pmsTransactionId,
+          reversalReference: refund.externalReference ?? null, currency: config.currencyCode, amount: refund.amount, chargeStatus: charge.status,
+        },
+        transaction
+      );
+    }
+    await recordEvent(
+      "OrderRefunded",
+      "order",
+      order.id,
+      {
+        orderNumber: order.orderNumber, externalReference: order.externalReference ?? null, outletId: order.outletId, refundNumber: refund.refundNumber,
+        refundType: refund.refundType, settlementType: refund.settlementType, reason: refund.reason, currency: config.currencyCode, amount: refund.amount,
+        method: method?.code ?? null, paymentId: refund.paymentId ?? null, guestChargeId: refund.guestChargeId ?? null, shiftId,
+        refundReference: refund.externalReference ?? null, orderStatus: nextStatus, receiptNumber: receipt.receiptNumber,
+        lines: refundedLines, processedBy: req.user.id, processedAt: refund.processedAt,
+      },
+      transaction
+    );
     await audit({
       req, action: "REFUND_PROCESSED", entityType: "order", entityId: order.id,
       newValues: { refundNumber: refund.refundNumber, amount: refund.amount, orderStatus: nextStatus, externalReference: refund.externalReference, receipt: receipt.receiptNumber },

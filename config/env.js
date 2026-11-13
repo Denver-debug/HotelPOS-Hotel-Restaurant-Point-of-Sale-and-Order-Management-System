@@ -34,6 +34,8 @@ export const config = {
   appName: env.APP_NAME || "HotelPOS",
   timezone: env.APP_TIMEZONE || "+08:00",
   currencySymbol: env.CURRENCY_SYMBOL || "₱",
+  // ISO 4217 code sent to the PMS and payment provider and included in events.
+  currencyCode: (env.CURRENCY_CODE || "PHP").toUpperCase(),
   session: {
     secret: sessionSecret,
     cookieSecure: bool(env.COOKIE_SECURE, false),
@@ -51,6 +53,17 @@ export const config = {
   api: {
     corsOrigins: list(env.API_CORS_ORIGINS),
     rateLimitPerMinute: int(env.API_RATE_LIMIT_PER_MINUTE, 600),
+  },
+  // Domain events (outbox) delivered to the ERP: "log" records them only, "webhook" POSTs
+  // each one, HMAC-signed, to EVENTS_WEBHOOK_URL. The pull feed (/api/v1/events) works with both.
+  events: {
+    publisher: env.EVENTS_PUBLISHER || "log",
+    webhookUrl: env.EVENTS_WEBHOOK_URL || "",
+    webhookSecret: env.EVENTS_WEBHOOK_SECRET || "",
+    timeoutMs: int(env.EVENTS_TIMEOUT_MS, 10000),
+    dispatchIntervalMs: int(env.EVENTS_DISPATCH_INTERVAL_MS, isTest ? 0 : 15000),
+    maxAttempts: int(env.EVENTS_MAX_ATTEMPTS, 10),
+    batchSize: int(env.EVENTS_BATCH_SIZE, 50),
   },
   integrations: {
     pms: {
@@ -82,13 +95,18 @@ const SUPPORTED_ADAPTERS = {
   PMS_ADAPTER: [config.integrations.pms.adapter, ["mock", "http"]],
   PAYMENT_ADAPTER: [config.integrations.payment.adapter, ["mock"]],
   HR_ADAPTER: [config.integrations.hr.adapter, ["mock", "http"]],
+  EVENTS_PUBLISHER: [config.events.publisher, ["log", "webhook"]],
 };
 for (const [name, [value, allowed]] of Object.entries(SUPPORTED_ADAPTERS)) {
   if (!allowed.includes(value)) {
     throw new Error(`${name}="${value}" is not supported. Use one of: ${allowed.join(", ")}.`);
   }
 }
-const mocks = Object.entries(SUPPORTED_ADAPTERS).filter(([, [value]]) => value === "mock").map(([name]) => name);
+if (config.events.publisher === "webhook") {
+  if (!config.events.webhookUrl) throw new Error("EVENTS_WEBHOOK_URL must be set when EVENTS_PUBLISHER=webhook.");
+  if (config.events.webhookSecret.length < 16) throw new Error("EVENTS_WEBHOOK_SECRET must be at least 16 characters when EVENTS_PUBLISHER=webhook.");
+}
+const mocks = Object.entries(SUPPORTED_ADAPTERS).filter(([, [value]]) => value === "mock" || value === "log").map(([name]) => name);
 if (isProduction && mocks.length) {
   console.warn(`⚠️  Running in production with simulated integrations: ${mocks.join(", ")}. No real PMS/payment/HR calls are made.`);
 }

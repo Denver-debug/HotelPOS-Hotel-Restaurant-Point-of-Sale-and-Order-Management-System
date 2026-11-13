@@ -42,6 +42,7 @@ import { csrfProtection } from "./middleware/csrf.js";
 import { loadCurrentUser } from "./middleware/auth.js";
 import { notFoundHandler, errorHandler } from "./middleware/errorHandler.js";
 import { registerViewHelpers } from "./utils/viewHelpers.js";
+import { startEventDispatcher } from "./integrations/events/dispatcher.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -149,6 +150,8 @@ export const startServer = (port = PORT) => {
   return new Promise((resolve, reject) => {
     const server = app.listen(port, () => {
       console.log(`🔥 XianFire running at http://localhost:${port}`);
+      // Deliver outbox events to the ERP in the background (EVENTS_DISPATCH_INTERVAL_MS).
+      startEventDispatcher();
       resolve(server);
     });
     server.on("error", reject);

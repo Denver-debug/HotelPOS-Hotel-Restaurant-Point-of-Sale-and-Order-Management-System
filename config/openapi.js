@@ -64,6 +64,7 @@ const OPERATIONS = [
   ["get", "/inventory/movements", "Inventory", "The append-only stock ledger (default: last 30 days)", "inventory.view", { query: ["limit", "offset", "from", "to", "outletId", "itemId", "type"], response: list("movements", "StockMovement") }],
   ["post", "/inventory/movements", "Inventory", "Record stock in/out, adjustment, damage, waste or return", "inventory.manage | inventory.adjust", { body: "StockMovementInput", response: one("movement", "StockMovement", { duplicate: { type: "boolean" } }), idempotent: true, status: 201 }],
 
+  ["get", "/events", "Events", "Domain events after a sequence number, oldest first (pull alternative to the webhook)", "integrations.view", { query: ["after", "limit", "type"], response: obj({ ok: { const: true }, events: { type: "array", items: ref("Event") }, nextAfter: { type: "integer" }, hasMore: { type: "boolean" } }) }],
   ["get", "/reports", "Reports", "Available reports and their columns", "reports.view", {}],
   ["get", "/reports/{key}", "Reports", "Run a report (same figures as the Reports screens)", "reports.view", { query: ["from", "to", "outletId", "cashierId", "productId", "methodId", "granularity", "sort"] }],
 ];
@@ -77,8 +78,10 @@ const QUERY = {
   outletId: { schema: id }, categoryId: { schema: id }, methodId: { schema: id }, itemId: { schema: id }, cashierId: { schema: id }, productId: { schema: id },
   status: { schema: { type: "string" } }, settlementType: { schema: { enum: ["DIRECT_PAYMENT", "ROOM_CHARGE"] } }, search: { schema: { type: "string" } },
   externalReference: { schema: { type: "string" }, description: "The caller's own order id given at creation." },
-  externalFolioId: { schema: { type: "string" } }, low: { schema: { type: "boolean" } }, type: { schema: { type: "string" } },
+  externalFolioId: { schema: { type: "string" } }, low: { schema: { type: "boolean" } },
+  type: { schema: { type: "string" }, description: "Movement type (inventory), or comma-separated event types such as OrderCompleted,OrderRefunded (events)." },
   granularity: { schema: { enum: ["day", "week", "month"] } }, sort: { schema: { enum: ["amount", "quantity"] } },
+  after: { schema: { type: "integer", minimum: 0, default: 0 }, description: "The last event sequence you processed (nextAfter from the previous page)." },
 };
 
 const SCHEMAS = {
@@ -126,6 +129,13 @@ const SCHEMAS = {
   Shift: obj({ id, shiftNumber: { type: "string" }, outletId: id, cashier: { type: "object" }, status: { enum: ["OPEN", "CLOSED", "RECONCILED"] }, openedAt: ts, closedAt: ts, openingCash: money, expectedCash: { type: ["string", "null"] }, actualCash: { type: ["string", "null"] }, cashVariance: { type: ["string", "null"] }, summary: { type: "object" } }),
   StockLevel: obj({ id, outletId: id, item: obj({ id, sku: { type: "string" }, name: { type: "string" }, unit: { type: "string" } }), quantity: qty, reorderLevel: qty, isLow: { type: "boolean" }, updatedAt: ts }),
   StockMovement: obj({ id, transactionNumber: { type: "string" }, type: { type: "string" }, item: { type: "object" }, outletId: id, quantity: { type: "string" }, balanceAfter: { type: "string" }, unitCost: { type: ["string", "null"] }, reason: { type: ["string", "null"] }, createdAt: ts }),
+  Event: obj({
+    id: { type: "string", format: "uuid", description: "Stable id: de-duplicate on it (also X-HotelPOS-Delivery)." },
+    sequence: { type: "integer", description: "Increasing position in the outbox; use as the feed cursor." },
+    type: { enum: ["OrderCompleted", "OrderVoided", "OrderRefunded", "PaymentCaptured", "RoomChargePosted", "RoomChargeReversed", "ShiftOpened", "ShiftClosed", "ShiftReconciled", "StockMovementRecorded", "ProductPriceChanged"] },
+    schemaVersion: { type: "integer" }, occurredAt: { type: "string", format: "date-time" }, source: { const: "hotelpos" },
+    outletId: { type: ["integer", "null"] }, aggregate: obj({ type: { type: "string" }, id: { type: "string" } }), data: { type: "object" },
+  }, ["id", "sequence", "type", "occurredAt", "data"]),
   StockMovementInput: obj({
     transactionType: { enum: ["STOCK_IN", "STOCK_OUT", "ADJUSTMENT", "DAMAGE", "WASTE", "RETURN"] }, inventoryItemId: id, outletId: id,
     quantity: { ...qty, description: "For ADJUSTMENT: the counted quantity." }, unitCost: money, reason: { type: "string" }, reference: { type: "string", maxLength: 40 },
@@ -174,7 +184,7 @@ export function buildOpenApi({ version }) {
     },
     servers: [{ url: "/api/v1" }],
     security: [{ apiKey: [] }],
-    tags: ["Service", "Reference data", "POS terminal", "Orders", "Discounts", "Settlement", "Shifts", "Inventory", "Reports"].map((name) => ({ name })),
+    tags: ["Service", "Reference data", "POS terminal", "Orders", "Discounts", "Settlement", "Shifts", "Inventory", "Events", "Reports"].map((name) => ({ name })),
     paths,
     components: {
       securitySchemes: { apiKey: { type: "http", scheme: "bearer", bearerFormat: "hpos_<prefix>_<secret>" } },
