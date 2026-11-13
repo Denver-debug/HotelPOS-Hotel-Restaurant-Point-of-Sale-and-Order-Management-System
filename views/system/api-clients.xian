@@ -1,0 +1,77 @@
+{{#> page-header heading="API clients" subtitle="Keys for other Hotel ERP subsystems (accounting, BI, inventory planning, guest apps). Each key acts as its own service account."}}
+  <a href="/api/v1/openapi.json" class="btn btn-ghost" target="_blank" rel="noopener">{{icon "download" "w-4 h-4"}}OpenAPI</a>
+{{/page-header}}
+
+{{#if newKey}}
+<div class="mb-6 rounded-xl border-2 border-amber-300 bg-amber-50 p-5" role="alert">
+  <p class="font-semibold text-amber-900">{{#if newKey.rotated}}New key for “{{newKey.name}}”. The old key stopped working.{{else}}Key for “{{newKey.name}}”{{/if}}</p>
+  <p class="mt-1 text-sm text-amber-900">Copy it now and store it in the other system's secret store. It is shown only once; HotelPOS keeps only a hash.</p>
+  <div class="mt-3 flex flex-col gap-2 sm:flex-row">
+    <input id="new-api-key" class="input flex-1 font-mono text-sm" value="{{newKey.key}}" readonly aria-label="New API key" data-select-on-focus>
+    <button type="button" class="btn btn-primary" data-copy="#new-api-key">{{icon "clipboard" "w-4 h-4"}}Copy key</button>
+  </div>
+  <p class="mt-3 text-xs text-amber-900">Use it as <code class="rounded bg-white px-1">Authorization: Bearer &lt;key&gt;</code> on <code class="rounded bg-white px-1">{{baseUrl}}</code>.</p>
+</div>
+{{/if}}
+
+<div class="grid gap-6 xl:grid-cols-3">
+  <div class="card xl:col-span-2">
+    <div class="card-header"><h3 class="card-title">Clients</h3><span class="text-xs text-slate-500">Change a client's role or outlets on its service account</span></div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Name</th><th>Key</th><th>Role</th><th>Outlets</th><th>Last used</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          {{#each clients}}
+          <tr>
+            <td><div class="font-medium">{{name}}</div><a href="/users/{{user.id}}/edit" class="text-xs text-brand-700 hover:underline">{{user.username}}</a></td>
+            <td class="font-mono text-xs">hpos_{{keyPrefix}}_…</td>
+            <td class="text-sm">{{user.role.name}}</td>
+            <td class="text-xs">{{#each user.outlets}}{{code}}{{#unless @last}}, {{/unless}}{{else}}<span class="text-slate-400">role decides</span>{{/each}}{{#if allowedIps}}<div class="mt-1 text-slate-500">IPs: {{allowedIps}}</div>{{/if}}</td>
+            <td class="whitespace-nowrap text-xs">{{#if lastUsedAt}}{{datetime lastUsedAt}}<div class="text-slate-400">{{lastUsedIp}}</div>{{else}}<span class="text-slate-400">never</span>{{/if}}</td>
+            <td>{{statusBadge status}}</td>
+            <td class="whitespace-nowrap text-right">
+              {{#if ../canManage}}{{#if (eq status "ACTIVE")}}
+              <form class="inline" method="POST" action="/integrations/api-clients/{{id}}/rotate" data-confirm="Issue a new key for {{name}}? The current key stops working immediately." data-confirm-label="New key" data-confirm-danger="false">
+                <input type="hidden" name="_csrf" value="{{../../csrfToken}}"><button class="btn btn-secondary btn-sm" type="submit">New key</button>
+              </form>
+              <form class="inline" method="POST" action="/integrations/api-clients/{{id}}/revoke" data-confirm="Revoke {{name}}? Its key stops working and its service account is deactivated." data-confirm-label="Revoke">
+                <input type="hidden" name="_csrf" value="{{../../csrfToken}}"><button class="btn btn-cancel btn-sm" type="submit">Revoke</button>
+              </form>
+              {{/if}}{{/if}}
+            </td>
+          </tr>
+          {{else}}
+          <tr><td colspan="7">{{> empty-state message="No API clients yet." hint="Create one for each system that connects to HotelPOS." icon="key"}}</td></tr>
+          {{/each}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {{#if canManage}}
+  <form class="card h-fit" method="POST" action="/integrations/api-clients">
+    <input type="hidden" name="_csrf" value="{{csrfToken}}">
+    <div class="card-header"><h3 class="card-title">New API client</h3></div>
+    <div class="card-body space-y-4">
+      {{#if formError}}<p class="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700" role="alert">{{formError}}</p>{{/if}}
+      <div><label class="label" for="name">Name</label><input class="input" id="name" name="name" value="{{form.name}}" maxlength="80" required placeholder="e.g. Accounting / GL"></div>
+      <div>
+        <label class="label" for="roleId">Role</label>
+        <select class="input" id="roleId" name="roleId" required>
+          {{#each roles}}<option value="{{id}}" {{#if (eq code ../form.roleCode)}}selected{{/if}} {{selected id ../form.roleId}}>{{name}}</option>{{/each}}
+        </select>
+        <p class="help">“ERP Integration (API)” is read-only. Roles that can manage users, roles, settings or keys are not offered.</p>
+      </div>
+      <fieldset>
+        <legend class="label">Outlets</legend>
+        <div class="max-h-40 space-y-1 overflow-y-auto">
+          {{#each outlets}}<label class="flex items-center gap-2 text-sm"><input type="checkbox" name="outletIds" value="{{id}}" class="h-4 w-4 rounded border-slate-300" {{#if (includes ../form.outletIds id)}}checked{{/if}}>{{name}}</label>{{/each}}
+        </div>
+        <p class="help">Not needed when the role has access to every outlet.</p>
+      </fieldset>
+      <div><label class="label" for="allowedIps">Allowed IP addresses <span class="font-normal text-slate-400">(optional)</span></label><input class="input font-mono text-sm" id="allowedIps" name="allowedIps" value="{{form.allowedIps}}" placeholder="10.0.4.21, 10.0.4.22"></div>
+    </div>
+    <div class="flex justify-end border-t border-slate-200 px-5 py-4"><button class="btn btn-primary" type="submit">Create client and key</button></div>
+  </form>
+  {{/if}}
+</div>

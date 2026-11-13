@@ -68,6 +68,8 @@ router.use("/discounts", discountRoutes);
 router.use("/refunds", refundRoutes);
 router.use("/reports", reportRoutes);
 router.use("/", systemRoutes);
+// Versioned contract first, so /api/v1/... never falls into the unversioned mount.
+router.use("/api/v1", apiRoutes);
 router.use("/api", apiRoutes);
 
 export default router;

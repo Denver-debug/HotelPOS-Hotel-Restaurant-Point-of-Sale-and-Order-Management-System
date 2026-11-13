@@ -54,3 +54,19 @@ export const IntegrationEvent = sequelize.define("IntegrationEvent", {
   lastError: { type: DataTypes.STRING(500) },
   publishedAt: { type: DataTypes.DATE },
 }, { tableName: "integration_events", updatedAt: false });
+
+// API key for another ERP subsystem. The key acts as a service-account user (userId), so its
+// role and outlet assignments decide what it may do. Only a SHA-256 hash of the key is stored.
+export const ApiClient = sequelize.define("ApiClient", {
+  name: { type: DataTypes.STRING(80), allowNull: false },
+  keyPrefix: { type: DataTypes.CHAR(8), allowNull: false, unique: true },
+  keyHash: { type: DataTypes.CHAR(64), allowNull: false },
+  userId: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, unique: true },
+  allowedIps: { type: DataTypes.STRING(500) },
+  status: { type: DataTypes.ENUM("ACTIVE", "REVOKED"), allowNull: false, defaultValue: "ACTIVE" },
+  lastUsedAt: { type: DataTypes.DATE },
+  lastUsedIp: { type: DataTypes.STRING(45) },
+  createdBy: { type: DataTypes.INTEGER.UNSIGNED },
+  revokedBy: { type: DataTypes.INTEGER.UNSIGNED },
+  revokedAt: { type: DataTypes.DATE },
+}, { tableName: "api_clients", defaultScope: { attributes: { exclude: ["keyHash"] } }, scopes: { withHash: { attributes: { include: ["keyHash"] } } } });

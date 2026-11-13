@@ -1,6 +1,6 @@
 // Audit logs (read-only), integration status/logs/outbox, and POS settings.
 import { Op, QueryTypes } from "sequelize";
-import { sequelize, AuditLog, User, IntegrationLog, IntegrationEvent, SystemSetting, PaymentMethod } from "../models/index.js";
+import { sequelize, AuditLog, User, IntegrationLog, IntegrationEvent, SystemSetting, PaymentMethod, Role, Permission, Outlet } from "../models/index.js";
 import { config } from "../config/env.js";
 import { parsePage, buildPagination, filtersFrom } from "../utils/pagination.js";
 import { parseDateRange } from "../utils/dates.js";
@@ -12,6 +12,7 @@ import { publishPending } from "../integrations/events/eventPublisher.js";
 import { getPmsGateway } from "../integrations/pms/pmsGateway.js";
 import { getHrGateway } from "../integrations/hr/hrGateway.js";
 import { can } from "../middleware/auth.js";
+import * as apiClientService from "../services/apiClientService.js";
 import { staffOptions, paymentMethods } from "../services/lookupService.js";
 
 // ── Audit logs (no edit/delete routes exist; the table is append-only in MySQL) ──
@@ -156,3 +157,47 @@ export const savePaymentMethod = async (req, res) => {
   req.flash("success_msg", `${method.name} was updated.`);
   res.redirect("/settings#payment-methods");
 };
+
+// ── API clients (System → Integrations → API clients) ────────────────────
+
+const SAFE_FOR_KEYS = (role) => !role.permissions.some((p) => ["users.manage", "roles.manage", "settings.manage", "integrations.manage"].includes(p.code));
+
+async function apiClientLocals(req, extra = {}) {
+  const roles = await Role.findAll({ include: [{ model: Permission, as: "permissions", attributes: ["code"], through: { attributes: [] } }], order: [["name", "ASC"]] });
+  return {
+    title: "API clients",
+    breadcrumbs: [{ label: "Integrations", href: "/integrations" }, { label: "API clients" }],
+    clients: await apiClientService.listClients(),
+    roles: roles.filter(SAFE_FOR_KEYS).map((r) => ({ id: r.id, code: r.code, name: r.name })),
+    outlets: (await Outlet.findAll({ where: { status: "ACTIVE" }, order: [["name", "ASC"]] })).map((o) => o.get({ plain: true })),
+    canManage: can(req, "integrations.manage"),
+    baseUrl: `${req.protocol}://${req.get("host")}/api/v1`,
+    form: { roleCode: "ERP_INTEGRATION" },
+    ...extra,
+  };
+}
+
+export const apiClients = async (req, res) => res.render("system/api-clients", await apiClientLocals(req));
+
+// The new key is rendered in this response only (never flashed: flash lives in the session store).
+export const createApiClient = async (req, res) => {
+  try {
+    const { client, key } = await apiClientService.createClient(req, req.body);
+    res.render("system/api-clients", await apiClientLocals(req, { newKey: { key, name: client.name } }));
+  } catch (err) {
+    if (!(err instanceof AppError) || err.status >= 500) throw err;
+    res.status(err.status).render("system/api-clients", await apiClientLocals(req, { formError: err.message, form: { ...req.body, outletIds: [].concat(req.body.outletIds || []).map(Number) } }));
+  }
+};
+
+export const rotateApiKey = async (req, res) => {
+  const { client, key } = await apiClientService.rotateKey(req, req.params.id);
+  res.render("system/api-clients", await apiClientLocals(req, { newKey: { key, name: client.name, rotated: true } }));
+};
+
+export const revokeApiClient = async (req, res) => {
+  const client = await apiClientService.revokeClient(req, req.params.id);
+  req.flash("success_msg", `API client “${client.name}” was revoked. Its key no longer works.`);
+  res.redirect("/integrations/api-clients");
+};
+

@@ -9,6 +9,10 @@ router.get("/audit-logs", requirePermission("audit.view"), asyncHandler(system.a
 router.get("/integrations", requirePermission("integrations.view"), asyncHandler(system.integrations));
 router.get("/integrations/logs/:id(\\d+)", requirePermission("integrations.view"), asyncHandler(system.integrationLog));
 router.post("/integrations/events/dispatch", requirePermission("integrations.manage"), asyncHandler(system.dispatchEvents));
+router.get("/integrations/api-clients", requirePermission("integrations.view"), asyncHandler(system.apiClients));
+router.post("/integrations/api-clients", requirePermission("integrations.manage"), asyncHandler(system.createApiClient));
+router.post("/integrations/api-clients/:id(\\d+)/rotate", requirePermission("integrations.manage"), asyncHandler(system.rotateApiKey));
+router.post("/integrations/api-clients/:id(\\d+)/revoke", requirePermission("integrations.manage"), asyncHandler(system.revokeApiClient));
 router.get("/settings", requirePermission("settings.manage"), asyncHandler(system.settings));
 router.post("/settings", requirePermission("settings.manage"), asyncHandler(system.saveSettings));
 router.post("/settings/payment-methods/:id(\\d+)", requirePermission("settings.manage"), asyncHandler(system.savePaymentMethod));

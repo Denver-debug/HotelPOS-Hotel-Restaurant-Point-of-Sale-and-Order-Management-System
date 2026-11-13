@@ -1,7 +1,7 @@
 // Order management: creation, line items, totals, settlement requests and voids.
 // Every mutation locks the order row (SELECT … FOR UPDATE) and recomputes totals on
 // the server from database prices — client-supplied amounts are never trusted.
-import { Op } from "sequelize";
+import { Op, UniqueConstraintError } from "sequelize";
 import {
   sequelize, Order, OrderItem, OrderDiscount, Outlet, Product, ProductPrice, Tax, User,
   Payment, PaymentMethod, GuestCharge, Refund, Receipt, Shift, Discount,
@@ -61,8 +61,16 @@ export function toDto(order) {
   return {
     id: o.id,
     orderNumber: o.orderNumber,
+    externalReference: o.externalReference ?? null,
     outletId: o.outletId,
     outlet: o.outlet,
+    shiftId: o.shiftId ?? null,
+    createdBy: o.creator ? { id: o.creator.id, fullName: o.creator.fullName } : null,
+    createdAt: o.createdAt,
+    updatedAt: o.updatedAt,
+    completedAt: o.completedAt ?? null,
+    voidedAt: o.voidedAt ?? null,
+    voidReason: o.voidReason ?? null,
     orderType: o.orderType,
     status: o.status,
     settlementType: o.settlementType,
@@ -105,29 +113,78 @@ const parseHeader = (body, outlet) => ({
   notes: v.str(body.notes, "Order notes", { max: 500 }),
 });
 
+const parseLine = (body, label = "Item") => ({
+  productId: v.id(body.productId, `${label} product`),
+  quantity: v.quantity(body.quantity ?? "1", `${label} quantity`, { max: 9999 }),
+  notes: v.str(body.notes, `${label} notes`, { max: 255 }),
+});
+
+const MAX_LINES_PER_CREATE = 100;
+
+/**
+ * Creates an order, optionally with its lines, in ONE transaction: either the whole order
+ * exists or nothing does. Lines come from `items: [{ productId, quantity, notes }]` or, for the
+ * POS terminal, a single `productId`/`quantity`.
+ *
+ * `idempotencyKey` (body or Idempotency-Key header) makes a retried create return the order
+ * that was already created; `externalReference` stores the caller's own order id.
+ * Returns { order, duplicate }.
+ */
 export async function createOrder(req, body) {
   const outletId = v.id(body.outletId, "Outlet");
   if (!req.user.outletIds.includes(outletId)) throw forbidden("You are not assigned to this outlet.");
-  return sequelize.transaction(async (transaction) => {
-    const outlet = await Outlet.findByPk(outletId, { transaction });
-    if (!outlet || outlet.status !== "ACTIVE") throw new AppError("This outlet is not active.", 422, "OUTLET_INACTIVE");
-    const header = parseHeader(body, outlet);
-    const shiftId = req.openShift && req.openShift.outletId === outletId ? req.openShift.id : null;
-    const order = await Order.create(
-      {
-        orderNumber: await nextNumber("order", transaction),
-        outletId,
-        shiftId,
-        createdBy: req.user.id,
-        ...header,
-        serviceChargeRate: outlet.serviceChargeRate,
-        status: "OPEN",
-      },
-      { transaction }
-    );
-    await audit({ req, action: "ORDER_CREATED", entityType: "order", entityId: order.id, newValues: { orderNumber: order.orderNumber, outletId, ...header }, transaction });
-    return order;
-  });
+  const idempotencyKey = v.str(body.idempotencyKey, "Idempotency key", { min: 8, max: 100 });
+  const externalReference = v.str(body.externalReference, "External reference", { max: 100 });
+  const rawLines = Array.isArray(body.items) ? body.items : body.productId !== undefined && body.productId !== "" ? [body] : [];
+  if (rawLines.length > MAX_LINES_PER_CREATE) throw new AppError(`An order can be created with at most ${MAX_LINES_PER_CREATE} lines.`, 422);
+  const lines = rawLines.map((l, i) => parseLine(l || {}, rawLines.length > 1 ? `Line ${i + 1}` : "Item"));
+
+  const replay = async () => {
+    const existing = await Order.findOne({ where: { idempotencyKey } });
+    if (!existing) return null;
+    if (existing.outletId !== outletId || existing.createdBy !== req.user.id) {
+      throw new AppError("This idempotency key was already used for a different order.", 409, "IDEMPOTENCY_CONFLICT");
+    }
+    return { order: existing, duplicate: true };
+  };
+  if (idempotencyKey) {
+    const previous = await replay();
+    if (previous) return previous;
+  }
+
+  try {
+    const order = await sequelize.transaction(async (transaction) => {
+      const outlet = await Outlet.findByPk(outletId, { transaction });
+      if (!outlet || outlet.status !== "ACTIVE") throw new AppError("This outlet is not active.", 422, "OUTLET_INACTIVE");
+      const header = parseHeader(body, outlet);
+      const shiftId = req.openShift && req.openShift.outletId === outletId ? req.openShift.id : null;
+      const created = await Order.create(
+        {
+          orderNumber: await nextNumber("order", transaction),
+          outletId,
+          shiftId,
+          createdBy: req.user.id,
+          ...header,
+          idempotencyKey,
+          externalReference,
+          serviceChargeRate: outlet.serviceChargeRate,
+          status: "OPEN",
+        },
+        { transaction }
+      );
+      await audit({ req, action: "ORDER_CREATED", entityType: "order", entityId: created.id, newValues: { orderNumber: created.orderNumber, outletId, externalReference, ...header }, transaction });
+      for (const line of lines) await addLine(req, created, line, transaction);
+      return created;
+    });
+    return { order, duplicate: false };
+  } catch (err) {
+    // A concurrent retry with the same key won the race: return its order.
+    if (idempotencyKey && err instanceof UniqueConstraintError) {
+      const previous = await replay();
+      if (previous) return previous;
+    }
+    throw err;
+  }
 }
 
 // Recomputes every line, discount allocation and order total from stored data.
@@ -199,42 +256,45 @@ async function currentPrice(order, productId, transaction) {
 }
 
 export async function addItem(req, orderId, body) {
-  const productId = v.id(body.productId, "Product");
-  const quantity = v.quantity(body.quantity || "1", "Quantity", { max: 9999 });
-  const notes = v.str(body.notes, "Item notes", { max: 255 });
+  const line = { productId: v.id(body.productId, "Product"), quantity: v.quantity(body.quantity || "1", "Quantity", { max: 9999 }), notes: v.str(body.notes, "Item notes", { max: 255 }) };
   return sequelize.transaction(async (transaction) => {
     const order = await lockOrder(req, orderId, transaction);
-    assertEditable(order);
-    const { product, price, tax } = await currentPrice(order, productId, transaction);
-
-    // Same product with the same notes is merged into one line.
-    const existing = await OrderItem.findOne({ where: { orderId: order.id, productId, notes: notes ?? null }, transaction });
-    if (existing) {
-      await existing.update({ quantity: fromMilli(toMilli(existing.quantity) + toMilli(quantity)) }, { transaction });
-    } else {
-      // Snapshot of product name, code, price and tax at the time of sale.
-      await OrderItem.create(
-        {
-          orderId: order.id,
-          productId,
-          productCode: product.code,
-          productName: product.name,
-          itemType: product.itemType,
-          unit: product.unit,
-          quantity,
-          unitPrice: price.price,
-          taxRate: tax ? tax.rate : "0",
-          taxInclusive: tax ? tax.isInclusive : true,
-          notes,
-        },
-        { transaction }
-      );
-    }
-    await markEdited(order, transaction);
-    await recalculate(order, transaction);
-    await audit({ req, action: "ORDER_ITEM_ADDED", entityType: "order", entityId: order.id, newValues: { productId, productName: product.name, quantity, unitPrice: price.price }, transaction });
+    await addLine(req, order, line, transaction);
     return order.id;
   });
+}
+
+// Adds (or merges) one line inside the caller's transaction; the order row is already locked.
+async function addLine(req, order, { productId, quantity, notes }, transaction) {
+  assertEditable(order);
+  const { product, price, tax } = await currentPrice(order, productId, transaction);
+
+  // Same product with the same notes is merged into one line.
+  const existing = await OrderItem.findOne({ where: { orderId: order.id, productId, notes: notes ?? null }, transaction });
+  if (existing) {
+    await existing.update({ quantity: fromMilli(toMilli(existing.quantity) + toMilli(quantity)) }, { transaction });
+  } else {
+    // Snapshot of product name, code, price and tax at the time of sale.
+    await OrderItem.create(
+      {
+        orderId: order.id,
+        productId,
+        productCode: product.code,
+        productName: product.name,
+        itemType: product.itemType,
+        unit: product.unit,
+        quantity,
+        unitPrice: price.price,
+        taxRate: tax ? tax.rate : "0",
+        taxInclusive: tax ? tax.isInclusive : true,
+        notes,
+      },
+      { transaction }
+    );
+  }
+  await markEdited(order, transaction);
+  await recalculate(order, transaction);
+  await audit({ req, action: "ORDER_ITEM_ADDED", entityType: "order", entityId: order.id, newValues: { productId, productName: product.name, quantity, unitPrice: price.price }, transaction });
 }
 
 export async function updateItem(req, orderId, itemId, body) {

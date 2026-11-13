@@ -36,6 +36,8 @@ import { dirname } from "path";
 import { MySQLSessionStore } from "./middleware/sessionStore.js";
 import { securityHeaders } from "./middleware/securityHeaders.js";
 import { requestId } from "./middleware/requestId.js";
+import { apiAuth } from "./middleware/apiAuth.js";
+import { apiCors, apiRateLimit } from "./middleware/apiEdge.js";
 import { csrfProtection } from "./middleware/csrf.js";
 import { loadCurrentUser } from "./middleware/auth.js";
 import { notFoundHandler, errorHandler } from "./middleware/errorHandler.js";
@@ -48,8 +50,10 @@ const app = express();
 const PORT = config.port;
 
 app.disable("x-powered-by");
+if (config.trustProxy !== false) app.set("trust proxy", config.trustProxy);
 app.use(securityHeaders);
 app.use(requestId);
+app.use(apiCors);
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 app.use(express.static(path.join(__dirname, "public")));
@@ -115,6 +119,10 @@ try {
   console.error("❌ Could not register partials:", err);
 }
 
+// API keys first: a key request gets its service account as req.user and skips the
+// session user and CSRF checks below.
+app.use(apiAuth);
+app.use(apiRateLimit);
 app.use(loadCurrentUser);
 app.use(csrfProtection);
 app.use((req, res, next) => {

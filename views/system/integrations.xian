@@ -1,4 +1,7 @@
-{{#> page-header heading="Integrations" subtitle="Connections to other Hotel ERP subsystems. MOCK adapters simulate a system for development only."}}{{/page-header}}
+{{#> page-header heading="Integrations" subtitle="Connections to other Hotel ERP subsystems. MOCK adapters simulate a system for development only."}}
+  <a href="/integrations/api-clients" class="btn btn-secondary">{{icon "key" "w-4 h-4"}}API clients</a>
+  <a href="/api/v1/openapi.json" class="btn btn-ghost" target="_blank" rel="noopener">{{icon "download" "w-4 h-4"}}OpenAPI</a>
+{{/page-header}}
 
 <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
   {{#each adapters}}

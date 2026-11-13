@@ -76,6 +76,14 @@ export const ROLES = {
     description: "Maintains stock levels and inventory movements.",
     permissions: ["dashboard.view", "products.view", "inventory.view", "inventory.manage", "inventory.adjust"],
   },
+  ERP_INTEGRATION: {
+    name: "ERP Integration (API)",
+    description: "Read-only API access for other ERP subsystems: sales, settlements, catalog, stock, shifts, reports and events.",
+    permissions: [
+      "orders.view", "payments.view", "room_charges.view", "receipts.view", "refunds.view", "products.view",
+      "inventory.view", "shifts.view", "reports.view", "outlets.all_access", "integrations.view",
+    ],
+  },
   ACCOUNTANT: {
     name: "Accountant",
     description: "Read-only access to transactions, reports and audit logs.",

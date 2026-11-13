@@ -8,7 +8,7 @@ import {
   Shift, Order, OrderItem, Discount, DiscountProduct, DiscountOutlet, OrderDiscount,
   PaymentMethod, Payment, GuestCharge, Refund, RefundItem, Receipt, RoomChargeValidation,
 } from "./salesModel.js";
-import { SystemSetting, AuditLog, IntegrationLog, IntegrationEvent } from "./systemModel.js";
+import { SystemSetting, AuditLog, IntegrationLog, IntegrationEvent, ApiClient } from "./systemModel.js";
 
 // Access control
 User.belongsTo(Role, { as: "role", foreignKey: "roleId" });
@@ -95,6 +95,10 @@ AuditLog.belongsTo(User, { as: "user", foreignKey: "userId" });
 IntegrationLog.belongsTo(User, { as: "user", foreignKey: "createdBy" });
 SystemSetting.belongsTo(User, { as: "updater", foreignKey: "updatedBy" });
 
+// API clients act as a service-account user
+ApiClient.belongsTo(User, { as: "user", foreignKey: "userId" });
+ApiClient.belongsTo(User, { as: "creator", foreignKey: "createdBy" });
+
 export {
   sequelize,
   Role, Permission, RolePermission, User, UserOutlet,
@@ -102,5 +106,5 @@ export {
   StockLocation, InventoryItem, ProductRecipe, StockLevel, InventoryTransaction,
   Shift, Order, OrderItem, Discount, DiscountProduct, DiscountOutlet, OrderDiscount,
   PaymentMethod, Payment, GuestCharge, Refund, RefundItem, Receipt, RoomChargeValidation,
-  SystemSetting, AuditLog, IntegrationLog, IntegrationEvent,
+  SystemSetting, AuditLog, IntegrationLog, ApiClient, IntegrationEvent,
 };

@@ -50,6 +50,11 @@ export async function login(req, username, password) {
     await audit({ req, userId: user.id, action: "LOGIN_FAILED", entityType: "user", entityId: user.id, newValues: { attempts: failed, locked: lock } });
     throw invalid;
   }
+  if (user.isServiceAccount) {
+    // API service accounts authenticate with their API key only.
+    await audit({ req, userId: user.id, action: "LOGIN_BLOCKED", entityType: "user", entityId: user.id, newValues: { reason: "service account" } });
+    throw invalid;
+  }
   if (user.status !== "ACTIVE") {
     await audit({ req, userId: user.id, action: "LOGIN_BLOCKED", entityType: "user", entityId: user.id, newValues: { reason: user.status } });
     throw new AppError("This account is not active. Contact your system administrator.", 403, "INACTIVE");

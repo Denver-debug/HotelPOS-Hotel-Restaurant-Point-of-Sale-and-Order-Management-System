@@ -11,6 +11,10 @@ const env = process.env;
 const bool = (v, d = false) => (v === undefined || v === "" ? d : ["1", "true", "yes", "on"].includes(String(v).toLowerCase()));
 const int = (v, d) => (v === undefined || v === "" || Number.isNaN(Number(v)) ? d : Number(v));
 
+const list = (v) => String(v || "").split(",").map((s) => s.trim()).filter(Boolean);
+// TRUST_PROXY: "true", a hop count ("1"), or Express names like "loopback" (behind a reverse proxy).
+const trustProxy = (v) => (v === undefined || v === "" ? false : /^\d+$/.test(v) ? Number(v) : ["true", "false"].includes(v) ? v === "true" : v);
+
 const isProduction = env.NODE_ENV === "production";
 const isTest = env.NODE_ENV === "test";
 
@@ -43,6 +47,11 @@ export const config = {
     password: env.DB_PASSWORD || "",
   },
   seedAdminPassword: env.SEED_ADMIN_PASSWORD || "",
+  trustProxy: trustProxy(env.TRUST_PROXY),
+  api: {
+    corsOrigins: list(env.API_CORS_ORIGINS),
+    rateLimitPerMinute: int(env.API_RATE_LIMIT_PER_MINUTE, 600),
+  },
   integrations: {
     pms: {
       adapter: env.PMS_ADAPTER || "mock",

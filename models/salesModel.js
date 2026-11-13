@@ -43,6 +43,8 @@ export const Order = sequelize.define("Order", {
   tableOrLocation: { type: DataTypes.STRING(60) },
   guestCount: { type: DataTypes.SMALLINT.UNSIGNED },
   notes: { type: DataTypes.STRING(500) },
+  idempotencyKey: { type: DataTypes.STRING(100), unique: true },
+  externalReference: { type: DataTypes.STRING(100) },
   serviceChargeRate: { type: DataTypes.DECIMAL(5, 2), allowNull: false, defaultValue: "0.00" },
   subtotal: money(),
   discountAmount: money(),

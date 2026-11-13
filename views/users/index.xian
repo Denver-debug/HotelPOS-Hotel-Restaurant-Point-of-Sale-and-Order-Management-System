@@ -24,7 +24,7 @@
       <tbody>
         {{#each users}}
         <tr>
-          <td class="font-medium text-slate-900">{{fullName}}<div class="text-xs font-normal text-slate-500">{{email}}</div></td>
+          <td class="font-medium text-slate-900">{{fullName}}{{#if isServiceAccount}} <span class="badge badge-slate" title="API service account: authenticates with an API key and cannot sign in">API</span>{{/if}}<div class="text-xs font-normal text-slate-500">{{email}}</div></td>
           <td>{{username}}</td>
           <td>{{role.name}}</td>
           <td>{{default externalEmployeeId "—"}}</td>

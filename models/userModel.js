@@ -11,6 +11,8 @@ export const User = sequelize.define("User", {
   roleId: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
   externalEmployeeId: { type: DataTypes.STRING(50), unique: true },
   status: { type: DataTypes.ENUM("ACTIVE", "INACTIVE", "LOCKED"), allowNull: false, defaultValue: "ACTIVE" },
+  // API service account (see api_clients): never signs in to the web UI.
+  isServiceAccount: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
   failedLoginCount: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, defaultValue: 0 },
   lockedUntil: { type: DataTypes.DATE },
   lastLoginAt: { type: DataTypes.DATE },

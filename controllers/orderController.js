@@ -55,10 +55,11 @@ const respond = async (req, res, orderId, status = 200) => {
 
 export const apiShow = async (req, res) => respond(req, res, req.params.id);
 
+// 201 for a new order; 200 with duplicate: true when the idempotency key was already used.
 export const apiCreate = async (req, res) => {
-  const order = await orderService.createOrder(req, req.body);
-  if (req.body.productId) await orderService.addItem(req, order.id, req.body);
-  await respond(req, res, order.id, 201);
+  const { order, duplicate } = await orderService.createOrder(req, req.body);
+  const dto = orderService.toDto(await orderService.getOrder(req, order.id));
+  res.status(duplicate ? 200 : 201).json({ ok: true, order: dto, duplicate });
 };
 
 export const apiUpdate = async (req, res) => respond(req, res, await orderService.updateHeader(req, req.params.id, req.body));

@@ -165,6 +165,18 @@
 
     if (e.target.closest("[data-history-back]")) history.back();
 
+    // Copy a field's value (e.g. a newly issued API key) to the clipboard.
+    const copyBtn = e.target.closest("[data-copy]");
+    if (copyBtn) {
+      const field = document.querySelector(copyBtn.dataset.copy);
+      if (field) {
+        field.select();
+        (navigator.clipboard ? navigator.clipboard.writeText(field.value) : Promise.reject())
+          .catch(() => document.execCommand("copy"))
+          .finally(() => toast("Copied to the clipboard.", "success"));
+      }
+    }
+
     const printBtn = e.target.closest("[data-print]");
     if (printBtn) window.print();
 
@@ -177,6 +189,10 @@
       toggle.setAttribute("aria-pressed", String(show));
       toggle.setAttribute("aria-label", show ? "Hide password" : "Show password");
     }
+  });
+
+  document.addEventListener("focusin", (e) => {
+    if (e.target.matches?.("[data-select-on-focus]")) e.target.select();
   });
 
   // Auto-submit filter selects marked data-autosubmit.
