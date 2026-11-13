@@ -1,5 +1,10 @@
 # Integrations
 
+Integration works in two directions:
+
+- **Outbound** (this page): HotelPOS calls the PMS, the payment provider and HR through adapters, and publishes domain events to the ERP.
+- **Inbound** ([API.md](API.md)): other subsystems call HotelPOS's `/api/v1` with API keys and receive its events by webhook or pull feed.
+
 HotelPOS talks to other Hotel ERP subsystems only through adapters in `integrations/`.
 Business services call a gateway factory (`getPmsGateway()`, `getPaymentGateway()`,
 `getHrGateway()`) and never build HTTP requests themselves. Every external call is
@@ -11,11 +16,20 @@ recorded in `integration_logs` with timing, masked payloads, status and idempote
 | Front Desk / PMS | `MockPmsAdapter` (default) or `HttpPmsAdapter` | **Mock.** The HTTP adapter exists but has never been run against a real PMS |
 | Payment provider | `MockPaymentAdapter` | **Mock only.** No card, e-wallet or bank processing is operational |
 | HR and Staff Payroll | `MockHrAdapter` (default) or `HttpHrAdapter` | **Mock.** The HTTP adapter's endpoint is an assumption |
-| ERP event bus | Outbox table + `logOnlyPublisher` | **Mock publisher.** Events are stored reliably but not delivered anywhere |
+| ERP events | Outbox table + `logOnlyPublisher` (default) or signed `webhookPublisher` | **Log only** until `EVENTS_PUBLISHER=webhook` points at the ERP. The pull feed `GET /api/v1/events` works either way |
 
-Configuration comes from environment variables only (`.env`, never committed):
-`PMS_ADAPTER`, `PMS_BASE_URL`, `PMS_API_KEY`, `PMS_TIMEOUT_MS`, `PAYMENT_ADAPTER`,
-`HR_ADAPTER`, `HR_BASE_URL`, `HR_API_KEY`, `HR_TIMEOUT_MS`, `HR_VALIDATE_ON_LOGIN`.
+Configuration comes from environment variables only (`.env`, never committed; see `.env.example`):
+
+| Area | Variables |
+|---|---|
+| PMS | `PMS_ADAPTER` (`mock` \| `http`), `PMS_BASE_URL`, `PMS_API_KEY`, `PMS_TIMEOUT_MS`, `PMS_MOCK_DELAY_MS` |
+| Payment | `PAYMENT_ADAPTER` (`mock` only for now), `PAYMENT_BASE_URL`, `PAYMENT_API_KEY`, `PAYMENT_TIMEOUT_MS` |
+| HR | `HR_ADAPTER` (`mock` \| `http`), `HR_BASE_URL`, `HR_API_KEY`, `HR_TIMEOUT_MS`, `HR_VALIDATE_ON_LOGIN` |
+| Events | `EVENTS_PUBLISHER` (`log` \| `webhook`), `EVENTS_WEBHOOK_URL`, `EVENTS_WEBHOOK_SECRET`, `EVENTS_TIMEOUT_MS`, `EVENTS_DISPATCH_INTERVAL_MS`, `EVENTS_MAX_ATTEMPTS`, `EVENTS_BATCH_SIZE` |
+| Inbound API | `API_CORS_ORIGINS`, `API_RATE_LIMIT_PER_MINUTE`, `TRUST_PROXY` |
+| General | `CURRENCY_CODE` (ISO 4217, sent to the PMS/provider and in events) |
+
+Adapter names are checked at startup: an unknown value stops the app instead of silently falling back to a mock. Base URLs keep their path (`https://pms/api/v1` and `https://pms/api/v1/` are the same). Every outbound call carries `X-Correlation-Id`, equal to the POS request's `X-Request-Id`, so one request can be followed through `integration_logs` and the other system's logs. Logged payloads mask secrets and personal data (guest and employee names, email, phone).
 
 ## PMS (guest room charges)
 
@@ -63,6 +77,22 @@ To add a real provider: create `integrations/payments/<provider>Adapter.js` impl
 
 `getEmployee(employeeId)` verifies `external_employee_id` when a user is created and at login (when `HR_VALIDATE_ON_LOGIN=true`). If HR is unreachable, login is allowed and an `HR_CHECK_UNAVAILABLE` audit entry is written. The mock treats any `EMP-####` ID as active, except `EMP-9999`, which is inactive.
 
-## Event bus
+## ERP events
 
-Domain events (`OrderCompleted`, `OrderRefunded`) are inserted into `integration_events` in the same transaction as the sale or refund. To deliver them, replace `logOnlyPublisher` in `integrations/events/eventPublisher.js` with a publisher for the ERP Integration Layer (e.g. Amazon SQS, Figure 4), and call `publishPending()` from a worker or scheduler.
+Domain events (`OrderCompleted`, `OrderRefunded`, `OrderVoided`, `PaymentCaptured`, `RoomChargePosted`, `RoomChargeReversed`, `ShiftOpened`/`Closed`/`Reconciled`, `StockMovementRecorded`, `ProductPriceChanged`) are inserted into `integration_events` in the same transaction as the change.
+
+A background dispatcher, started with the server and the desktop app every `EVENTS_DISPATCH_INTERVAL_MS`, delivers them through the configured publisher:
+
+- **`log`** (default) marks them delivered without sending anything. Use it until the ERP endpoint exists.
+- **`webhook`** POSTs each event to `EVENTS_WEBHOOK_URL`, signed with `EVENTS_WEBHOOK_SECRET` (header `X-HotelPOS-Signature: sha256=HMAC(secret, "<timestamp>.<body>")`). Any 2xx is success.
+
+Delivery guarantees:
+
+- At-least-once, with a stable event id to de-duplicate on.
+- In order per order, shift or product.
+- Exponential backoff (30 s up to 1 h). After `EVENTS_MAX_ATTEMPTS` an event "gives up". **System → Integrations** shows the counts and can dispatch now or retry events that gave up.
+- Several app instances can dispatch at once (`FOR UPDATE SKIP LOCKED`).
+
+To use a message broker instead (for example Amazon SQS, Figure 4), add a publisher with the same `publish(envelope)` method to `integrations/events/eventPublisher.js` and select it in `getEventPublisher()`.
+
+The envelope, the event catalog and a signature-verification snippet are in [API.md](API.md#7-events).

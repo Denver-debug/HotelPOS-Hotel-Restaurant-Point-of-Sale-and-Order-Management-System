@@ -47,10 +47,15 @@ The other mock rooms (101, 102, 103, 404, 306, 999) exercise each failure path. 
 | `npm run route:list` | List all registered routes |
 | `npm run electron` | Run as the XianFire desktop (Electron) terminal |
 
+After pulling new code, run `npm run migrate` before starting the app.
+
 ## Documentation
 
 - `docs/ARCHITECTURE.md`: layers, conventions, security and data-ownership rules
 - `docs/TRACEABILITY.md`: mapping of the 17 system diagrams to modules, and how the diagram discrepancies were resolved
-- `docs/INTEGRATIONS.md`: PMS, payment, HR and event-bus adapters, mock scenarios and go-live checklist
+- `docs/INTEGRATIONS.md`: PMS, payment, HR and event adapters, configuration, mock scenarios and go-live checklist
+- `docs/API.md`: the `/api/v1` integration API for other ERP subsystems (API keys, endpoints, error codes, sync, idempotency, signed events)
+- `docs/POS-SHORTCUTS.md`: every POS terminal keyboard shortcut (also on screen: press F1)
+- `docs/AUDIT.md`: the system audit, what was fixed and what was deferred
 
 > **Mock integrations:** the PMS, payment provider, HR system and event bus are simulated by clearly labelled MOCK adapters. No real card or e-wallet processing and no real folio posting happens until the real adapters are configured.
