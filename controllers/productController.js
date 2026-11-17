@@ -4,6 +4,7 @@ import { parsePage, buildPagination, filtersFrom } from "../utils/pagination.js"
 import { handleForm } from "../utils/forms.js";
 import { can } from "../middleware/auth.js";
 import { notFound } from "../utils/http.js";
+import { bool } from "../utils/validate.js";
 
 const formOptions = async () => ({
   categories: (await Category.findAll({ where: { status: "ACTIVE" }, order: [["sortOrder", "ASC"], ["name", "ASC"]] })).map((c) => c.get({ plain: true })),
@@ -73,8 +74,14 @@ export const update = async (req, res) => {
 };
 
 export const setPrice = async (req, res) => {
-  await productService.setOutletPrice(req, req.params.id, req.body);
-  req.flash("success_msg", "Outlet price saved. The previous price was kept in the price history.");
+  // An unticked "Available" checkbox is left out of the form post, so missing means unavailable.
+  const row = await productService.setOutletPrice(req, req.params.id, { ...req.body, isAvailable: bool(req.body.isAvailable) });
+  req.flash(
+    "success_msg",
+    row.isAvailable
+      ? "Outlet price saved. The previous price was kept in the price history."
+      : "Saved as unavailable: the item is hidden from that outlet's POS until you tick Available again."
+  );
   res.redirect(`/products/${req.params.id}#prices`);
 };
 

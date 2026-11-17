@@ -128,6 +128,28 @@ export async function findShortages(outletId, lines, transaction) {
   return shortages;
 }
 
+// Stock behind each tracked product at the outlet's default location, for the POS tiles:
+// Map(productId -> [{ itemId, perUnit, onHand }]). Ingredients allowed to go negative never
+// block a sale, so they are left out; a product left with none is not limited by stock.
+export async function sellableStock(outletId, productIds) {
+  const stock = new Map();
+  if (!productIds.length) return stock;
+  const recipes = await ProductRecipe.findAll({ where: { productId: productIds }, raw: true });
+  if (!recipes.length) return stock;
+  const location = await StockLocation.findOne({ where: { outletId, isDefault: true, status: "ACTIVE" } });
+  const levels = location
+    ? await StockLevel.findAll({ where: { stockLocationId: location.id, inventoryItemId: [...new Set(recipes.map((r) => r.inventoryItemId))] }, raw: true })
+    : [];
+  const byItem = new Map(levels.map((l) => [l.inventoryItemId, l]));
+  for (const r of recipes) {
+    const level = byItem.get(r.inventoryItemId);
+    if (level?.allowNegative) continue;
+    if (!stock.has(r.productId)) stock.set(r.productId, []);
+    stock.get(r.productId).push({ itemId: r.inventoryItemId, perUnit: r.quantity, onHand: level ? level.quantity : "0.000" });
+  }
+  return stock;
+}
+
 /**
  * Deducts stock for a completed order (F13 Completed entry: deductStock()).
  * Idempotent per order line and inventory item. When `settledExternally` is true

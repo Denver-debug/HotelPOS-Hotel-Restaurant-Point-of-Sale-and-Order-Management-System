@@ -10,6 +10,7 @@ import * as v from "../utils/validate.js";
 import { audit, diff } from "./auditService.js";
 import { config } from "../config/env.js";
 import { recordEvent } from "../integrations/events/eventPublisher.js";
+import { sellableStock } from "./inventoryService.js";
 
 export async function listProducts({ search, categoryId, status, outletId, itemType }, { limit, offset }) {
   const where = {};
@@ -190,8 +191,10 @@ export async function removeFromOutlet(req, productId, outletId) {
 }
 
 // POS catalog for one outlet: current price, availability and tax for every sellable item.
+// Stock-tracked items carry `stock` (what one unit uses and what is on hand); it is null
+// when the item's sales do not deduct stock.
 export async function outletCatalog(outletId) {
-  return sequelize.query(
+  const products = await sequelize.query(
     `SELECT p.id, p.code, p.name, p.description, p.item_type AS itemType, p.unit, p.image_path AS imagePath,
             p.is_inventory_tracked AS isInventoryTracked, c.id AS categoryId, c.name AS categoryName,
             pp.price, COALESCE(t.rate, 0) AS taxRate, COALESCE(t.is_inclusive, 1) AS taxInclusive
@@ -204,6 +207,8 @@ export async function outletCatalog(outletId) {
       ORDER BY c.sort_order, c.name, p.name`,
     { replacements: [outletId], type: QueryTypes.SELECT }
   );
+  const stock = await sellableStock(outletId, products.filter((p) => p.isInventoryTracked).map((p) => p.id));
+  return products.map((p) => ({ ...p, stock: stock.get(p.id) ?? null }));
 }
 
 // ── Taxes ────────────────────────────────────────────────────────────────

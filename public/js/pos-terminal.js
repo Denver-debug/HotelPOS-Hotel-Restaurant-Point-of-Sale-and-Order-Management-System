@@ -16,6 +16,7 @@
   const uuid = () => (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`);
   const humanize = (s) => String(s || "").toLowerCase().replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
   const roundQty = (n) => Math.round(n * 1000) / 1000;
+  const toMilli = (v) => Math.round(Number(v || 0) * 1000);
 
   const DEFAULT_TYPE = { ROOM_SERVICE: "ROOM_SERVICE", MINIBAR: "MINIBAR", SPA: "SPA", RESTAURANT: "DINE_IN", BAR: "DINE_IN" };
   const STATUS_COLORS = {
@@ -88,7 +89,7 @@
   function handleError(err) {
     if (err?.body?.order) setOrder(err.body.order);
     if (handleSessionErrors(err)) return;
-    if (err?.body?.code === "PRODUCT_UNAVAILABLE") refreshCatalog();
+    if (["PRODUCT_UNAVAILABLE", "INSUFFICIENT_STOCK"].includes(err?.body?.code)) refreshCatalog();
     toast(err?.message || "Something went wrong.", "error");
   }
 
@@ -313,13 +314,73 @@
           : `<div class="flex h-24 w-full items-center justify-center rounded-lg bg-gradient-to-br from-brand-50 to-accent-50 text-2xl font-semibold text-brand-700" aria-hidden="true">${esc(
               p.name.split(/\s+/).map((w) => w[0]).slice(0, 2).join("")
             )}</div>`;
-        return `<button type="button" data-product="${p.id}" aria-label="${esc(p.name)}, ${esc(fmt(p.price))}" class="group flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-2 text-left shadow-sm transition hover:border-brand-300 hover:shadow-md focus:outline-none active:scale-[0.98]">
-          ${media}
+        return `<button type="button" data-product="${p.id}" aria-label="${esc(p.name)}, ${esc(fmt(p.price))}" class="group flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-2 text-left shadow-sm transition hover:border-brand-300 hover:shadow-md focus:outline-none active:scale-[0.98] aria-disabled:cursor-not-allowed aria-disabled:border-slate-200 aria-disabled:opacity-60 aria-disabled:shadow-none aria-disabled:active:scale-100">
+          <span class="relative block">${media}<span data-stock hidden class="absolute right-1.5 top-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold shadow-sm"></span></span>
           <span class="line-clamp-2 min-h-[2.5rem] px-1 text-sm font-medium text-slate-900">${esc(p.name)}</span>
           <span class="flex items-center justify-between px-1 pb-1"><span class="text-sm font-semibold text-brand-800">${fmt(p.price)}</span><span class="font-mono text-[10px] uppercase text-slate-400">${esc(p.code)}</span></span>
         </button>`;
       })
       .join("");
+    renderStock();
+  }
+
+  const productById = (id) => boot.catalog.find((p) => String(p.id) === String(id));
+
+  // Stock the open order will use, per inventory item (milli units). A finished order's
+  // stock has already been deducted on the server, so only an unfinished order counts.
+  function stockInOrder() {
+    const used = new Map();
+    if (!S.order || FINISHED.includes(S.order.status)) return used;
+    for (const line of S.order.items) {
+      for (const s of productById(line.productId)?.stock || []) {
+        used.set(s.itemId, (used.get(s.itemId) || 0) + Math.round((toMilli(line.quantity) * toMilli(s.perUnit)) / 1000));
+      }
+    }
+    return used;
+  }
+
+  // How much more of a product can be sold, in milli units; null when it does not use stock.
+  function stockLeft(p, used = stockInOrder()) {
+    if (!p.stock) return null;
+    const left = p.stock.map((s) => Math.floor(((toMilli(s.onHand) - (used.get(s.itemId) || 0)) * 1000) / toMilli(s.perUnit)));
+    return Math.max(0, Math.min(...left));
+  }
+
+  // Tiles count whole units: with less than one left (e.g. bread for a third of a sandwich) it is out.
+  const wholeLeft = (left) => Math.floor(left / 1000);
+  const outOfStock = (p, used) => {
+    const left = stockLeft(p, used);
+    return left !== null && wholeLeft(left) < 1;
+  };
+
+  // Why the order cannot take `qty` more of a product, or null when it can.
+  function stockProblem(productId, qty) {
+    const p = productById(productId);
+    const left = p ? stockLeft(p) : null;
+    if (left === null || left >= toMilli(qty)) return null;
+    return wholeLeft(left) >= 1 ? `Only ${wholeLeft(left)} ${p.unit} of ${p.name} left.` : `${p.name} is out of stock.`;
+  }
+
+  // Stock chips and the out-of-stock state of the tiles; re-run whenever the order changes.
+  // Out-of-stock tiles stay focusable (aria-disabled) so arrow keys still move across them.
+  function renderStock() {
+    const used = stockInOrder();
+    for (const tile of $$("#pos-products [data-product]")) {
+      const p = productById(tile.dataset.product);
+      const left = stockLeft(p, used);
+      const out = outOfStock(p, used);
+      const status = left === null ? "" : out ? "Out of stock" : `${wholeLeft(left)} left`;
+      const chip = tile.querySelector("[data-stock]");
+      chip.hidden = !status;
+      chip.textContent = status;
+      chip.classList.toggle("bg-rose-600", out);
+      chip.classList.toggle("text-white", out);
+      chip.classList.toggle("bg-white/90", !out);
+      chip.classList.toggle("text-slate-700", !out);
+      tile.setAttribute("aria-label", `${p.name}, ${fmt(p.price)}${status ? `, ${status.toLowerCase()}` : ""}`);
+      if (out) tile.setAttribute("aria-disabled", "true");
+      else tile.removeAttribute("aria-disabled");
+    }
   }
 
   // Arrow-key movement inside the product grid (columns are measured, so it follows the layout).
@@ -350,6 +411,7 @@
       /* ignore */
     }
     renderOrder();
+    renderStock();
   }
 
   function renderOrder() {
@@ -463,6 +525,8 @@
         toast(`Order ${S.order.orderNumber} is ${humanize(S.order.status).toLowerCase()}. Starting a new order.`, "info");
         setOrder(null);
       }
+      const problem = stockProblem(productId, qty);
+      if (problem) return toast(problem, "warning");
       const res = S.order
         ? await api("POST", `/api/orders/${S.order.id}/items`, { productId, quantity: qty })
         : await api("POST", "/api/orders", {
@@ -485,6 +549,11 @@
       const item = S.order?.items.find((i) => String(i.id) === String(itemId));
       if (!item) return;
       S.selectedItemId = item.id;
+      const problem = delta > 0 && stockProblem(item.productId, delta);
+      if (problem) {
+        renderOrder(); // show the selection move
+        return toast(problem, "warning");
+      }
       const next = Math.max(0, roundQty(Number(item.quantity) + delta));
       setOrder((await api("PATCH", `/api/orders/${S.order.id}/items/${itemId}`, { quantity: String(next) })).order);
     });
@@ -551,6 +620,10 @@
   async function applyQty() {
     const value = Number($("#qty-input").value);
     if (!(value > 0) || value > 9999) return showError("qty-error", "Enter a quantity greater than 0 (up to 9999). Use Delete to remove the line.");
+    const item = S.order?.items.find((i) => String(i.id) === String(S.qty.itemId));
+    const more = item ? roundQty(value - Number(item.quantity)) : 0;
+    const problem = more > 0 && stockProblem(item.productId, more);
+    if (problem) return showError("qty-error", problem);
     const itemId = S.qty.itemId;
     closeModal("modal-qty");
     await enqueue(async () => setOrder((await api("PATCH", `/api/orders/${S.order.id}/items/${itemId}`, { quantity: String(roundQty(value)) })).order));
@@ -834,6 +907,7 @@
     $("#done-receipt").href = url;
     if (receipt) S.lastReceiptUrl = url;
     openModal("modal-done");
+    refreshCatalog(); // the sale deducted stock
   }
 
   function reprintLast() {
@@ -1200,8 +1274,8 @@
           if (qty) toast("Type a product code after the multiplier, e.g. 3*COF01.", "warning");
           return;
         }
-        const first = boot.catalog.find((p) => p.code.toLowerCase() === term) || filteredProducts()[0];
-        if (!first) return toast(`No product matches “${term}”.`, "warning");
+        const first = boot.catalog.find((p) => p.code.toLowerCase() === term) || filteredProducts().find((p) => !outOfStock(p));
+        if (!first) return toast(filteredProducts().length ? `Everything matching “${term}” is out of stock.` : `No product matches “${term}”.`, "warning");
         addProduct(first.id); // clears a "3*" multiplier itself
         if (qty === null) search.select(); // the next scan replaces the text
       } else if (e.key === "Escape") {

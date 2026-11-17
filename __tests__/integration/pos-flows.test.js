@@ -43,6 +43,7 @@ beforeAll(async () => {
   const product = async (code) => (await q("SELECT id FROM products WHERE code = :code", { code }))[0].id;
   ids.rs01 = (await q("SELECT id FROM outlets WHERE code = 'RS-01'"))[0].id;
   ids.bar01 = (await q("SELECT id FROM outlets WHERE code = 'BAR-01'"))[0].id;
+  ids.rest01 = (await q("SELECT id FROM outlets WHERE code = 'REST-01'"))[0].id;
   ids.sandwich = await product("FD-001");
   ids.icedTea = await product("BV-001");
   ids.water = await product("BV-004");
@@ -250,6 +251,30 @@ describe("D. Inventory", () => {
     expect(await stockOf("INV-BV-004")).toBe(30);
     await expect(ctx.models.sequelize.query("UPDATE inventory_transactions SET quantity = 0 LIMIT 1")).rejects.toThrow(/append-only/);
     await expect(ctx.models.sequelize.query("DELETE FROM audit_logs LIMIT 1")).rejects.toThrow(/append-only/);
+  });
+
+  test("the POS catalog carries the stock behind each tracked item", async () => {
+    const { data } = await cashier.get(`/api/pos/catalog?outletId=${ids.rs01}`);
+    const byId = new Map(data.catalog.map((p) => [p.id, p]));
+    expect(byId.get(ids.water).stock).toEqual([expect.objectContaining({ perUnit: "1.000" })]);
+    expect(Number(byId.get(ids.water).stock[0].onHand)).toBe(await stockOf("INV-BV-004"));
+    expect(byId.get(ids.sandwich).stock).toHaveLength(3); // bread, chicken, bacon
+    expect(byId.get(ids.salad).stock).toBeNull(); // not stock-tracked
+  });
+
+  test("an outlet price can be saved as unavailable, then stopped altogether", async () => {
+    const current = () => q("SELECT price, is_available AS isAvailable FROM product_prices WHERE product_id = :p AND outlet_id = :o AND effective_to IS NULL", { p: ids.water, o: ids.rest01 });
+    const inCatalog = async () => (await cashier.get(`/api/pos/catalog?outletId=${ids.rest01}`)).data.catalog.some((p) => p.id === ids.water);
+    expect(await inCatalog()).toBe(true);
+
+    // An unticked "Available" checkbox is simply missing from the form post.
+    expect((await admin.form(`/products/${ids.water}/prices`, { outletId: String(ids.rest01), price: "80.00" })).status).toBe(302);
+    expect(await current()).toEqual([{ price: "80.00", isAvailable: 0 }]);
+    expect(await inCatalog()).toBe(false);
+
+    expect((await admin.get(`/products/${ids.water}`)).text).toContain("Stop selling");
+    expect((await admin.form(`/products/${ids.water}/prices/${ids.rest01}/remove`, {})).status).toBe(302);
+    expect(await current()).toEqual([]);
   });
 });
 
