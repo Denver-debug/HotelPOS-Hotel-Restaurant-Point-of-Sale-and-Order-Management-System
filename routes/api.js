@@ -59,6 +59,9 @@ router.delete(`/orders/:id${ID}/discounts/:orderDiscountId${ID}`, canDiscount, a
 // ── Settlement ───────────────────────────────────────────────────────────
 router.post(`/orders/:id${ID}/payments`, requirePermission("payments.process"), asyncHandler(payments.apiPay));
 router.get("/payments", requirePermission("payments.view"), asyncHandler(api.payments));
+router.post(`/payments/:id${ID}/verify`, requirePermission("payments.process"), asyncHandler(payments.apiVerify));
+router.post(`/payments/:id${ID}/cancel`, requirePermission("payments.process"), asyncHandler(payments.apiCancel));
+router.get(`/payments/:id${ID}/qr.svg`, requirePermission("payments.process"), asyncHandler(payments.qrCode));
 const canCharge = requirePermission("room_charges.process");
 router.post(`/orders/:id${ID}/room-charge/validate`, canCharge, asyncHandler(guestCharges.apiValidate));
 router.post(`/orders/:id${ID}/room-charge`, canCharge, asyncHandler(guestCharges.apiPost));

@@ -49,7 +49,12 @@ export const terminal = async (req, res) => {
       requireShift,
       mocks: {
         pms: config.integrations.pms.adapter !== "http",
-        payment: config.integrations.payment.adapter !== "http",
+        payment: config.integrations.payment.adapter === "mock",
+      },
+      // PayMongo: the guest scans a QR code and approves GCash / Maya on their phone.
+      hostedCheckout: config.integrations.payment.adapter === "paymongo",
+      testMode: {
+        payment: config.integrations.payment.adapter === "paymongo" && config.integrations.payment.apiKey.startsWith("sk_test_"),
       },
       can: {
         settle: can(req, "payments.process"),

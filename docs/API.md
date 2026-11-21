@@ -149,7 +149,7 @@ Send an `Idempotency-Key` (or `idempotencyKey` in the body) on every create you 
 | Endpoint | Repeating the same key returns |
 |---|---|
 | `POST /orders` | The order created the first time (`200`, `duplicate: true`) |
-| `POST /orders/{id}/payments` | The original outcome: captured (with receipt), the same `402` decline, or `409 SETTLEMENT_IN_PROGRESS` while still pending |
+| `POST /orders/{id}/payments` | The original outcome: captured (with receipt), the same `402` decline, the same `202` checkout while the guest has not approved it, or `409 SETTLEMENT_IN_PROGRESS` while still pending |
 | `POST /orders/{id}/room-charge` | The original charge and outcome |
 | `POST /inventory/movements` | The movement recorded the first time (`200`, `duplicate: true`) |
 
@@ -210,8 +210,11 @@ Orders return `tableId`, `roomNumber` and `tableOrLocation` (the table's label, 
 
 | | Path | Permission | Notes |
 |---|---|---|---|
-| POST | `/orders/{id}/payments` | payments.process | `paymentMethodId` (Cash, GCash or Maya), `amount`, `tenderedAmount` (cash), `reference` (required for GCash and Maya: the e-wallet reference number); idempotent. Needs an open shift when the hotel requires one |
+| POST | `/orders/{id}/payments` | payments.process | `paymentMethodId` (Cash, GCash or Maya), `amount`, `tenderedAmount` (cash), `reference` (GCash and Maya with the mock adapter: the e-wallet reference number); idempotent. Needs an open shift when the hotel requires one. With PayMongo, GCash and Maya answer `202` with `awaiting: true` and `checkout` (`url`, `qrCodeUrl`, `expiresAt`) |
 | GET | `/payments` | payments.view | `outletId`, `status`, `methodId`, sync params |
+| POST | `/payments/{id}/verify` | payments.process | Ask the provider about a `PENDING` payment: `200` captured, `202` still waiting for the guest, `402` declined or expired |
+| POST | `/payments/{id}/cancel` | payments.process | Cancel a `PENDING` e-wallet checkout (`200` with `cancelled: true`). If the guest had already paid, the payment is recorded as captured instead. Returns `409 PAYMENT_PROCESSING` while PayMongo is finishing it |
+| GET | `/payments/{id}/qr.svg` | payments.process | The checkout link of a `PENDING` e-wallet payment as an SVG QR code |
 | POST | `/orders/{id}/room-charge/validate` | room_charges.process | `roomNumber` → PMS-validated room, guest **name for display**, folio, and a 5-minute single-use `token` |
 | POST | `/orders/{id}/room-charge` | room_charges.process | `validationToken`; idempotent. `outcome`: `POSTED`, `FAILED`, or `UNKNOWN` |
 | POST | `/guest-charges/{id}/verify` | room_charges.process | Resolves an `UNKNOWN` charge by asking the PMS. Never re-posts blindly |

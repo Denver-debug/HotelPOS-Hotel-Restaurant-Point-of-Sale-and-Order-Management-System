@@ -73,11 +73,16 @@ export const config = {
       timeoutMs: int(env.PMS_TIMEOUT_MS, 8000),
       mockDelayMs: int(env.PMS_MOCK_DELAY_MS, 0),
     },
+    // "paymongo": GCash and Maya through PayMongo. PAYMENT_API_KEY is the secret key (sk_test_… / sk_live_…).
     payment: {
       adapter: env.PAYMENT_ADAPTER || "mock",
-      baseUrl: env.PAYMENT_BASE_URL || "",
+      baseUrl: env.PAYMENT_BASE_URL || (env.PAYMENT_ADAPTER === "paymongo" ? "https://api.paymongo.com/v1" : ""),
       apiKey: env.PAYMENT_API_KEY || "",
       timeoutMs: int(env.PAYMENT_TIMEOUT_MS, 15000),
+      // Where the guest's phone lands after approving in GCash / Maya (any page; the POS does not depend on it).
+      returnUrl: env.PAYMENT_RETURN_URL || `http://localhost:${int(env.PORT, 3000)}/pay/complete`,
+      // Signing secret of the PayMongo webhook (whsk_…). Empty: payments are confirmed by polling only.
+      webhookSecret: env.PAYMENT_WEBHOOK_SECRET || "",
     },
     hr: {
       adapter: env.HR_ADAPTER || "mock",
@@ -93,7 +98,7 @@ export const config = {
 // in production would mean fake room charges and fake card approvals.
 const SUPPORTED_ADAPTERS = {
   PMS_ADAPTER: [config.integrations.pms.adapter, ["mock", "http"]],
-  PAYMENT_ADAPTER: [config.integrations.payment.adapter, ["mock"]],
+  PAYMENT_ADAPTER: [config.integrations.payment.adapter, ["mock", "paymongo"]],
   HR_ADAPTER: [config.integrations.hr.adapter, ["mock", "http"]],
   EVENTS_PUBLISHER: [config.events.publisher, ["log", "webhook"]],
 };
@@ -105,6 +110,11 @@ for (const [name, [value, allowed]] of Object.entries(SUPPORTED_ADAPTERS)) {
 if (config.events.publisher === "webhook") {
   if (!config.events.webhookUrl) throw new Error("EVENTS_WEBHOOK_URL must be set when EVENTS_PUBLISHER=webhook.");
   if (config.events.webhookSecret.length < 16) throw new Error("EVENTS_WEBHOOK_SECRET must be at least 16 characters when EVENTS_PUBLISHER=webhook.");
+}
+if (config.integrations.payment.adapter === "paymongo") {
+  const key = config.integrations.payment.apiKey;
+  if (!/^sk_(test|live)_/.test(key)) throw new Error("PAYMENT_API_KEY must be a PayMongo secret key (sk_test_… or sk_live_…) when PAYMENT_ADAPTER=paymongo.");
+  if (isProduction && key.startsWith("sk_test_")) console.warn("⚠️  PayMongo is in test mode (sk_test_ key): GCash and Maya payments move no real money.");
 }
 const mocks = Object.entries(SUPPORTED_ADAPTERS).filter(([, [value]]) => value === "mock" || value === "log").map(([name]) => name);
 if (isProduction && mocks.length) {

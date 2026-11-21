@@ -2,27 +2,29 @@
 //
 // interface PaymentGateway {
 //   name: string; isMock: boolean;
-//   authorizeAndCapture({ amount, currency, methodCode, reference, idempotencyKey })
+//   hostedCheckout?: boolean   // the provider issues the reference (no reference typed at the POS)
+//   authorizeAndCapture({ amount, currency, methodCode, reference, idempotencyKey, description, metadata })
 //       -> { status: "CAPTURED", transactionId } | { status: "DECLINED", reason }
+//        | { status: "AWAITING_CUSTOMER", providerReference, checkoutUrl, expiresAt }  (guest approves on their phone)
 //       throws IntegrationError("TIMEOUT" | "NETWORK") when the outcome is unknown
-//   getStatus(idempotencyKey) -> { status: "CAPTURED" | "DECLINED" | "NOT_FOUND", transactionId?, reason? }
+//   getStatus({ idempotencyKey, providerReference })
+//       -> { status: "CAPTURED" | "DECLINED" | "NOT_FOUND" | "AWAITING_CUSTOMER", transactionId?, reason? }
+//   cancel?({ idempotencyKey, providerReference }) -> same as getStatus; DECLINED once cancelled
 //   refund({ transactionId, amount, idempotencyKey }) -> { status: "REFUNDED", refundId } | { status: "REJECTED", reason }
+//   parseWebhook?(rawBody, signatureHeader) -> { eventId, type, providerReference } | null (bad signature)
 // }
 //
-// No real provider is integrated yet: only the mock adapter is available. A real adapter
-// (e.g. a card acquirer or e-wallet SDK) must implement the same methods — see docs/INTEGRATIONS.md.
+// PAYMENT_ADAPTER=paymongo takes GCash and Maya through PayMongo; "mock" simulates them.
 import { config } from "../../config/env.js";
 import { MockPaymentAdapter } from "./mockPaymentAdapter.js";
+import { PayMongoAdapter } from "./paymongoAdapter.js";
 
 let instance;
 
 export function getPaymentGateway() {
   if (!instance) {
-    const { adapter } = config.integrations.payment;
-    if (adapter !== "mock") {
-      throw new Error(`PAYMENT_ADAPTER="${adapter}" is not implemented. Only "mock" is available until a real provider adapter is added.`);
-    }
-    instance = new MockPaymentAdapter();
+    const cfg = config.integrations.payment;
+    instance = cfg.adapter === "paymongo" ? new PayMongoAdapter(cfg) : new MockPaymentAdapter();
   }
   return instance;
 }

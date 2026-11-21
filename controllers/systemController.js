@@ -59,7 +59,7 @@ const adapterInfo = () => {
   };
   return [
     { system: "PMS", name: "Front Desk / PMS", adapter: getPmsGateway().name, isMock: getPmsGateway().isMock, endpoint: host(pms.baseUrl), credentials: Boolean(pms.apiKey), timeoutMs: pms.timeoutMs },
-    { system: "PAYMENT", name: "Payment provider", adapter: payment.adapter === "mock" ? "MockPaymentAdapter" : payment.adapter, isMock: payment.adapter === "mock", endpoint: host(payment.baseUrl), credentials: Boolean(payment.apiKey), timeoutMs: payment.timeoutMs },
+    { system: "PAYMENT", name: "Payment provider", adapter: { mock: "MockPaymentAdapter", paymongo: "PayMongoAdapter" }[payment.adapter] ?? payment.adapter, isMock: payment.adapter === "mock", endpoint: host(payment.baseUrl), credentials: Boolean(payment.apiKey), timeoutMs: payment.timeoutMs },
     { system: "HR", name: "HR and Staff Payroll", adapter: getHrGateway().name, isMock: getHrGateway().isMock, endpoint: host(hr.baseUrl), credentials: Boolean(hr.apiKey), timeoutMs: hr.timeoutMs },
     (() => {
       const publisher = getEventPublisher();

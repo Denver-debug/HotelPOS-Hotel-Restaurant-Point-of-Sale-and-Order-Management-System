@@ -104,6 +104,9 @@ export function toDto(order) {
     payments: (o.payments || []).map((p) => ({
       id: p.id, paymentNumber: p.paymentNumber, method: p.method?.name, amount: p.amount, tenderedAmount: p.tenderedAmount,
       changeAmount: p.changeAmount, status: p.status, reference: p.reference, isMock: p.isMock, failureReason: p.failureReason,
+      externalTransactionId: p.externalTransactionId ?? null,
+      // An e-wallet checkout the guest has not approved yet (QR code on the POS).
+      checkout: p.status === "PENDING" && p.checkoutUrl ? { url: p.checkoutUrl, qrCodeUrl: `/api/payments/${p.id}/qr.svg`, expiresAt: p.checkoutExpiresAt } : null,
     })),
     guestCharge: activeCharge
       ? { id: activeCharge.id, chargeNumber: activeCharge.chargeNumber, roomNumber: activeCharge.roomNumber, status: activeCharge.status, pmsTransactionId: activeCharge.pmsTransactionId, amount: activeCharge.amount, attempts: activeCharge.attempts, lastError: activeCharge.lastError, isMock: activeCharge.isMock }

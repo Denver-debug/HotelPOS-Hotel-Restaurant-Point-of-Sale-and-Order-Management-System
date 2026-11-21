@@ -13,6 +13,7 @@
       <div class="flex items-center justify-between rounded-xl bg-brand-50 px-4 py-3">
         <span class="text-sm text-brand-700">Balance due</span><span id="pay-due" class="text-2xl font-semibold text-brand-900">0.00</span>
       </div>
+      <div id="pay-form" class="space-y-4">
       <div>
         <p class="label flex items-center justify-between">Payment method <span class="pos-hint text-xs font-normal text-slate-500" data-kbd-for="pay-method-1" data-label="… 9"></span></p>
         <div id="pay-methods" class="grid grid-cols-2 gap-2 sm:grid-cols-3"></div>
@@ -34,10 +35,20 @@
         <input id="pay-reference" class="input" maxlength="100" autocomplete="off" placeholder="From the guest's GCash / Maya receipt">
       </div>
       <div class="flex items-center justify-between rounded-lg bg-slate-50 px-4 py-2 text-sm"><span>Change</span><span id="pay-change" class="text-lg font-semibold">0.00</span></div>
+      </div>
+      <!-- E-wallet checkout (PayMongo): the guest scans and approves on their phone -->
+      <div id="pay-checkout" class="hidden space-y-3 text-center">
+        <p class="text-sm text-slate-600">Ask the guest to scan this with their phone camera and approve <strong id="pay-checkout-amount">0.00</strong> in <strong id="pay-checkout-method">the e-wallet</strong>.</p>
+        <img id="pay-checkout-qr" alt="Payment QR code" width="240" height="240" class="mx-auto h-60 w-60 rounded-xl border border-slate-200 bg-white p-2">
+        <p id="pay-checkout-status" class="flex items-center justify-center gap-2 text-sm font-medium text-brand-800" role="status" aria-live="polite"></p>
+        <p class="text-xs text-slate-500"><span id="pay-checkout-expires"></span> <a id="pay-checkout-link" class="text-brand-700 underline" target="_blank" rel="noopener">Open checkout link</a></p>
+      </div>
       <p id="pay-error" class="hidden rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700" role="alert"></p>
     </div>
     <div class="flex shrink-0 justify-end gap-2 rounded-b-2xl bg-slate-50 px-6 py-4">
-      <button type="button" class="btn btn-cancel" data-modal-close data-shortcut="dialog-close">Cancel</button>
+      <button type="button" class="btn btn-cancel" data-modal-close data-shortcut="dialog-close"><span data-label id="pay-close-label">Cancel</span></button>
+      <button type="button" id="pay-checkout-cancel" class="btn btn-secondary hidden">Cancel payment</button>
+      <button type="button" id="pay-checkout-check" class="btn btn-primary btn-lg hidden" data-primary data-shortcut="dialog-primary"><span data-label>Check now</span></button>
       <button type="button" id="pay-submit" class="btn btn-primary btn-lg" data-primary data-shortcut="dialog-primary"><span data-label>Confirm payment</span></button>
     </div>
   </div>

@@ -156,6 +156,11 @@ export const Payment = sequelize.define("Payment", {
   status: { type: DataTypes.ENUM(...PAYMENT_STATUSES), allowNull: false, defaultValue: "PENDING" },
   gateway: { type: DataTypes.STRING(40) },
   externalTransactionId: { type: DataTypes.STRING(100) },
+  // Hosted e-wallet checkout (PayMongo): the provider's payment intent, the link the guest
+  // opens (shown as a QR code) and when the provider stops accepting it.
+  providerReference: { type: DataTypes.STRING(100) },
+  checkoutUrl: { type: DataTypes.STRING(500) },
+  checkoutExpiresAt: { type: DataTypes.DATE },
   idempotencyKey: { type: DataTypes.STRING(100), allowNull: false, unique: true },
   failureReason: { type: DataTypes.STRING(255) },
   isMock: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },

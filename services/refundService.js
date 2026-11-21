@@ -215,6 +215,9 @@ export async function approveAndProcess(req, id, body = {}) {
 async function refundToGateway(req, refund) {
   const payment = await Payment.findByPk(refund.paymentId);
   const gateway = getPaymentGateway();
+  if (payment.gateway && payment.gateway !== gateway.name) {
+    throw new AppError(`${payment.paymentNumber} went through ${payment.gateway}, not ${gateway.name}. Refund it in that provider's dashboard instead.`, 502, "EXTERNAL_REJECTED");
+  }
   const result = await logged(
     { system: "PAYMENT", operation: "refund", isMock: gateway.isMock, idempotencyKey: refund.idempotencyKey, referenceType: "refund", referenceId: refund.id, request: { transactionId: payment.externalTransactionId, amount: refund.amount }, userId: req.user.id },
     () => gateway.refund({ transactionId: payment.externalTransactionId, amount: refund.amount, idempotencyKey: refund.idempotencyKey })

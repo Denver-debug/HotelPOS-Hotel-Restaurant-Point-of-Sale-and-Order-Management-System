@@ -33,8 +33,13 @@ export class MockPaymentAdapter {
     return result;
   }
 
-  async getStatus(idempotencyKey) {
+  async getStatus({ idempotencyKey }) {
     return this.ledger.get(idempotencyKey) || { status: "NOT_FOUND" };
+  }
+
+  async cancel({ idempotencyKey }) {
+    const current = await this.getStatus({ idempotencyKey });
+    return current.status === "CAPTURED" ? current : { status: "DECLINED", reason: "Cancelled at the POS.", cancelled: true };
   }
 
   async refund({ transactionId, amount, idempotencyKey }) {

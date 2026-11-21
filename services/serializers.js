@@ -45,6 +45,7 @@ export const payment = (row) => {
     shiftId: p.shiftId ?? null, method: p.method ? { id: p.paymentMethodId, code: p.method.code, name: p.method.name } : { id: p.paymentMethodId },
     amount: p.amount, tenderedAmount: p.tenderedAmount ?? null, changeAmount: p.changeAmount, refundedAmount: p.refundedAmount,
     status: p.status, reference: p.reference ?? null, gateway: p.gateway ?? null, externalTransactionId: p.externalTransactionId ?? null,
+    providerReference: p.providerReference ?? null, checkoutExpiresAt: p.checkoutExpiresAt ?? null,
     isMock: bool(p.isMock), failureReason: p.failureReason ?? null, processedBy: ref(p.processor) ?? { id: p.processedBy },
     capturedAt: p.capturedAt ?? null, createdAt: p.createdAt, updatedAt: p.updatedAt,
   };

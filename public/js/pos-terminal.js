@@ -34,7 +34,7 @@
     search: "",
     busy: false,
     selectedItemId: null,
-    pay: { methodId: null, key: null },
+    pay: { methodId: null, key: null, checkout: null, timer: null },
     room: { token: null, key: null, chargeId: null },
     note: { itemId: null },
     qty: { itemId: null },
@@ -168,6 +168,7 @@
   function closeModal(el) {
     const m = typeof el === "string" ? document.getElementById(el) : el.closest(".pos-modal");
     if (!m || m.classList.contains("hidden")) return;
+    if (m.id === "modal-payment") stopCheckoutPolling();
     m.classList.add("hidden");
     m.classList.remove("flex");
     if (!openModalEl()) {
@@ -228,6 +229,8 @@
   const canWrite = () => S.online && !S.blocked;
   const settleable = () => S.order && SETTLEABLE.includes(S.order.status) && S.order.items.length > 0;
   const paidSomething = () => Boolean(S.order && Number(S.order.amountPaid) > 0);
+  // A GCash / Maya checkout the guest has not approved yet (the order is SETTLING meanwhile).
+  const pendingCheckout = () => S.order?.payments.find((p) => p.status === "PENDING" && p.checkout) || null;
   const selectedItem = () => S.order?.items.find((i) => String(i.id) === String(S.selectedItemId)) || null;
   const shiftProblem = () => {
     if (!boot.requireShift) return null;
@@ -237,7 +240,8 @@
   };
 
   const can = {
-    pay: () => canWrite() && settleable() && boot.can.settle && !(paidSomething() && S.order.settlementType === "ROOM_CHARGE"),
+    pay: () =>
+      canWrite() && boot.can.settle && (Boolean(pendingCheckout()) || (settleable() && !(paidSomething() && S.order.settlementType === "ROOM_CHARGE"))),
     room: () => canWrite() && settleable() && boot.can.roomCharge && boot.outlet.allowsRoomCharge && !paidSomething(),
     void: () => canWrite() && hasOrder() && VOIDABLE.includes(S.order.status) && !paidSomething(),
     discount: () => canWrite() && editable() && S.order.items.length > 0 && boot.can.discount,
@@ -727,6 +731,8 @@
   }
 
   const selectedMethod = () => boot.paymentMethods.find((m) => String(m.id) === String(S.pay.methodId));
+  // Mock e-wallets need the typed reference; a PayMongo checkout gets one from the provider.
+  const needsReference = (m) => Boolean(m && (m.requiresReference || m.usesGateway) && !(m.usesGateway && boot.hostedCheckout));
 
   function quickTenders() {
     const due = Number($("#pay-amount").value || S.order?.balanceDue || 0);
@@ -741,7 +747,8 @@
     const due = Number(S.order.balanceDue);
     $("#pay-due").textContent = fmt(due);
     $("#pay-tendered-wrap").classList.toggle("invisible", !m?.isCash);
-    $("#pay-reference-wrap").classList.toggle("hidden", !(m && (m.requiresReference || m.usesGateway)));
+    $("#pay-reference-wrap").classList.toggle("hidden", !needsReference(m));
+    label($("#pay-submit"), m?.usesGateway && boot.hostedCheckout ? "Show QR code" : "Confirm payment");
     $("#pay-mock-note").classList.toggle("hidden", !(m && m.usesGateway && boot.mocks.payment));
     const amount = Number($("#pay-amount").value || 0);
     const tendered = Number($("#pay-tendered").value || 0);
@@ -755,7 +762,7 @@
   // Put the cursor where the cashier types next for the chosen method.
   function focusPaymentField() {
     const m = selectedMethod();
-    const target = m?.isCash ? "#pay-tendered" : m && (m.requiresReference || m.usesGateway) ? "#pay-reference" : "#pay-amount";
+    const target = m?.isCash ? "#pay-tendered" : needsReference(m) ? "#pay-reference" : "#pay-amount";
     const el = $(target);
     el.focus();
     el.select?.();
@@ -783,8 +790,15 @@
     if (!can.pay()) return;
     const problem = shiftProblem();
     if (problem) return toast(problem, "warning");
+    const waiting = pendingCheckout();
+    if (waiting) {
+      showError("pay-error", null);
+      openModal("modal-payment");
+      return showCheckout(waiting, waiting.checkout);
+    }
     await run(async () => {
       await ensureAwaitingSettlement();
+      showPaymentForm();
       S.pay.methodId = S.pay.methodId || boot.paymentMethods.find((m) => m.isCash)?.id || boot.paymentMethods[0]?.id;
       S.pay.key = null;
       $("#pay-amount").value = S.order.balanceDue;
@@ -816,16 +830,8 @@
       });
       S.pay.key = null;
       setOrder(res.order);
-      if (res.order.status === "COMPLETED") {
-        closeModal("modal-payment");
-        showDone(res, Number(res.payment?.changeAmount || 0));
-      } else {
-        toast(`Payment of ${fmt(res.payment.amount)} recorded. Balance due ${fmt(res.order.balanceDue)}.`, "success");
-        $("#pay-amount").value = res.order.balanceDue;
-        $("#pay-tendered").value = res.order.balanceDue;
-        updatePaymentForm();
-        focusPaymentField();
-      }
+      if (res.awaiting && res.checkout) showCheckout(res.payment, res.checkout);
+      else paymentRecorded(res);
     } catch (err) {
       if (err.status) S.pay.key = null; // the server answered: next attempt is a new payment
       if (err.body?.order) setOrder(err.body.order);
@@ -833,7 +839,108 @@
       else showError("pay-error", err.status ? err.message : `${err.message} — the payment may still be processing; press Confirm again to retry safely.`);
     } finally {
       btn.disabled = false;
-      label(btn, "Confirm payment");
+      updatePaymentForm();
+    }
+  }
+
+  function paymentRecorded(res) {
+    if (res.order.status === "COMPLETED") {
+      closeModal("modal-payment");
+      return showDone(res, Number(res.payment?.changeAmount || 0));
+    }
+    showPaymentForm();
+    toast(`Payment of ${fmt(res.payment.amount)} recorded. Balance due ${fmt(res.order.balanceDue)}.`, "success");
+    $("#pay-amount").value = res.order.balanceDue;
+    $("#pay-tendered").value = res.order.balanceDue;
+    updatePaymentForm();
+    focusPaymentField();
+  }
+
+  // ── E-wallet checkout (PayMongo) ─────────────────────────────────────────
+  // The guest scans the QR code and approves on their phone; the terminal checks the payment
+  // every few seconds until the provider says it is paid or declined.
+  const CHECKOUT_POLL_MS = 3000;
+
+  function checkoutMode(on) {
+    $("#pay-form").classList.toggle("hidden", on);
+    $("#pay-checkout").classList.toggle("hidden", !on);
+    $("#pay-submit").classList.toggle("hidden", on);
+    $("#pay-checkout-check").classList.toggle("hidden", !on);
+    $("#pay-checkout-cancel").classList.toggle("hidden", !on);
+    $("#pay-close-label").textContent = on ? "Close" : "Cancel";
+  }
+
+  function showPaymentForm() {
+    stopCheckoutPolling();
+    S.pay.checkout = null;
+    checkoutMode(false);
+  }
+
+  function showCheckout(payment, checkout) {
+    S.pay.checkout = payment.id;
+    checkoutMode(true);
+    $("#pay-due").textContent = fmt(S.order.balanceDue);
+    $("#pay-checkout-amount").textContent = fmt(payment.amount);
+    const method = typeof payment.method === "string" ? payment.method : boot.paymentMethods.find((m) => String(m.id) === String(payment.paymentMethodId))?.name;
+    $("#pay-checkout-method").textContent = method || "the e-wallet";
+    $("#pay-checkout-qr").src = checkout.qrCodeUrl;
+    $("#pay-checkout-link").href = checkout.url;
+    $("#pay-checkout-expires").textContent = checkout.expiresAt
+      ? `Expires ${new Date(checkout.expiresAt).toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit" })}.`
+      : "";
+    checkoutStatus(checkout.processing);
+    $("#pay-checkout-check").focus();
+    scheduleCheckoutPoll();
+  }
+
+  const checkoutStatus = (processing) =>
+    ($("#pay-checkout-status").innerHTML = spinner(processing ? "Approved by the guest, finishing up…" : "Waiting for the guest to approve…"));
+
+  function stopCheckoutPolling() {
+    clearTimeout(S.pay.timer);
+    S.pay.timer = null;
+  }
+
+  function scheduleCheckoutPoll() {
+    stopCheckoutPolling();
+    S.pay.timer = setTimeout(() => checkCheckout({ quiet: true }), CHECKOUT_POLL_MS);
+  }
+
+  // action: "verify" (the poll and Check now) or "cancel".
+  async function checkCheckout({ quiet = false, action = "verify" } = {}) {
+    const id = S.pay.checkout;
+    if (!id || S.blocked) return;
+    stopCheckoutPolling();
+    const buttons = [$("#pay-checkout-check"), $("#pay-checkout-cancel")];
+    if (!quiet) buttons.forEach((b) => (b.disabled = true));
+    try {
+      const res = await api("POST", `/api/payments/${id}/${action}`);
+      if (S.pay.checkout !== id) return; // the dialog moved on meanwhile
+      setOrder(res.order);
+      if (res.awaiting) {
+        checkoutStatus(res.checkout?.processing);
+        return scheduleCheckoutPoll();
+      }
+      if (action === "cancel" && res.payment.status !== "CAPTURED") {
+        showPaymentForm();
+        toast(`Payment ${res.payment.paymentNumber} cancelled. Take the payment another way.`, "success");
+        return startPayment();
+      }
+      paymentRecorded(res);
+    } catch (err) {
+      if (S.pay.checkout !== id) return;
+      if (err.body?.order) setOrder(err.body.order);
+      if (handleSessionErrors(err)) return closeModal("modal-payment");
+      if (err.body?.code === "PAYMENT_DECLINED") {
+        showPaymentForm();
+        updatePaymentForm();
+        return showError("pay-error", err.message);
+      }
+      // Provider slow or unreachable, or still processing: keep the QR code and check again.
+      if (!quiet) toast(err.message, "warning");
+      scheduleCheckoutPoll();
+    } finally {
+      buttons.forEach((b) => (b.disabled = false));
     }
   }
 
@@ -1542,6 +1649,8 @@
     });
     $("#pay-tendered").addEventListener("input", updatePaymentForm);
     $("#pay-submit").addEventListener("click", submitPayment);
+    $("#pay-checkout-check").addEventListener("click", () => checkCheckout());
+    $("#pay-checkout-cancel").addEventListener("click", () => checkCheckout({ action: "cancel" }));
     $("#room-validate").addEventListener("click", validateRoom);
     $("#room-confirm").addEventListener("click", confirmRoomCharge);
     $("#room-verify").addEventListener("click", verifyRoomCharge);

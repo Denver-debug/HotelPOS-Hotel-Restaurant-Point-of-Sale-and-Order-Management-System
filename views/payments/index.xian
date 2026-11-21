@@ -37,10 +37,13 @@
           <td class="text-xs">{{default reference "—"}}{{#if externalTransactionId}}<div class="text-slate-400">{{externalTransactionId}}</div>{{/if}}{{#if failureReason}}<div class="text-rose-600">{{failureReason}}</div>{{/if}}</td>
           <td class="text-right font-medium">{{money amount}}{{#if (gt refundedAmount 0)}}<div class="text-xs text-rose-600">−{{money refundedAmount}}</div>{{/if}}</td>
           <td>{{processor.fullName}}</td>
-          <td>{{statusBadge status}}</td>
+          <td>{{statusBadge status}}{{#if (and (eq status "PENDING") checkoutUrl)}}<div class="mt-1 text-xs text-amber-700">Waiting for the guest</div>{{/if}}</td>
           <td class="text-right">
             {{#if (and (eq status "PENDING") ../canVerify)}}
-            <form method="POST" action="/payments/{{id}}/verify"><input type="hidden" name="_csrf" value="{{../csrfToken}}"><button class="btn btn-secondary btn-sm" type="submit">Verify</button></form>
+            <div class="flex justify-end gap-1">
+              <form method="POST" action="/payments/{{id}}/verify"><input type="hidden" name="_csrf" value="{{../csrfToken}}"><button class="btn btn-secondary btn-sm" type="submit">Verify</button></form>
+              <form method="POST" action="/payments/{{id}}/cancel" data-confirm="Cancel payment {{paymentNumber}}? If the guest has already paid, it is recorded as paid instead."><input type="hidden" name="_csrf" value="{{../csrfToken}}"><button class="btn btn-ghost btn-sm" type="submit">Cancel</button></form>
+            </div>
             {{/if}}
           </td>
         </tr>
