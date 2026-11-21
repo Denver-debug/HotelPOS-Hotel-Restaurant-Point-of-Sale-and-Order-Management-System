@@ -1,6 +1,6 @@
 // ERP integration API (/api/v1): API keys bound to service accounts, outlet scoping,
 // incremental sync, idempotent creates, rate limits, CORS and the OpenAPI contract.
-import { startApp, Client, uuid } from "./harness.js";
+import { startApp, SETUP_TIMEOUT_MS, Client, uuid } from "./harness.js";
 import { config } from "../../config/env.js";
 
 let ctx;
@@ -45,7 +45,7 @@ beforeAll(async () => {
   keys.reader = await createClient("Accounting GL", "ERP_INTEGRATION");
   keys.writer = await createClient("Room service app", "CASHIER", { outlets: [ids.rs01] });
   keys.stock = await createClient("ERP purchasing", "INVENTORY_STAFF", { outlets: [ids.rs01] });
-});
+}, SETUP_TIMEOUT_MS);
 
 afterAll(async () => {
   await ctx?.stop();
@@ -79,10 +79,10 @@ describe("Authentication", () => {
   });
 
   test("writes need no CSRF token with a key, but still need the permission", async () => {
-    const denied = await call(keys.reader, "POST", "/api/v1/orders", { body: { outletId: ids.rs01, items: [{ productId: ids.water }] } });
+    const denied = await call(keys.reader, "POST", "/api/v1/orders", { body: { outletId: ids.rs01, roomNumber: "205", items: [{ productId: ids.water }] } });
     expect(denied.status).toBe(403);
     expect(denied.data.code).toBe("FORBIDDEN");
-    const ok = await call(keys.writer, "POST", "/api/v1/orders", { body: { outletId: ids.rs01, items: [{ productId: ids.water }] } });
+    const ok = await call(keys.writer, "POST", "/api/v1/orders", { body: { outletId: ids.rs01, roomNumber: "205", items: [{ productId: ids.water }] } });
     expect(ok.status).toBe(201);
     expect(ok.headers.get("set-cookie")).toBeNull();
   });
@@ -134,6 +134,7 @@ describe("Orders", () => {
     expect(first.status).toBe(201);
     expect(first.data.order.items).toHaveLength(2);
     expect(first.data.order.externalReference).toBe("RSAPP-1001");
+    expect(first.data.order).toMatchObject({ roomNumber: "205", tableOrLocation: "Room 205" }); // older clients send the room as text
     expect(first.data.order.totalAmount).toBe("600.00");
     const again = await call(keys.writer, "POST", "/api/v1/orders", { body, headers: { "Idempotency-Key": key } });
     expect(again.status).toBe(200);
@@ -144,7 +145,7 @@ describe("Orders", () => {
   });
 
   test("an order with an invalid line is not created at all", async () => {
-    const res = await call(keys.writer, "POST", "/api/v1/orders", { body: { outletId: ids.rs01, externalReference: "RSAPP-BAD", items: [{ productId: ids.water }, { productId: 999999 }] } });
+    const res = await call(keys.writer, "POST", "/api/v1/orders", { body: { outletId: ids.rs01, roomNumber: "205", externalReference: "RSAPP-BAD", items: [{ productId: ids.water }, { productId: 999999 }] } });
     expect(res.status).toBe(422);
     expect(res.data.code).toBe("PRODUCT_UNAVAILABLE");
     const [{ n }] = await q("SELECT COUNT(*) AS n FROM orders WHERE external_reference = 'RSAPP-BAD'");
@@ -165,8 +166,8 @@ describe("Orders", () => {
 
   test("incremental sync: updatedSince returns changed orders oldest first, with paging", async () => {
     const since = new Date(Date.now() - 2000).toISOString();
-    const a = await call(keys.writer, "POST", "/api/v1/orders", { body: { outletId: ids.rs01, items: [{ productId: ids.water }] } });
-    const b = await call(keys.writer, "POST", "/api/v1/orders", { body: { outletId: ids.rs01, items: [{ productId: ids.water }] } });
+    const a = await call(keys.writer, "POST", "/api/v1/orders", { body: { outletId: ids.rs01, roomNumber: "205", items: [{ productId: ids.water }] } });
+    const b = await call(keys.writer, "POST", "/api/v1/orders", { body: { outletId: ids.rs01, roomNumber: "205", items: [{ productId: ids.water }] } });
     const page1 = await call(keys.reader, "GET", `/api/v1/orders?updatedSince=${encodeURIComponent(since)}&limit=1`);
     expect(page1.status).toBe(200);
     expect(page1.data.pagination).toMatchObject({ limit: 1, offset: 0, hasMore: true });
@@ -185,7 +186,7 @@ describe("Settlement and stock by API key", () => {
     expect(shift.status).toBe(201);
     const current = await call(keys.writer, "GET", "/api/v1/shifts/current");
     expect(current.data.shift.id).toBe(shift.data.shift.id);
-    const created = await call(keys.writer, "POST", "/api/v1/orders", { body: { outletId: ids.rs01, orderType: "ROOM_SERVICE", items: [{ productId: ids.water }] } });
+    const created = await call(keys.writer, "POST", "/api/v1/orders", { body: { outletId: ids.rs01, roomNumber: "205", orderType: "ROOM_SERVICE", items: [{ productId: ids.water }] } });
     const orderId = created.data.order.id;
     expect((await call(keys.writer, "POST", `/api/v1/orders/${orderId}/request-settlement`)).status).toBe(200);
     const v = await call(keys.writer, "POST", `/api/v1/orders/${orderId}/room-charge/validate`, { body: { roomNumber: "205" } });

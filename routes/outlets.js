@@ -13,5 +13,7 @@ router.get("/:id(\\d+)", canManage, asyncHandler(outlets.show));
 router.get("/:id(\\d+)/edit", canManage, asyncHandler(outlets.editForm));
 router.post("/:id(\\d+)", canManage, asyncHandler(outlets.update));
 router.post("/:id(\\d+)/users", canManage, asyncHandler(outlets.assignUsers));
+router.post("/:id(\\d+)/tables", canManage, asyncHandler(outlets.addTable));
+router.post("/:id(\\d+)/tables/:tableId(\\d+)", canManage, asyncHandler(outlets.saveTable));
 
 export default router;

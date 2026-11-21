@@ -69,9 +69,17 @@ The mock remembers postings by idempotency key in `storage/mock-pms-ledger.json`
 ## Payment provider
 
 Contract: `integrations/payments/paymentGateway.js` (`authorizeAndCapture`, `getStatus`, `refund`).
-Only the mock exists. In the mock, reference `DECLINE` declines the payment and `TIMEOUT` loses the response after capture. Cash, bank transfer and "other" methods do not use the gateway.
+The hotel takes **Cash, GCash and Maya** only (`SUPPORTED_PAYMENT_METHODS` in `models/salesModel.js`). GCash and Maya go through the gateway and need the e-wallet reference number. Cash is recorded locally. Older methods (cards, bank transfer) stay in `payment_methods` as `INACTIVE` for history and cannot be switched back on.
 
-To add a real provider: create `integrations/payments/<provider>Adapter.js` implementing the same three methods. Use the provider's idempotency feature with the key HotelPOS passes. Then register it in `getPaymentGateway()` behind a new `PAYMENT_ADAPTER` value. Card data must never pass through HotelPOS; use the provider's terminal or hosted fields.
+Only the mock exists. In the mock, reference `DECLINE` declines the payment and `TIMEOUT` loses the response after capture. **With the mock, a GCash or Maya payment is marked paid without any money moving**: check the guest's confirmation screen and the hotel's merchant app before relying on it.
+
+To go live with GCash and Maya:
+
+1. Open a merchant account that accepts both wallets: either one payment aggregator that supports GCash and Maya, or GCash for Business and Maya Business separately. The provider's KYC review needs the hotel's business documents (DTI/SEC, BIR registration, bank account).
+2. Get the sandbox API keys and the provider's documentation for QR or checkout payments, payment status and refunds.
+3. Create `integrations/payments/<provider>Adapter.js` with `authorizeAndCapture`, `getStatus` and `refund`. Pass HotelPOS's idempotency key to the provider. E-wallet payments are confirmed asynchronously: return `CAPTURED` only once the provider says the payment is paid, or throw `IntegrationError("TIMEOUT")` so the payment stays PENDING and **Verify** calls `getStatus` later.
+4. Register it in `getPaymentGateway()` behind a new `PAYMENT_ADAPTER` value. Put the keys in `.env`, never in the code.
+5. Test in the sandbox (paid, declined, abandoned, refunded), then switch to the live keys.
 
 ## HR and Staff Payroll
 

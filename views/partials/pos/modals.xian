@@ -16,7 +16,7 @@
       <div>
         <p class="label flex items-center justify-between">Payment method <span class="pos-hint text-xs font-normal text-slate-500" data-kbd-for="pay-method-1" data-label="… 9"></span></p>
         <div id="pay-methods" class="grid grid-cols-2 gap-2 sm:grid-cols-3"></div>
-        <p id="pay-mock-note" class="mt-2 hidden text-xs text-amber-700">Mock payment gateway: no real card or e-wallet is charged. Use reference <code>DECLINE</code> to simulate a decline.</p>
+        <p id="pay-mock-note" class="mt-2 hidden text-xs text-amber-700">Mock payment gateway: no real GCash or Maya payment is made. Enter the reference from the guest's e-wallet confirmation; <code>DECLINE</code> simulates a decline.</p>
       </div>
       <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
@@ -30,8 +30,8 @@
       </div>
       <div id="pay-quick" class="flex flex-wrap gap-2"></div>
       <div id="pay-reference-wrap" class="hidden">
-        <label class="label" for="pay-reference">Reference / approval code</label>
-        <input id="pay-reference" class="input" maxlength="100" autocomplete="off">
+        <label class="label" for="pay-reference">E-wallet reference no.</label>
+        <input id="pay-reference" class="input" maxlength="100" autocomplete="off" placeholder="From the guest's GCash / Maya receipt">
       </div>
       <div class="flex items-center justify-between rounded-lg bg-slate-50 px-4 py-2 text-sm"><span>Change</span><span id="pay-change" class="text-lg font-semibold">0.00</span></div>
       <p id="pay-error" class="hidden rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700" role="alert"></p>

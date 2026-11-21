@@ -1,4 +1,4 @@
-// Idempotent seed data: roles/permissions, outlets, taxes, payment methods, settings,
+// Idempotent seed data: roles/permissions, outlets and their tables, taxes, payment methods, settings,
 // a sample catalog (matching the Room 205 scenario in the system diagrams) and an admin.
 // Existing rows are never overwritten except role/permission definitions.
 import crypto from "crypto";
@@ -16,14 +16,25 @@ const OUTLETS = [
   ["SPA-01", "Serenity Spa", "SPA", "Massage and wellness services", "3rd floor", "0.00"],
 ];
 
+// Direct payments: cash, and the GCash / Maya e-wallets (through the payment gateway; the
+// e-wallet reference number is required so every payment can be traced in the wallet app).
 const PAYMENT_METHODS = [
   ["CASH", "Cash", 1, 0, 0, 1],
-  ["CREDIT_CARD", "Credit Card", 0, 1, 0, 2],
-  ["DEBIT_CARD", "Debit Card", 0, 1, 0, 3],
-  ["E_WALLET", "E-Wallet", 0, 1, 0, 4],
-  ["BANK_TRANSFER", "Bank Transfer", 0, 0, 1, 5],
-  ["OTHER", "Other", 0, 0, 1, 6],
+  ["GCASH", "GCash", 0, 1, 1, 2],
+  ["MAYA", "Maya", 0, 1, 1, 3],
 ];
+
+// Where orders are served, per outlet: label, area, seats. Room service and minibar orders
+// use the guest's room number instead.
+const range = (n, f) => Array.from({ length: n }, (_, i) => f(i + 1));
+const OUTLET_TABLES = {
+  "REST-01": [
+    ...range(8, (i) => [`T${i}`, "Main dining", i <= 4 ? 2 : 4]),
+    ...range(4, (i) => [`P${i}`, "Patio", 4]),
+  ],
+  "BAR-01": [...range(6, (i) => [`Bar ${i}`, "Counter", 1]), ...range(4, (i) => [`Lounge ${i}`, "Lounge", 4])],
+  "SPA-01": range(3, (i) => [`Treatment Room ${i}`, null, 1]),
+};
 
 const SETTINGS = [
   ["receipt_header", "", "text", "Receipt header", "Address / contact lines printed under the hotel name", 1],
@@ -143,6 +154,16 @@ export async function runSeeds(conn, { demo = false, log = console.log } = {}) {
       "INSERT IGNORE INTO payment_methods (code, name, is_cash, uses_gateway, requires_reference, sort_order) VALUES (?, ?, ?, ?, ?, ?)",
       pm
     );
+  }
+  // Default tables, only for outlets that have none yet (an admin's list is never touched).
+  for (const [outletCode, tables] of Object.entries(OUTLET_TABLES)) {
+    const outletId = outletIds[outletCode];
+    if (!outletId) continue;
+    const [[{ n }]] = await conn.query("SELECT COUNT(*) AS n FROM outlet_tables WHERE outlet_id = ?", [outletId]);
+    if (Number(n) > 0) continue;
+    for (const [i, [label, area, seats]] of tables.entries()) {
+      await conn.query("INSERT INTO outlet_tables (outlet_id, label, area, seats, sort_order) VALUES (?, ?, ?, ?, ?)", [outletId, label, area, seats, i + 1]);
+    }
   }
   for (const s of SETTINGS) {
     await conn.query(

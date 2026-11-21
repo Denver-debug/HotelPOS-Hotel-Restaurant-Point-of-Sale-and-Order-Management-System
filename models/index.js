@@ -2,7 +2,7 @@
 import { sequelize } from "./db.js";
 import { Role, Permission, RolePermission } from "./roleModel.js";
 import { User, UserOutlet } from "./userModel.js";
-import { Outlet, Category, Tax, Product, ProductPrice } from "./catalogModel.js";
+import { Outlet, OutletTable, Category, Tax, Product, ProductPrice } from "./catalogModel.js";
 import { StockLocation, InventoryItem, ProductRecipe, StockLevel, InventoryTransaction } from "./inventoryModel.js";
 import {
   Shift, Order, OrderItem, Discount, DiscountProduct, DiscountOutlet, OrderDiscount,
@@ -17,6 +17,10 @@ Role.belongsToMany(Permission, { through: RolePermission, as: "permissions", for
 Permission.belongsToMany(Role, { through: RolePermission, as: "roles", foreignKey: "permissionId", otherKey: "roleId" });
 User.belongsToMany(Outlet, { through: UserOutlet, as: "outlets", foreignKey: "userId", otherKey: "outletId" });
 Outlet.belongsToMany(User, { through: UserOutlet, as: "users", foreignKey: "outletId", otherKey: "userId" });
+
+// Outlet tables
+Outlet.hasMany(OutletTable, { as: "tables", foreignKey: "outletId" });
+OutletTable.belongsTo(Outlet, { as: "outlet", foreignKey: "outletId" });
 
 // Catalog
 Product.belongsTo(Category, { as: "category", foreignKey: "categoryId" });
@@ -47,6 +51,7 @@ Shift.belongsTo(User, { as: "closer", foreignKey: "closedBy" });
 Shift.belongsTo(User, { as: "reconciler", foreignKey: "reconciledBy" });
 Order.belongsTo(Outlet, { as: "outlet", foreignKey: "outletId" });
 Order.belongsTo(Shift, { as: "shift", foreignKey: "shiftId" });
+Order.belongsTo(OutletTable, { as: "table", foreignKey: "outletTableId" });
 Order.belongsTo(User, { as: "creator", foreignKey: "createdBy" });
 Order.belongsTo(User, { as: "voider", foreignKey: "voidedBy" });
 Order.belongsTo(User, { as: "completer", foreignKey: "completedBy" });
@@ -102,7 +107,7 @@ ApiClient.belongsTo(User, { as: "creator", foreignKey: "createdBy" });
 export {
   sequelize,
   Role, Permission, RolePermission, User, UserOutlet,
-  Outlet, Category, Tax, Product, ProductPrice,
+  Outlet, OutletTable, Category, Tax, Product, ProductPrice,
   StockLocation, InventoryItem, ProductRecipe, StockLevel, InventoryTransaction,
   Shift, Order, OrderItem, Discount, DiscountProduct, DiscountOutlet, OrderDiscount,
   PaymentMethod, Payment, GuestCharge, Refund, RefundItem, Receipt, RoomChargeValidation,

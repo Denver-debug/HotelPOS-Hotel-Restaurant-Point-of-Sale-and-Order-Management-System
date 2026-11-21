@@ -1,6 +1,7 @@
 import { User } from "../models/index.js";
 import { OUTLET_TYPES } from "../models/catalogModel.js";
 import * as outletService from "../services/outletService.js";
+import * as tableService from "../services/outletTableService.js";
 import { handleForm } from "../utils/forms.js";
 
 const crumbs = (label, href) => [{ label: "Outlets", href: "/outlets" }, ...(label ? [{ label, href }] : [])];
@@ -19,7 +20,21 @@ export const show = async (req, res) => {
     assignedIds: outlet.users.map((u) => u.id),
     users,
     products: await outletService.outletProducts(outlet.id),
+    tables: await tableService.tablesWithOpenOrders(outlet.id),
   });
+};
+
+// Tables are saved one row at a time from the outlet page; errors come back as a flash.
+export const addTable = async (req, res) => {
+  const table = await tableService.createTable(req, req.params.id, req.body);
+  req.flash("success_msg", `Table ${table.label} was added.`);
+  res.redirect(`/outlets/${req.params.id}#tables`);
+};
+
+export const saveTable = async (req, res) => {
+  const table = await tableService.updateTable(req, req.params.id, req.params.tableId, req.body);
+  req.flash("success_msg", `Table ${table.label} was updated.`);
+  res.redirect(`/outlets/${req.params.id}#tables`);
 };
 
 export const newForm = (req, res) =>

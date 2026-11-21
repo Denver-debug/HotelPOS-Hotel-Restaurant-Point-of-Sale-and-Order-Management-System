@@ -53,3 +53,38 @@
     {{/if}}
   </div>
 </div>
+
+<div class="card mt-6" id="tables">
+  <div class="card-header">
+    <h3 class="card-title">Tables</h3>
+    <span class="text-xs text-slate-500">The POS location list. Dine-in orders must pick one; room service and minibar use the guest's room number</span>
+  </div>
+  <div class="hidden gap-3 border-b border-slate-200 bg-slate-100 px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_5rem_5rem_8rem_6rem_5rem]" aria-hidden="true">
+    <span>Name</span><span>Area</span><span>Seats</span><span>Order</span><span>Status</span><span>Open orders</span><span></span>
+  </div>
+  <div class="divide-y divide-slate-200">
+    {{#each tables}}
+    <form class="grid grid-cols-2 items-center gap-3 px-5 py-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_5rem_5rem_8rem_6rem_5rem]" method="POST" action="/outlets/{{../outlet.id}}/tables/{{id}}" data-confirm="Stop using table {{label}}? It disappears from the POS location list; orders already on it keep it." data-confirm-when='[name="status"]=INACTIVE' data-confirm-label="Deactivate">
+      <input type="hidden" name="_csrf" value="{{../csrfToken}}">
+      <input class="input col-span-2 md:col-span-1" name="label" value="{{label}}" maxlength="30" required aria-label="Name of table {{label}}">
+      <input class="input col-span-2 md:col-span-1" name="area" value="{{area}}" maxlength="40" placeholder="e.g. Patio" aria-label="Area of table {{label}}">
+      <input class="input" name="seats" type="number" min="1" max="999" value="{{seats}}" aria-label="Seats at table {{label}}">
+      <input class="input" name="sortOrder" type="number" min="0" max="9999" value="{{sortOrder}}" aria-label="Display order of table {{label}}">
+      <select class="input" name="status" aria-label="Status of table {{label}}"><option value="ACTIVE" {{selected "ACTIVE" status}}>Active</option><option value="INACTIVE" {{selected "INACTIVE" status}}>Inactive</option></select>
+      <span class="text-sm {{#if openOrders}}font-medium text-amber-700{{else}}text-slate-500{{/if}}">{{openOrders}}</span>
+      <button class="btn btn-secondary btn-sm col-span-2 justify-self-end md:col-span-1" type="submit">Save</button>
+    </form>
+    {{else}}
+    {{> empty-state message="No tables yet. Add the tables, seats or treatment rooms orders are served at." icon="tag"}}
+    {{/each}}
+    <form class="grid grid-cols-2 items-center gap-3 bg-slate-50 px-5 py-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_5rem_5rem_8rem_6rem_5rem]" method="POST" action="/outlets/{{outlet.id}}/tables">
+      <input type="hidden" name="_csrf" value="{{csrfToken}}">
+      <input class="input col-span-2 md:col-span-1" name="label" maxlength="30" required placeholder="New table, e.g. T13" aria-label="Name of the new table">
+      <input class="input col-span-2 md:col-span-1" name="area" maxlength="40" placeholder="Area (optional)" aria-label="Area of the new table">
+      <input class="input" name="seats" type="number" min="1" max="999" placeholder="Seats" aria-label="Seats at the new table">
+      <input class="input" name="sortOrder" type="number" min="0" max="9999" value="{{tables.length}}" aria-label="Display order of the new table">
+      <span class="hidden md:block"></span><span class="hidden md:block"></span>
+      <button class="btn btn-primary btn-sm col-span-2 justify-self-end md:col-span-1" type="submit">Add</button>
+    </form>
+  </div>
+</div>

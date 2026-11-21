@@ -1,6 +1,6 @@
 // End-to-end scenarios from the development plan (Phase 6 A–F), run over HTTP
 // against a freshly migrated and seeded HotelPOS_test database.
-import { startApp, Client, uuid } from "./harness.js";
+import { startApp, SETUP_TIMEOUT_MS, Client, uuid } from "./harness.js";
 import { setPmsGateway, getPmsGateway } from "../../integrations/pms/pmsGateway.js";
 import { IntegrationError } from "../../integrations/integrationLogger.js";
 
@@ -23,7 +23,7 @@ const stockOf = async (sku, outletCode = "RS-01") => {
 
 async function newOrder(lines, { settle = true } = {}) {
   const [first, ...rest] = lines;
-  const created = await cashier.post("/api/orders", { outletId: ids.rs01, productId: first[0], quantity: String(first[1]) });
+  const created = await cashier.post("/api/orders", { outletId: ids.rs01, roomNumber: "205", productId: first[0], quantity: String(first[1]) });
   expect(created.status).toBe(201);
   let order = created.data.order;
   for (const [productId, qty] of rest) order = (await cashier.post(`/api/orders/${order.id}/items`, { productId, quantity: String(qty) })).data.order;
@@ -49,7 +49,7 @@ beforeAll(async () => {
   ids.water = await product("BV-004");
   ids.salad = await product("FD-002");
   ids.cash = (await q("SELECT id FROM payment_methods WHERE code = 'CASH'"))[0].id;
-  ids.card = (await q("SELECT id FROM payment_methods WHERE code = 'CREDIT_CARD'"))[0].id;
+  ids.gcash = (await q("SELECT id FROM payment_methods WHERE code = 'GCASH'"))[0].id;
 
   cashier = await new Client(ctx.base).login("cashier01");
   supervisor = await new Client(ctx.base).login("supervisor01");
@@ -57,7 +57,7 @@ beforeAll(async () => {
   const opened = await cashier.form("/shifts/open", { outletId: ids.rs01, openingCash: "5000.00" });
   expect(opened.status).toBe(302);
   await cashier.refreshCsrf();
-});
+}, SETUP_TIMEOUT_MS);
 
 afterAll(async () => {
   await ctx?.stop();
@@ -179,7 +179,7 @@ describe("C. Invalid room charging", () => {
 
 describe("A. Normal transactions", () => {
   test("create, add/remove/update items, calculate totals, pay cash and issue a receipt", async () => {
-    const created = await cashier.post("/api/orders", { outletId: ids.rs01, productId: ids.salad, quantity: "1", totalAmount: "1.00" });
+    const created = await cashier.post("/api/orders", { outletId: ids.rs01, roomNumber: "205", productId: ids.salad, quantity: "1", totalAmount: "1.00" });
     let order = created.data.order;
     expect(order.totalAmount).toBe("420.00"); // client-supplied totals are ignored
     order = (await cashier.post(`/api/orders/${order.id}/items`, { productId: ids.water, quantity: "3" })).data.order;
@@ -206,7 +206,7 @@ describe("A. Normal transactions", () => {
 
   test("a declined card returns the order to awaiting settlement", async () => {
     const order = await newOrder([[ids.water, 1]]);
-    const declined = await cashier.post(`/api/orders/${order.id}/payments`, { paymentMethodId: ids.card, amount: "90.00", reference: "DECLINE", idempotencyKey: uuid() });
+    const declined = await cashier.post(`/api/orders/${order.id}/payments`, { paymentMethodId: ids.gcash, amount: "90.00", reference: "DECLINE", idempotencyKey: uuid() });
     expect(declined.status).toBe(402);
     expect(declined.data.order.status).toBe("AWAITING_SETTLEMENT");
   });
@@ -323,10 +323,33 @@ describe("E. Financial operations", () => {
       { id: shift.id }
     );
     const expected = 5000 + Number(cash);
-    const closed = await cashier.form(`/shifts/${shift.id}/close`, { actualCash: (expected - 25).toFixed(2) });
+    const actualCash = (expected - 25).toFixed(2);
+    const stillDining = await newOrder([[ids.water, 1]], { settle: false });
+    const close = (body) => cashier.request("POST", `/shifts/${shift.id}/close`, { json: body, headers: { Accept: "application/json" } });
+
+    // Unpaid orders block the close...
+    const blocked = await close({ actualCash });
+    expect(blocked.status).toBe(409);
+    expect(blocked.data.code).toBe("UNSETTLED_ORDERS");
+    expect(blocked.data.details.orders.map((o) => o.orderNumber)).toContain(stillDining.orderNumber);
+    expect((await cashier.get(`/shifts/${shift.id}`)).text).toContain(stillDining.orderNumber);
+    // ...until they are handed over, with a note for the next shift.
+    const noNote = await close({ actualCash, handOver: true });
+    expect(noNote.status).toBe(422);
+    expect(noNote.data.code).toBe("HANDOVER_NOTE_REQUIRED");
+    const closed = await cashier.form(`/shifts/${shift.id}/close`, { actualCash, handOver: "1", closingNotes: "Room 205 still eating, bill to follow" });
     expect(closed.status).toBe(302);
     const [after] = await q("SELECT status, expected_cash, cash_variance FROM shifts WHERE id = :id", { id: shift.id });
     expect(after).toMatchObject({ status: "CLOSED", expected_cash: expected.toFixed(2), cash_variance: "-25.00" });
+    const [handover] = await q("SELECT new_values FROM audit_logs WHERE action = 'SHIFT_ORDERS_HANDED_OVER' AND entity_id = :id", { id: String(shift.id) });
+    expect(JSON.stringify(handover.new_values)).toContain(stillDining.orderNumber);
+    expect((await q("SELECT status FROM orders WHERE id = :id", { id: stillDining.id }))[0].status).toBe("IN_PROGRESS");
+
+    // The handed-over order is now the next closing shift's responsibility at this outlet.
+    const [supShift] = await q("SELECT s.id FROM shifts s JOIN users u ON u.id = s.user_id WHERE u.username = 'supervisor01' AND s.status = 'OPEN'");
+    const next = await supervisor.request("POST", `/shifts/${supShift.id}/close`, { json: { actualCash: "0.00" }, headers: { Accept: "application/json" } });
+    expect(next.status).toBe(409);
+    expect(next.data.details.orders.map((o) => o.orderNumber)).toContain(stillDining.orderNumber);
   });
 });
 
@@ -350,7 +373,7 @@ describe("F. Security", () => {
   });
 
   test("state-changing requests without a CSRF token are rejected", async () => {
-    const res = await cashier.request("POST", "/api/orders", { json: { outletId: ids.rs01, productId: ids.water }, csrf: false });
+    const res = await cashier.request("POST", "/api/orders", { json: { outletId: ids.rs01, roomNumber: "205", productId: ids.water }, csrf: false });
     expect(res.status).toBe(403);
     expect(res.data.code).toBe("CSRF");
   });
@@ -363,7 +386,7 @@ describe("F. Security", () => {
 
   test("backend validation rejects bad input and injection-like search terms are harmless", async () => {
     expect((await cashier.post("/api/orders/999999/items", { productId: ids.water })).status).toBe(404);
-    const bad = await cashier.post("/api/orders", { outletId: ids.rs01, productId: ids.water, quantity: "-3" });
+    const bad = await cashier.post("/api/orders", { outletId: ids.rs01, roomNumber: "205", productId: ids.water, quantity: "-3" });
     expect(bad.status).toBe(422);
     const search = await admin.get(`/orders?search=${encodeURIComponent("' OR 1=1 --")}`);
     expect(search.status).toBe(200);
@@ -378,5 +401,159 @@ describe("F. Security", () => {
     }
     const [user] = await q("SELECT locked_until FROM users WHERE username = 'staff01'");
     expect(user.locked_until).not.toBeNull();
+  });
+});
+
+describe("G. Where the order is served", () => {
+  const tablesOf = async (outletId) => (await cashier.get(`/api/outlets/${outletId}/tables`)).data.tables;
+
+  test("dine-in orders need one of the outlet's own tables", async () => {
+    // (Water is no longer sold at REST-01 after section D; iced tea is.)
+    const tables = await tablesOf(ids.rest01);
+    expect(tables.map((t) => t.label)).toEqual(expect.arrayContaining(["T1", "T8", "P1", "P4"]));
+    const t5 = tables.find((t) => t.label === "T5");
+    const p1 = tables.find((t) => t.label === "P1");
+
+    const countAtRest = async () => Number((await q("SELECT COUNT(*) AS n FROM orders WHERE outlet_id = :o", { o: ids.rest01 }))[0].n);
+    const before = await countAtRest();
+    const none = await cashier.post("/api/orders", { outletId: ids.rest01, productId: ids.icedTea });
+    expect(none.status).toBe(422);
+    expect(none.data.code).toBe("TABLE_REQUIRED");
+    const [barTable] = await q("SELECT t.id FROM outlet_tables t JOIN outlets o ON o.id = t.outlet_id WHERE o.code = 'BAR-01' LIMIT 1");
+    const foreign = await cashier.post("/api/orders", { outletId: ids.rest01, tableId: barTable.id, productId: ids.icedTea });
+    expect(foreign.status).toBe(422);
+    expect(foreign.data.code).toBe("TABLE_NOT_FOUND");
+    expect(await countAtRest()).toBe(before); // nothing was created by the rejected requests
+
+    const created = await cashier.post("/api/orders", { outletId: ids.rest01, tableId: t5.id, productId: ids.icedTea });
+    expect(created.status).toBe(201);
+    expect(created.data.order).toMatchObject({ orderType: "DINE_IN", tableId: t5.id, tableOrLocation: "T5", roomNumber: null });
+    const open = await cashier.get(`/api/pos/open-orders?outletId=${ids.rest01}`);
+    expect(open.data.orders.find((o) => o.id === created.data.order.id)).toMatchObject({ tableOrLocation: "T5", tableId: t5.id });
+
+    // Moving to another table keeps the note; a dine-in order cannot lose its table.
+    const id = created.data.order.id;
+    expect((await cashier.patch(`/api/orders/${id}`, { notes: "Birthday cake at 8" })).status).toBe(200);
+    const moved = await cashier.patch(`/api/orders/${id}`, { tableId: p1.id });
+    expect(moved.data.order).toMatchObject({ tableOrLocation: "P1", tableId: p1.id, notes: "Birthday cake at 8" });
+    const cleared = await cashier.patch(`/api/orders/${id}`, { tableId: null });
+    expect(cleared.status).toBe(422);
+    expect(cleared.data.code).toBe("TABLE_REQUIRED");
+
+    // Older API clients that send the table's name still work.
+    const byName = await cashier.post("/api/orders", { outletId: ids.rest01, tableOrLocation: "p2", productId: ids.icedTea });
+    expect(byName.status).toBe(201);
+    expect(byName.data.order.tableOrLocation).toBe("P2");
+    expect((await cashier.post("/api/orders", { outletId: ids.rest01, tableOrLocation: "Table nine", productId: ids.icedTea })).data.code).toBe("TABLE_NOT_FOUND");
+  });
+
+  test("an administrator manages the table list; a switched-off table leaves the POS list", async () => {
+    const page = await admin.get(`/outlets/${ids.rest01}`);
+    expect(page.text).toContain('id="tables"');
+    expect((await admin.form(`/outlets/${ids.rest01}/tables`, { label: "T9", area: "Window", seats: "2", sortOrder: "20" })).status).toBe(302);
+    expect((await admin.form(`/outlets/${ids.rest01}/tables`, { label: "t9" })).status).toBe(302); // duplicate: flashed, not added
+    const t9 = (await tablesOf(ids.rest01)).filter((t) => t.label.toUpperCase() === "T9");
+    expect(t9).toHaveLength(1);
+    expect(t9[0]).toMatchObject({ area: "Window", seats: 2, status: "ACTIVE" });
+
+    const order = (await cashier.post("/api/orders", { outletId: ids.rest01, tableId: t9[0].id, productId: ids.icedTea })).data.order;
+    expect((await admin.form(`/outlets/${ids.rest01}/tables/${t9[0].id}`, { label: "T9", area: "Window", seats: "2", sortOrder: "20", status: "INACTIVE" })).status).toBe(302);
+    const terminal = await cashier.get(`/pos/terminal?outletId=${ids.rest01}`);
+    expect(terminal.text).toContain('id="order-table"');
+    expect(terminal.text).toContain('"label":"T5"');
+    expect(terminal.text).not.toContain('"label":"T9"');
+    // New orders cannot use it; the order already seated there keeps it.
+    expect((await cashier.post("/api/orders", { outletId: ids.rest01, tableId: t9[0].id, productId: ids.icedTea })).data.code).toBe("TABLE_INACTIVE");
+    expect((await cashier.patch(`/api/orders/${order.id}`, { notes: "Still here" })).data.order.tableOrLocation).toBe("T9");
+  });
+
+  test("room service and minibar orders need a checked-in guest room", async () => {
+    const create = (body) => cashier.post("/api/orders", { outletId: ids.rs01, productId: ids.water, ...body });
+    expect((await create({})).data.code).toBe("ROOM_REQUIRED");
+    expect((await create({ roomNumber: "999" })).data.code).toBe("ROOM_NOT_FOUND");
+    expect((await create({ roomNumber: "101" })).data.code).toBe("ROOM_VACANT");
+    // A checked-in guest without a chargeable folio can still order (and pays directly).
+    expect((await create({ roomNumber: "102" })).status).toBe(201);
+    const ok = await create({ roomNumber: "205" });
+    expect(ok.status).toBe(201);
+    expect(ok.data.order).toMatchObject({ orderType: "ROOM_SERVICE", roomNumber: "205", tableOrLocation: "Room 205", tableId: null });
+    const minibar = await create({ orderType: "MINIBAR", roomNumber: "310" });
+    expect(minibar.data.order).toMatchObject({ orderType: "MINIBAR", tableOrLocation: "Room 310" });
+
+    // Changing type: dine-in at an outlet without tables is refused; takeout needs no location.
+    const id = ok.data.order.id;
+    const dine = await cashier.patch(`/api/orders/${id}`, { orderType: "DINE_IN" });
+    expect(dine.status).toBe(422);
+    expect(dine.data.error).toContain("no tables set up");
+    const takeout = await cashier.patch(`/api/orders/${id}`, { orderType: "TAKEOUT" });
+    expect(takeout.data.order).toMatchObject({ orderType: "TAKEOUT", roomNumber: null, tableOrLocation: null });
+    const back = await cashier.patch(`/api/orders/${id}`, { orderType: "ROOM_SERVICE", roomNumber: "101" });
+    expect(back.data.code).toBe("ROOM_VACANT");
+    expect((await cashier.patch(`/api/orders/${id}`, { orderType: "ROOM_SERVICE", roomNumber: "207" })).data.order.tableOrLocation).toBe("Room 207");
+  });
+
+  test("if the PMS cannot be reached the room order is not taken", async () => {
+    const real = getPmsGateway();
+    setPmsGateway({
+      name: "DownPms",
+      isMock: true,
+      getActiveFolio: async () => {
+        throw new IntegrationError("TIMEOUT", "PMS timeout (test)");
+      },
+    });
+    try {
+      const res = await cashier.post("/api/orders", { outletId: ids.rs01, roomNumber: "205", productId: ids.water });
+      expect(res.status).toBe(503);
+      expect(res.data.code).toBe("PMS_UNAVAILABLE");
+    } finally {
+      setPmsGateway(real);
+    }
+  });
+});
+
+describe("H. Payment methods: Cash, GCash and Maya only", () => {
+  beforeAll(async () => {
+    expect((await cashier.form("/shifts/open", { outletId: ids.rs01, openingCash: "1000.00" })).status).toBe(302);
+    await cashier.refreshCsrf();
+  });
+
+  test("the POS offers Cash, GCash and Maya; e-wallets need the reference number", async () => {
+    const active = await q("SELECT code FROM payment_methods WHERE status = 'ACTIVE' ORDER BY sort_order");
+    expect(active.map((m) => m.code)).toEqual(["CASH", "GCASH", "MAYA"]);
+    const [maya] = await q("SELECT id FROM payment_methods WHERE code = 'MAYA'");
+    const terminal = await cashier.get(`/pos/terminal?outletId=${ids.rs01}`);
+    expect(terminal.text).toContain('"code":"GCASH"');
+    expect(terminal.text).toContain('"code":"MAYA"');
+
+    const order = await newOrder([[ids.water, 1]]);
+    const noRef = await cashier.post(`/api/orders/${order.id}/payments`, { paymentMethodId: ids.gcash, amount: "90.00", idempotencyKey: uuid() });
+    expect(noRef.status).toBe(422);
+    expect(noRef.data.code).toBe("REFERENCE_REQUIRED");
+    const paid = await cashier.post(`/api/orders/${order.id}/payments`, { paymentMethodId: maya.id, amount: "90.00", reference: "MAYA-7781203", idempotencyKey: uuid() });
+    expect(paid.status).toBe(200);
+    expect(paid.data.order.status).toBe("COMPLETED");
+    expect(paid.data.payment).toMatchObject({ status: "CAPTURED", reference: "MAYA-7781203" });
+  });
+
+  test("an existing database keeps old methods for history but can no longer use them", async () => {
+    const { connect } = await import("../../database/migrator.js");
+    const { up } = await import("../../database/migrations/009_tables_rooms_and_ewallets.js");
+    await ctx.models.sequelize.query("INSERT INTO payment_methods (code, name, is_cash, uses_gateway, requires_reference, sort_order) VALUES ('CREDIT_CARD', 'Credit Card', 0, 1, 0, 9)");
+    const conn = await connect();
+    try {
+      await up(conn, { log: () => {} }); // re-running the migration is safe and retires the method
+    } finally {
+      await conn.end();
+    }
+    const [card] = await q("SELECT id, status FROM payment_methods WHERE code = 'CREDIT_CARD'");
+    expect(card.status).toBe("INACTIVE");
+
+    const order = await newOrder([[ids.water, 1]]);
+    const res = await cashier.post(`/api/orders/${order.id}/payments`, { paymentMethodId: card.id, amount: "90.00", reference: "X", idempotencyKey: uuid() });
+    expect(res.data.code).toBe("PAYMENT_METHOD_INACTIVE");
+    // Settings refuse to switch it back on, and do not list it.
+    await admin.form(`/settings/payment-methods/${card.id}`, { name: "Credit Card", status: "ACTIVE", sortOrder: "9" });
+    expect((await q("SELECT status FROM payment_methods WHERE id = :id", { id: card.id }))[0].status).toBe("INACTIVE");
+    expect((await admin.get("/settings")).text).not.toContain("CREDIT_CARD");
   });
 });

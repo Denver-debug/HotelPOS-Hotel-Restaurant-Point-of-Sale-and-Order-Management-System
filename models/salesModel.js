@@ -2,6 +2,12 @@ import { DataTypes } from "sequelize";
 import { sequelize } from "./db.js";
 
 export const ORDER_TYPES = ["DINE_IN", "TAKEOUT", "ROOM_SERVICE", "MINIBAR", "SPA", "OTHER"];
+// Served to a guest room: the room number is required and checked with the PMS.
+export const ROOM_ORDER_TYPES = ["ROOM_SERVICE", "MINIBAR"];
+// Served at a table: one of the outlet's tables is required.
+export const TABLE_ORDER_TYPES = ["DINE_IN"];
+// The only direct-payment methods the hotel accepts (others stay in the table for history).
+export const SUPPORTED_PAYMENT_METHODS = ["CASH", "GCASH", "MAYA"];
 export const ORDER_STATUSES = [
   "OPEN", "IN_PROGRESS", "AWAITING_SETTLEMENT", "SETTLING", "CHARGE_FAILED",
   "COMPLETED", "VOIDED", "PARTIALLY_REFUNDED", "REFUNDED",
@@ -41,6 +47,8 @@ export const Order = sequelize.define("Order", {
   settlementType: { type: DataTypes.ENUM("DIRECT_PAYMENT", "ROOM_CHARGE") },
   status: { type: DataTypes.ENUM(...ORDER_STATUSES), allowNull: false, defaultValue: "OPEN" },
   tableOrLocation: { type: DataTypes.STRING(60) },
+  outletTableId: { type: DataTypes.INTEGER.UNSIGNED },
+  roomNumber: { type: DataTypes.STRING(20) },
   guestCount: { type: DataTypes.SMALLINT.UNSIGNED },
   notes: { type: DataTypes.STRING(500) },
   idempotencyKey: { type: DataTypes.STRING(100), unique: true },

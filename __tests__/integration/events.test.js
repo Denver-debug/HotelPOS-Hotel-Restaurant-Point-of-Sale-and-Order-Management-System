@@ -2,7 +2,7 @@
 // concurrent dispatchers and the pull feed.
 import http from "http";
 import crypto from "crypto";
-import { startApp, Client, uuid } from "./harness.js";
+import { startApp, SETUP_TIMEOUT_MS, Client, uuid } from "./harness.js";
 import { publishPending, webhookPublisher, retryEvents, signWebhook, backoffMs } from "../../integrations/events/eventPublisher.js";
 
 let ctx;
@@ -39,7 +39,7 @@ function receiver() {
 }
 
 async function cashSale(quantity = "1") {
-  const created = await cashier.post("/api/orders", { outletId: ids.rs01, productId: ids.water, quantity });
+  const created = await cashier.post("/api/orders", { outletId: ids.rs01, roomNumber: "205", productId: ids.water, quantity });
   const id = created.data.order.id;
   await cashier.post(`/api/orders/${id}/request-settlement`);
   const total = (await cashier.get(`/api/orders/${id}`)).data.order.totalAmount;
@@ -58,7 +58,7 @@ beforeAll(async () => {
   admin = await new Client(ctx.base).login("admin");
   expect((await cashier.form("/shifts/open", { outletId: ids.rs01, openingCash: "500.00" })).status).toBe(302);
   await cashier.refreshCsrf();
-});
+}, SETUP_TIMEOUT_MS);
 
 afterAll(async () => {
   await ctx?.stop();
@@ -79,7 +79,7 @@ describe("What is recorded", () => {
   });
 
   test("voids, shifts, price changes and stock movements are recorded", async () => {
-    const created = await cashier.post("/api/orders", { outletId: ids.rs01, productId: ids.water, quantity: "1" });
+    const created = await cashier.post("/api/orders", { outletId: ids.rs01, roomNumber: "205", productId: ids.water, quantity: "1" });
     await cashier.post(`/api/orders/${created.data.order.id}/void`, { reason: "Guest left", supervisorUsername: "supervisor01", supervisorPassword: "TestPass123" });
     await admin.form(`/products/${ids.salad}/prices`, { outletId: String(ids.rs01), price: "440.00", isAvailable: "1" });
     const [item] = await q("SELECT id FROM inventory_items WHERE sku = 'INV-BV-004'");

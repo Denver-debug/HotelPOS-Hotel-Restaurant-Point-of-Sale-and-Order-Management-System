@@ -7,15 +7,16 @@ Status reflects the final implementation. **Tested** means covered by the automa
 |---|---|---|---|---|
 | F17 REQ-1, F2, F9-2.0, F10 | Manage catalog, outlet prices, price history | Products, Categories, Outlets | products, categories, outlets, product_prices, taxes | Implemented |
 | F17 REQ-2, F7, F8, F12-1.0, TC-02 | Create order with items; total 850.00 | POS terminal, Orders | orders, order_items | Implemented, tested (TC-02) |
+| F2, F7, F8 | Every order records where it is served: dine-in → a table from the outlet's list; room service / minibar → a guest room checked with the PMS | POS terminal, Orders, Outlet tables | outlet_tables, orders.outlet_table_id, orders.room_number | Implemented, tested |
 | F17 REQ-3, F12-2.0, F11, F15 | Validate room and active folio through PMS; invalid → direct payment | Guest room charges, PMS adapter | guest_charges, integration_logs | Implemented, tested (mock PMS) |
-| F17 REQ-4, F10, F13 | Direct payment (cash/card/e-wallet/bank); declined → back to settlement | Payments, payment adapter | payments, payment_methods | Implemented, tested (mock gateway) |
+| F17 REQ-4, F10, F13 | Direct payment: Cash, GCash or Maya (e-wallets need the reference number); declined → back to settlement | Payments, payment adapter | payments, payment_methods | Implemented, tested (mock gateway) |
 | F17 REQ-5, F12-3.0, F13, TC-05 | Post room charge, store PMS-TX, retry ≤ 3, idempotent | Guest room charges | guest_charges | Implemented, tested (TC-05, timeout/retry) |
 | F17 REQ-6, F2, F14-3.4, F16 | Deduct stock once on completion (Iced Tea 40 → 38) | Inventory | inventory_items, stock_levels, product_recipes, inventory_transactions, stock_locations | Implemented, tested (40 → 38) |
 | F17 REQ-7, F11, F14-3.5 | Receipt; "CHARGED TO ROOM 205"; guest signature | Receipts | receipts | Implemented, tested |
 | F17 REQ-8, F9-8.0, F10 | Sales/shift reports and audit | Reports, Audit logs | audit_logs | Implemented (13 reports, CSV export) |
 | F17 REQ-9, F1, F2, TC-09 | No PMS/HR master data copies | All | external_* columns only | Implemented, tested (TC-09) |
 | F9-1.0, F10 | Login validates employee with HR | Auth, HR adapter | users.external_employee_id | Done (mock HR) |
-| F2, F9-1.0, F10 | Open/close shift, expected vs actual cash, variance | Cashier shifts | shifts | Implemented, tested (variance) |
+| F2, F9-1.0, F10 | Open/close shift, expected vs actual cash, variance; no close while unpaid orders are open unless handed over with a note (audited) | Cashier shifts | shifts, audit_logs | Implemented, tested (variance, hand-over) |
 | F2, F10, F13 | Discounts; supervisor authorization | Discounts | discounts, order_discounts, discount_products, discount_outlets | Implemented |
 | F10, F13 | Void [supervisor]; refund to payment method; restock | Refunds & voids | refunds, refund_items | Implemented, tested |
 | F15 | Publish OrderCompleted event | Integration events (outbox) | integration_events | Implemented (mock publisher) |
@@ -35,3 +36,5 @@ Status reflects the final implementation. **Tested** means covered by the automa
 7. **Guest name** is shown live from the PMS at confirmation and never persisted (TC-09).
 8. **Tax**: 12% VAT inclusive (F5: 850.00 VAT-inclusive) and a per-outlet service charge rate (0% for room service).
 9. **Infrastructure** in F1/F4 is not part of the application code base.
+10. **Where an order is served.** The diagrams carry a free-text table/location. HotelPOS uses an outlet table list (dine-in) and a PMS-checked room number (room service, minibar), so an unpaid order always shows where it went. `table_or_location` keeps the printed label.
+11. **Payment methods.** F10/F13 list card, e-wallet and bank transfer. The hotel accepts Cash, GCash and Maya only; the other methods are kept inactive for history.

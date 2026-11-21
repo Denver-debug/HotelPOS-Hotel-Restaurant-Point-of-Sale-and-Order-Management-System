@@ -396,6 +396,60 @@
     tiles[Math.min(target, tiles.length - 1)].focus();
   }
 
+  // ── Where the order is served ────────────────────────────────────────────
+  // Room service / minibar: the guest's room number (the server checks it with the PMS).
+  // Other types: a table from this outlet's list; dine-in orders must have one.
+  const isRoomType = (type) => boot.roomOrderTypes.includes(type);
+  const needsTable = (type) => boot.tableOrderTypes.includes(type);
+  const locationSelector = () => (isRoomType($("#order-type").value) ? "#order-room" : "#order-table");
+
+  // Rebuilds the table options, keeping the current choice. A table switched off after the
+  // order was seated is still shown for that order.
+  function renderTableOptions(order) {
+    const select = $("#order-table");
+    const keep = select.value;
+    const tables = [...boot.tables];
+    if (order?.tableId && !tables.some((t) => String(t.id) === String(order.tableId))) {
+      tables.push({ id: order.tableId, label: order.tableOrLocation || `Table ${order.tableId}`, area: null, seats: null });
+    }
+    const placeholder = needsTable($("#order-type").value) ? (tables.length ? "Choose table…" : "No tables set up") : "No table";
+    select.innerHTML =
+      `<option value="">${placeholder}</option>` +
+      tables
+        .map((t) => `<option value="${t.id}">${esc(t.label)}${t.area ? ` · ${esc(t.area)}` : ""}${t.seats ? ` (${t.seats})` : ""}</option>`)
+        .join("");
+    select.value = tables.some((t) => String(t.id) === keep) ? keep : "";
+  }
+
+  function renderLocation(order) {
+    renderTableOptions(order);
+    const room = isRoomType($("#order-type").value);
+    $("#order-room").classList.toggle("hidden", !room);
+    $("#order-table").classList.toggle("hidden", room);
+    if (order) {
+      $("#order-table").value = order.tableId ? String(order.tableId) : "";
+      $("#order-room").value = order.roomNumber || "";
+    }
+    const locked = Boolean(order && !order.editable);
+    $("#order-table").disabled = locked;
+    $("#order-room").disabled = locked;
+  }
+
+  const locationPayload = () =>
+    isRoomType($("#order-type").value) ? { roomNumber: $("#order-room").value.trim() } : { tableId: $("#order-table").value || null };
+
+  // Why the order cannot be saved with the chosen type and location, or null.
+  function locationProblem() {
+    const type = $("#order-type").value;
+    if (isRoomType(type) && !$("#order-room").value.trim()) return `Enter the guest's room number for this ${humanize(type).toLowerCase()} order.`;
+    if (needsTable(type) && !$("#order-table").value) {
+      return boot.tables.length
+        ? `Choose the table for this ${humanize(type).toLowerCase()} order.`
+        : `${boot.outlet.name} has no tables set up. Ask an administrator to add them under Outlets → Tables.`;
+    }
+    return null;
+  }
+
   // ── Order ────────────────────────────────────────────────────────────────
   function setOrder(order) {
     S.order = order;
@@ -419,9 +473,8 @@
     $("#order-number").textContent = o ? o.orderNumber : "New order";
     $("#order-status").innerHTML = o ? `<span class="badge ${STATUS_COLORS[o.status] || "badge-slate"}">${esc(humanize(o.status))}</span>` : "";
     $("#order-type").value = o ? o.orderType : $("#order-type").value;
-    $("#order-location").value = o ? o.tableOrLocation || "" : $("#order-location").value;
     $("#order-type").disabled = Boolean(o && !o.editable);
-    $("#order-location").disabled = Boolean(o && !o.editable);
+    renderLocation(o);
 
     const items = o ? o.items : [];
     const locked = Boolean(o) && !o.editable;
@@ -523,16 +576,25 @@
     return enqueue(async () => {
       if (S.order && !S.order.editable) {
         toast(`Order ${S.order.orderNumber} is ${humanize(S.order.status).toLowerCase()}. Starting a new order.`, "info");
+        // The next order is for other guests: its table or room is chosen again.
+        $("#order-table").value = "";
+        $("#order-room").value = "";
         setOrder(null);
       }
       const problem = stockProblem(productId, qty);
       if (problem) return toast(problem, "warning");
+      // A new order needs to know where it goes before the first item is sent.
+      const missing = !S.order && locationProblem();
+      if (missing) {
+        toast(missing, "warning");
+        return focusField(locationSelector());
+      }
       const res = S.order
         ? await api("POST", `/api/orders/${S.order.id}/items`, { productId, quantity: qty })
         : await api("POST", "/api/orders", {
             outletId: boot.outlet.id,
             orderType: $("#order-type").value,
-            tableOrLocation: $("#order-location").value,
+            ...locationPayload(),
             productId,
             quantity: qty,
           });
@@ -570,11 +632,33 @@
     });
   }
 
+  // Saves the order type and location; nothing is sent until the location is complete.
   async function updateHeader() {
     if (!S.order || !S.order.editable) return;
-    await enqueue(async () =>
-      setOrder((await api("PATCH", `/api/orders/${S.order.id}`, { orderType: $("#order-type").value, tableOrLocation: $("#order-location").value })).order)
-    );
+    const problem = locationProblem();
+    if (problem) {
+      toast(problem, "warning");
+      return focusField(locationSelector());
+    }
+    await enqueue(async () => {
+      try {
+        setOrder((await api("PATCH", `/api/orders/${S.order.id}`, { orderType: $("#order-type").value, ...locationPayload() })).order);
+      } catch (err) {
+        renderOrder(); // show what is saved again
+        throw err;
+      }
+    });
+  }
+
+  // A new type may need a different kind of location (table ↔ room): show it, then save.
+  function changeOrderType() {
+    renderLocation(S.order);
+    const problem = locationProblem();
+    if (problem) {
+      if (S.order?.editable) toast(`${problem} The change is saved once it is filled in.`, "info");
+      return focusField(locationSelector());
+    }
+    updateHeader();
   }
 
   async function loadOrder(id) {
@@ -588,7 +672,8 @@
   function newOrder() {
     return run(async () => {
       setOrder(null);
-      $("#order-location").value = "";
+      $("#order-table").value = "";
+      $("#order-room").value = "";
       $("#order-type").value = DEFAULT_TYPE[boot.outlet.outletType] || "OTHER";
       renderOrder();
       showView("products");
@@ -769,7 +854,7 @@
       await ensureAwaitingSettlement();
       S.room = { token: null, key: null, chargeId: S.order.guestCharge?.id || null };
       $("#room-amount").textContent = fmt(S.order.totalAmount);
-      $("#room-number").value = "";
+      $("#room-number").value = S.order.roomNumber || ""; // room service / minibar: the order's room
       $("#room-mock-note").classList.toggle("hidden", !boot.mocks.pms);
       showError("room-error", null);
       $("#room-verify").classList.add("hidden");
@@ -980,7 +1065,7 @@
       const notes = $("#note-text").value;
       const res = S.note.itemId
         ? await api("PATCH", `/api/orders/${S.order.id}/items/${S.note.itemId}`, { notes })
-        : await api("PATCH", `/api/orders/${S.order.id}`, { notes, orderType: S.order.orderType, tableOrLocation: S.order.tableOrLocation });
+        : await api("PATCH", `/api/orders/${S.order.id}`, { notes });
       setOrder(res.order);
       closeModal("modal-note");
     } catch (err) {
@@ -1223,7 +1308,7 @@
     // Order
     R({ id: "order-note", keys: ["Shift+F9"], group: G.order, label: "Order note", enabled: can.note, run: () => startNote(null) });
     R({ id: "order-type", keys: ["Alt+T"], group: G.order, label: "Order type", run: () => focusField("#order-type") });
-    R({ id: "order-location", keys: ["Alt+L"], group: G.order, label: "Table / room / location", run: () => focusField("#order-location") });
+    R({ id: "order-location", keys: ["Alt+L"], group: G.order, label: "Table / guest room", run: () => focusField(locationSelector()) });
     R({ id: "discount", keys: ["F7"], group: G.order, label: "Apply a discount", enabled: can.discount, run: startDiscount });
     R({ id: "discount-remove", keys: ["Shift+F7"], group: G.order, label: "Remove the order (or line) discount", enabled: () => canWrite() && editable() && S.order.discounts.length > 0, run: removeCurrentDiscount });
     R({ id: "open-orders", keys: ["F6"], group: G.order, label: "Open orders (resume one)", enabled: () => !S.blocked, run: showOpenOrders });
@@ -1384,8 +1469,9 @@
       S.search = e.target.value;
       renderProducts();
     });
-    $("#order-type").addEventListener("change", updateHeader);
-    $("#order-location").addEventListener("change", updateHeader);
+    $("#order-type").addEventListener("change", changeOrderType);
+    $("#order-table").addEventListener("change", updateHeader);
+    $("#order-room").addEventListener("change", updateHeader);
     wireLocalKeys();
 
     document.addEventListener("click", (e) => {

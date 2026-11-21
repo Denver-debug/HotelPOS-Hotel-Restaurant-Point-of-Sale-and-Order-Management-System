@@ -10,6 +10,7 @@ import { Op } from "sequelize";
 import {
   sequelize, Refund, RefundItem, Order, OrderItem, Payment, PaymentMethod, GuestCharge, Outlet, User,
 } from "../models/index.js";
+import { SUPPORTED_PAYMENT_METHODS } from "../models/salesModel.js";
 import { AppError, notFound, forbidden } from "../utils/http.js";
 import { toCents, fromCents, toMilli, fromMilli, roundCents } from "../utils/money.js";
 import * as v from "../utils/validate.js";
@@ -107,6 +108,9 @@ export async function requestRefund(req, rawOrderId, body) {
       guestChargeId = charge.id;
     } else {
       const method = refundMethodId ? await PaymentMethod.findByPk(refundMethodId, { transaction }) : null;
+      if (refundMethodId && (!method || method.status !== "ACTIVE" || !SUPPORTED_PAYMENT_METHODS.includes(method.code))) {
+        throw new AppError("Refund to Cash, GCash or Maya.", 422, "PAYMENT_METHOD_INACTIVE");
+      }
       const original = order.payments.filter((p) => toCents(p.amount) - toCents(p.refundedAmount) > 0);
       if (!original.length) throw new AppError("No refundable payment found on this order.", 409, "NOTHING_TO_REFUND");
       const chosen = method || original[0].method;

@@ -46,12 +46,14 @@ export const show = async (req, res) => {
   const shift = (await shiftService.getShift(req, req.params.id)).get({ plain: true });
   const summary = await shiftService.shiftSummary(shift);
   const isOwner = shift.userId === req.user.id;
+  const canClose = shift.status === "OPEN" && (isOwner || can(req, "shifts.manage"));
   res.render("shifts/show", {
     title: `Shift ${shift.shiftNumber}`,
     breadcrumbs: crumbs(shift.shiftNumber),
     shift,
     summary,
-    canClose: shift.status === "OPEN" && (isOwner || can(req, "shifts.manage")),
+    unsettled: canClose ? await shiftService.unsettledOrders(shift) : [],
+    canClose,
     canReconcile: shift.status === "CLOSED" && !isOwner && can(req, "shifts.manage"),
     print: req.query.print === "1",
   });
@@ -60,7 +62,9 @@ export const show = async (req, res) => {
 export const close = async (req, res) => {
   const shift = await shiftService.closeShift(req, req.params.id, req.body);
   const variance = Number(shift.cashVariance);
-  req.flash("success_msg", `Shift ${shift.shiftNumber} closed. Cash variance: ${variance === 0 ? "none" : shift.cashVariance}.`);
+  const count = shift.handedOverOrders.length;
+  const handedOver = count ? ` ${count} open order${count === 1 ? " was" : "s were"} handed over to the next shift.` : "";
+  req.flash("success_msg", `Shift ${shift.shiftNumber} closed. Cash variance: ${variance === 0 ? "none" : shift.cashVariance}.${handedOver}`);
   res.redirect(`/shifts/${shift.id}`);
 };
 

@@ -1,6 +1,7 @@
 import { paymentMethods } from "../services/lookupService.js";
-import { ORDER_TYPES } from "../models/salesModel.js";
+import { ORDER_TYPES, ROOM_ORDER_TYPES, TABLE_ORDER_TYPES, SUPPORTED_PAYMENT_METHODS } from "../models/salesModel.js";
 import * as productService from "../services/productService.js";
+import { listTables, tableDto } from "../services/outletTableService.js";
 import { getSetting } from "../services/settingsService.js";
 import { forbidden } from "../utils/http.js";
 import { can } from "../middleware/auth.js";
@@ -24,7 +25,8 @@ export const terminal = async (req, res) => {
   }
   const catalog = await productService.outletCatalog(outlet.id);
   const categories = [...new Map(catalog.map((p) => [p.categoryId, { id: p.categoryId, name: p.categoryName }])).values()];
-  const methods = await paymentMethods({ activeOnly: true });
+  const methods = (await paymentMethods({ activeOnly: true })).filter((m) => SUPPORTED_PAYMENT_METHODS.includes(m.code));
+  const tables = await listTables(outlet.id, { activeOnly: true });
   const requireShift = await getSetting("require_shift_for_settlement", true);
 
   res.render("pos/terminal", {
@@ -38,6 +40,9 @@ export const terminal = async (req, res) => {
       categories,
       paymentMethods: methods.map((m) => ({ id: m.id, code: m.code, name: m.name, isCash: m.isCash, usesGateway: m.usesGateway, requiresReference: m.requiresReference })),
       orderTypes: ORDER_TYPES,
+      roomOrderTypes: ROOM_ORDER_TYPES,
+      tableOrderTypes: TABLE_ORDER_TYPES,
+      tables: tables.map(tableDto),
       resumeOrderId: Number(req.query.orderId) || null,
       currency: config.currencySymbol,
       shift: req.openShift ? { id: req.openShift.id, number: req.openShift.shiftNumber, outletId: req.openShift.outletId } : null,

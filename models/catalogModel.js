@@ -14,6 +14,16 @@ export const Outlet = sequelize.define("Outlet", {
   status: { type: DataTypes.ENUM("ACTIVE", "INACTIVE"), allowNull: false, defaultValue: "ACTIVE" },
 }, { tableName: "outlets" });
 
+// Tables / seats / treatment rooms of an outlet: where a dine-in order is served.
+export const OutletTable = sequelize.define("OutletTable", {
+  outletId: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
+  label: { type: DataTypes.STRING(30), allowNull: false },
+  area: { type: DataTypes.STRING(40) },
+  seats: { type: DataTypes.SMALLINT.UNSIGNED },
+  sortOrder: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
+  status: { type: DataTypes.ENUM("ACTIVE", "INACTIVE"), allowNull: false, defaultValue: "ACTIVE" },
+}, { tableName: "outlet_tables" });
+
 export const Category = sequelize.define("Category", {
   name: { type: DataTypes.STRING(80), allowNull: false, unique: true },
   description: { type: DataTypes.STRING(255) },

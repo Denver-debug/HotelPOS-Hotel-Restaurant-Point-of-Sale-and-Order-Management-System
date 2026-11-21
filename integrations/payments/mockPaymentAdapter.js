@@ -1,4 +1,4 @@
-// MOCK payment gateway for development. No card, e-wallet or bank is contacted.
+// MOCK payment gateway (GCash / Maya) for development. No e-wallet provider is contacted.
 // Simulation rules (by payment reference):
 //   "DECLINE"  -> declined by the issuer
 //   "TIMEOUT"  -> captured, but the response is lost (tests verify-before-retry)
@@ -21,7 +21,7 @@ export class MockPaymentAdapter {
 
     const ref = String(reference || "").toUpperCase();
     if (ref === "DECLINE") {
-      return this.ledger.set(idempotencyKey, { status: "DECLINED", reason: "Card declined by issuer (mock).", amount });
+      return this.ledger.set(idempotencyKey, { status: "DECLINED", reason: "Payment declined by the e-wallet provider (mock).", amount });
     }
     const result = this.ledger.set(idempotencyKey, {
       status: "CAPTURED",

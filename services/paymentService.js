@@ -1,10 +1,11 @@
-// Direct payments (cash, card, e-wallet, bank transfer, other).
+// Direct payments: cash, and the GCash / Maya e-wallets (SUPPORTED_PAYMENT_METHODS).
 // Cash and reference-only methods are captured locally in one DB transaction.
 // Gateway methods follow F13: Payment Processing (PENDING, order SETTLING) → provider →
 // Paid (CAPTURED) or declined() back to Awaiting Settlement. A lost response leaves the
 // payment PENDING until it is verified with the provider — it is never blindly re-sent.
 import { Op, UniqueConstraintError } from "sequelize";
 import { sequelize, Order, Payment, PaymentMethod, GuestCharge, Outlet, User, Receipt } from "../models/index.js";
+import { SUPPORTED_PAYMENT_METHODS } from "../models/salesModel.js";
 import { AppError, notFound, forbidden } from "../utils/http.js";
 import { toCents, fromCents } from "../utils/money.js";
 import * as v from "../utils/validate.js";
@@ -91,7 +92,9 @@ export async function processPayment(req, orderId, body) {
   if (previous) return replayPayment(previous, orderId);
 
   const method = await PaymentMethod.findByPk(paymentMethodId);
-  if (!method || method.status !== "ACTIVE") throw new AppError("Select an active payment method.", 422, "PAYMENT_METHOD_INACTIVE");
+  if (!method || method.status !== "ACTIVE" || !SUPPORTED_PAYMENT_METHODS.includes(method.code)) {
+    throw new AppError("Select an active payment method: Cash, GCash or Maya.", 422, "PAYMENT_METHOD_INACTIVE");
+  }
   if (method.requiresReference && !reference) throw new AppError(`${method.name} requires a reference number.`, 422, "REFERENCE_REQUIRED");
 
   const gateway = method.usesGateway ? getPaymentGateway() : null;

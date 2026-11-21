@@ -13,9 +13,11 @@
     <select id="order-type" class="input h-10 text-sm sm:pr-14" aria-label="Order type" data-shortcut="order-type" data-shortcut-hint="none"></select>
     <span class="pointer-events-none absolute inset-y-0 right-7 hidden items-center text-slate-500 sm:flex" data-kbd-for="order-type"></span>
   </div>
+  {{!-- Where the order is served: a table from the outlet's list, or the guest's room (room service / minibar). --}}
   <div class="relative">
-    <input id="order-location" class="input h-10 text-sm sm:pr-12" placeholder="Table / room" maxlength="60" aria-label="Table or location" data-shortcut="order-location" data-shortcut-hint="none">
-    <span class="pointer-events-none absolute inset-y-0 right-2 hidden items-center text-slate-500 sm:flex" data-kbd-for="order-location"></span>
+    <select id="order-table" class="input h-10 text-sm sm:pr-14" aria-label="Table" data-shortcut="order-location" data-shortcut-hint="none"></select>
+    <input id="order-room" class="input hidden h-10 text-sm sm:pr-14" placeholder="Guest room no." maxlength="20" inputmode="numeric" autocomplete="off" aria-label="Guest room number" data-shortcut="order-location" data-shortcut-hint="none">
+    <span class="pointer-events-none absolute inset-y-0 right-7 hidden items-center text-slate-500 sm:flex" data-kbd-for="order-location"></span>
   </div>
 </div>
 

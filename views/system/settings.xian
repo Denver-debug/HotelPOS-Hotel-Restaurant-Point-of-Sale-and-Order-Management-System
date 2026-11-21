@@ -36,7 +36,7 @@
 </div>
 
 <div class="card mt-6" id="payment-methods">
-  <div class="card-header"><h3 class="card-title">Payment methods</h3><span class="text-xs text-slate-500">Card / e-wallet methods use the payment gateway adapter</span></div>
+  <div class="card-header"><h3 class="card-title">Payment methods</h3><span class="text-xs text-slate-500">Cash, GCash and Maya. GCash and Maya go through the payment gateway adapter</span></div>
   <div class="hidden gap-3 border-b border-slate-200 bg-slate-100 px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 md:grid md:grid-cols-[5rem_minmax(0,1fr)_7rem_8rem_5rem_8rem_5rem]" aria-hidden="true">
     <span>Code</span><span>Name</span><span>Type</span><span>Reference</span><span>Order</span><span>Status</span><span></span>
   </div>

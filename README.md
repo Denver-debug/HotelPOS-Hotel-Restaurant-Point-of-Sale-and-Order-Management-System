@@ -36,6 +36,14 @@ The seed prints the generated passwords once and also appends them to `storage/s
 
 The other mock rooms (101, 102, 103, 404, 306, 999) exercise each failure path. See `docs/INTEGRATIONS.md`.
 
+### Where orders are served
+
+- **Dine-in** orders must pick a table from the outlet's list. Manage the list under **Outlets → (outlet) → Tables**. The seed adds T1–T8 and P1–P4 to The Garden Restaurant, Bar 1–6 and Lounge 1–4 to the Lobby Bar, and three treatment rooms to the Spa.
+- **Room service** and **minibar** orders need the guest's room number, checked with the PMS when the order is taken. Charge to Room is then filled in with that room.
+- A cashier can't close a shift while unpaid orders are open at the outlet. They settle or void them, or tick **Hand over to the next shift** and write a note. The hand-over is audited, and the orders then block the next shift's close until someone deals with them.
+
+Direct payments are **Cash, GCash and Maya** (GCash and Maya need the reference number). See `docs/INTEGRATIONS.md` for connecting a real e-wallet provider.
+
 ## Scripts
 
 | Command | Purpose |
@@ -58,4 +66,4 @@ After pulling new code, run `npm run migrate` before starting the app.
 - `docs/POS-SHORTCUTS.md`: every POS terminal keyboard shortcut (also on screen: press F1)
 - `docs/AUDIT.md`: the system audit, what was fixed and what was deferred
 
-> **Mock integrations:** the PMS, payment provider, HR system and event bus are simulated by clearly labelled MOCK adapters. No real card or e-wallet processing and no real folio posting happens until the real adapters are configured.
+> **Mock integrations:** the PMS, payment provider, HR system and event bus are simulated by clearly labelled MOCK adapters. No real GCash or Maya payment and no real folio posting happens until the real adapters are configured.

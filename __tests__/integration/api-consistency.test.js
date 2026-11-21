@@ -1,6 +1,6 @@
 // API correctness: error envelope and codes, request ids, idempotent replays under
 // concurrency, database-backed room validation and outlet scoping.
-import { startApp, Client, uuid } from "./harness.js";
+import { startApp, SETUP_TIMEOUT_MS, Client, uuid } from "./harness.js";
 
 let ctx;
 let cashier;
@@ -11,7 +11,7 @@ const ids = {};
 const q = (sql, replacements = {}) => ctx.models.sequelize.query(sql, { replacements, type: "SELECT" });
 
 async function settledOrder(client = cashier, productId = ids.water, quantity = "1") {
-  const created = await client.post("/api/orders", { outletId: ids.rs01, productId, quantity });
+  const created = await client.post("/api/orders", { outletId: ids.rs01, roomNumber: "205", productId, quantity });
   expect(created.status).toBe(201);
   const settled = await client.post(`/api/orders/${created.data.order.id}/request-settlement`);
   expect(settled.status).toBe(200);
@@ -24,7 +24,7 @@ beforeAll(async () => {
   ids.mb01 = (await q("SELECT id FROM outlets WHERE code = 'MB-01'"))[0].id;
   ids.water = (await q("SELECT id FROM products WHERE code = 'BV-004'"))[0].id;
   ids.cash = (await q("SELECT id FROM payment_methods WHERE code = 'CASH'"))[0].id;
-  ids.card = (await q("SELECT id FROM payment_methods WHERE code = 'CREDIT_CARD'"))[0].id;
+  ids.gcash = (await q("SELECT id FROM payment_methods WHERE code = 'GCASH'"))[0].id;
   ids.waterItem = (await q("SELECT id FROM inventory_items WHERE sku = 'INV-BV-004'"))[0].id;
   cashier = await new Client(ctx.base).login("cashier01");
   supervisor = await new Client(ctx.base).login("supervisor01");
@@ -32,7 +32,7 @@ beforeAll(async () => {
   inventory = await new Client(ctx.base).login("inventory01");
   expect((await cashier.form("/shifts/open", { outletId: ids.rs01, openingCash: "1000.00" })).status).toBe(302);
   await cashier.refreshCsrf();
-});
+}, SETUP_TIMEOUT_MS);
 
 afterAll(async () => {
   await ctx?.stop();
@@ -92,7 +92,7 @@ describe("Idempotent payments", () => {
 
   test("replaying a declined payment's key returns the same decline", async () => {
     const order = await settledOrder();
-    const body = { paymentMethodId: ids.card, amount: "90.00", reference: "DECLINE", idempotencyKey: uuid() };
+    const body = { paymentMethodId: ids.gcash, amount: "90.00", reference: "DECLINE", idempotencyKey: uuid() };
     const first = await cashier.post(`/api/orders/${order.id}/payments`, body);
     const again = await cashier.post(`/api/orders/${order.id}/payments`, body);
     expect(first.status).toBe(402);

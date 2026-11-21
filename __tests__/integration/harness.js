@@ -5,6 +5,9 @@ import path from "path";
 import { config } from "../../config/env.js";
 
 export const PASSWORD = "TestPass123";
+// Rebuilding the database, starting the app and signing users in takes 15–30 s (more for the
+// first file of a run); the 30 s per-test limit stays for the tests themselves.
+export const SETUP_TIMEOUT_MS = 120000;
 
 export async function startApp() {
   if (!config.isTest || !/test/i.test(config.db.name)) throw new Error(`Refusing to run against non-test database ${config.db.name}`);

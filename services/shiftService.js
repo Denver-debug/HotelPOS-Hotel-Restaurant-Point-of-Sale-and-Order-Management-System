@@ -1,5 +1,7 @@
 // Cashier shifts: open with a cash float, close with a cash count, reconcile.
 // Expected cash = opening cash + captured cash payments − processed cash refunds.
+// A shift cannot close while unpaid orders would be left with nobody responsible for them,
+// unless the cashier hands them over to the next shift with a note (audited).
 import { Op, QueryTypes } from "sequelize";
 import { sequelize, Shift, Outlet, User } from "../models/index.js";
 import { recordEvent } from "../integrations/events/eventPublisher.js";
@@ -78,6 +80,29 @@ export async function shiftSummary(shift) {
   };
 }
 
+// Unpaid orders (with at least one item) at the shift's outlet that nobody looks after once
+// it closes: the shift's own, and those left on an already closed shift (handed over) or
+// taken without a shift. Orders on another cashier's open shift are that cashier's.
+export async function unsettledOrders(shift, transaction) {
+  const rows = await sequelize.query(
+    `SELECT o.id, o.order_number, o.status, o.order_type, o.table_or_location, o.total_amount, o.created_at, u.full_name AS created_by,
+            o.shift_id = :id AS own
+       FROM orders o
+       JOIN users u ON u.id = o.created_by
+       LEFT JOIN shifts s ON s.id = o.shift_id
+      WHERE o.outlet_id = :outletId
+        AND o.status IN ('OPEN','IN_PROGRESS','AWAITING_SETTLEMENT','SETTLING','CHARGE_FAILED')
+        AND (o.shift_id = :id OR o.shift_id IS NULL OR s.status <> 'OPEN')
+        AND EXISTS (SELECT 1 FROM order_items i WHERE i.order_id = o.id)
+      ORDER BY o.created_at`,
+    { replacements: { id: shift.id, outletId: shift.outletId }, type: QueryTypes.SELECT, transaction }
+  );
+  return rows.map((r) => ({
+    id: r.id, orderNumber: r.order_number, status: r.status, orderType: r.order_type, tableOrLocation: r.table_or_location,
+    totalAmount: r.total_amount, createdAt: r.created_at, createdBy: r.created_by, ownShift: Boolean(Number(r.own)),
+  }));
+}
+
 const assertCanActOn = (req, shift) => {
   if (shift.userId === req.user.id) return;
   if (!req.permissions.has("shifts.manage")) throw forbidden("Only a supervisor can close another cashier's shift.");
@@ -87,6 +112,7 @@ const assertCanActOn = (req, shift) => {
 export async function closeShift(req, id, body) {
   const actualCash = v.money(body.actualCash, "Actual cash count", { min: 0 });
   const closingNotes = v.str(body.closingNotes, "Notes", { max: 255 });
+  const handOver = v.bool(body.handOver);
 
   return sequelize.transaction(async (transaction) => {
     const shift = await Shift.findByPk(id, { transaction, lock: transaction.LOCK.UPDATE });
@@ -103,6 +129,21 @@ export async function closeShift(req, id, body) {
       throw new AppError("This shift has payments or room charges still being processed. Resolve them before closing.", 409, "SETTLEMENT_IN_PROGRESS");
     }
 
+    const unsettled = await unsettledOrders(shift, transaction);
+    const numbers = unsettled.map((o) => o.orderNumber);
+    if (unsettled.length && !handOver) {
+      const list = numbers.slice(0, 5).join(", ") + (numbers.length > 5 ? ` and ${numbers.length - 5} more` : "");
+      throw new AppError(
+        `${unsettled.length} unpaid order${unsettled.length === 1 ? " is" : "s are"} still open at this outlet (${list}). Settle or void ${unsettled.length === 1 ? "it" : "them"}, or hand ${unsettled.length === 1 ? "it" : "them"} over to the next shift with a note.`,
+        409,
+        "UNSETTLED_ORDERS",
+        { orders: unsettled.map((o) => ({ id: o.id, orderNumber: o.orderNumber, status: o.status, tableOrLocation: o.tableOrLocation, totalAmount: o.totalAmount })) }
+      );
+    }
+    if (unsettled.length && !closingNotes) {
+      throw new AppError("Write a hand-over note for the next shift (who is still dining, what was promised).", 422, "HANDOVER_NOTE_REQUIRED", { field: "closingNotes" });
+    }
+
     const { expected } = await expectedCash(shift, transaction);
     const variance = fromCents(toCents(actualCash) - toCents(expected));
     await shift.update(
@@ -110,13 +151,21 @@ export async function closeShift(req, id, body) {
       { transaction }
     );
     await audit({ req, action: "SHIFT_CLOSED", entityType: "shift", entityId: id, newValues: { expectedCash: expected, actualCash, cashVariance: variance }, transaction });
+    if (unsettled.length) {
+      await audit({
+        req, action: "SHIFT_ORDERS_HANDED_OVER", entityType: "shift", entityId: id,
+        newValues: { note: closingNotes, orders: unsettled.map((o) => ({ orderNumber: o.orderNumber, status: o.status, tableOrLocation: o.tableOrLocation, totalAmount: o.totalAmount })) },
+        transaction,
+      });
+    }
     await recordEvent(
       "ShiftClosed",
       "shift",
       shift.id,
-      { shiftNumber: shift.shiftNumber, outletId: shift.outletId, cashierId: shift.userId, closedBy: req.user.id, currency: config.currencyCode, openingCash: shift.openingCash, expectedCash: expected, actualCash, cashVariance: variance, openedAt: shift.openedAt, closedAt: shift.closedAt },
+      { shiftNumber: shift.shiftNumber, outletId: shift.outletId, cashierId: shift.userId, closedBy: req.user.id, currency: config.currencyCode, openingCash: shift.openingCash, expectedCash: expected, actualCash, cashVariance: variance, openedAt: shift.openedAt, closedAt: shift.closedAt, handedOverOrders: numbers },
       transaction
     );
+    shift.handedOverOrders = numbers;
     return shift;
   });
 }

@@ -112,6 +112,10 @@ Codes you are likely to branch on:
 | | `INSUFFICIENT_STOCK` | 409 | `details.shortages` lists items, needed and available |
 | | `PRODUCT_UNAVAILABLE` | 422 | Product inactive or not sold at that outlet |
 | | `OUTLET_INACTIVE` | 422 | |
+| | `TABLE_REQUIRED` | 422 | A `DINE_IN` order needs `tableId` (one of `GET /outlets/{id}/tables`) |
+| | `TABLE_NOT_FOUND`, `TABLE_INACTIVE` | 422 | The table is not this outlet's, or is no longer in use |
+| | `ROOM_REQUIRED` | 422 | A `ROOM_SERVICE` or `MINIBAR` order needs `roomNumber` |
+| | `ROOM_NOT_FOUND`, `ROOM_VACANT` | 422 | The PMS has no such room, or nobody is checked in |
 | Payments | `NOT_SETTLEABLE` | 409 | Call `request-settlement` first |
 | | `SETTLEMENT_IN_PROGRESS` | 409 | Another payment or charge is still being processed (`details.paymentId` if known) |
 | | `ROOM_CHARGE_IN_PROGRESS` | 409 | A room charge is pending or posted |
@@ -129,6 +133,8 @@ Codes you are likely to branch on:
 | | `REFUND_METHOD_MISMATCH` | 422 | |
 | | `REFUND_FAILED`, `EXTERNAL_REJECTED` | 502 | The provider or PMS refused the reversal |
 | Shifts | `SHIFT_ALREADY_OPEN`, `SHIFT_NOT_OPEN`, `SHIFT_NOT_CLOSED`, `OPEN_SHIFTS` | 409 | |
+| | `UNSETTLED_ORDERS` | 409 | Unpaid orders are still open at the outlet (`details.orders`). Settle or void them, or close with `handOver: true` |
+| | `HANDOVER_NOTE_REQUIRED` | 422 | `handOver` needs `closingNotes` |
 | Stock | `NOTHING_TO_ADJUST` | 422 | Counted quantity equals the system quantity |
 | | `NO_STOCK_LOCATION` | 409 | The outlet has no default stock location |
 | Any | `IDEMPOTENCY_CONFLICT` | 409 | The key was already used for a different request |
@@ -166,8 +172,9 @@ Use a new UUID per business operation and reuse it only for retries of that oper
 | | Path | Permission | Notes |
 |---|---|---|---|
 | GET | `/outlets` | any | Outlets the client may use |
+| GET | `/outlets/{id}/tables` | any | The outlet's tables (`status` filter). Send a table's `id` as `tableId` on dine-in orders |
 | GET | `/categories` | products.view / products.manage / pos.access | `status`, sync params |
-| GET | `/payment-methods` | any | Codes such as `CASH`, `CREDIT_CARD` |
+| GET | `/payment-methods` | any | `CASH`, `GCASH` and `MAYA` are active. Retired methods are listed as `INACTIVE` so old payments still resolve |
 | GET | `/products` | products.view / products.manage | `outletId`, `categoryId`, `status`, `search`, sync params. Each product lists its current `prices[]` per outlet |
 
 ### Orders
@@ -175,9 +182,9 @@ Use a new UUID per business operation and reuse it only for retries of that oper
 | | Path | Permission | Notes |
 |---|---|---|---|
 | GET | `/orders` | orders.view | Full documents with lines, discounts, payments, room charge, receipts. Filters: `outletId`, `status`, `settlementType`, `externalReference`, sync params |
-| POST | `/orders` | orders.create | Creates the order **and its lines in one transaction**. Body: `outletId`, `orderType`, `tableOrLocation`, `guestCount`, `notes`, `externalReference` (your id), `items: [{productId, quantity, notes}]` (max 100). Prices always come from HotelPOS |
+| POST | `/orders` | orders.create | Creates the order **and its lines in one transaction**. Body: `outletId`, `orderType`, `tableId` or `roomNumber` (see below), `guestCount`, `notes`, `externalReference` (your id), `items: [{productId, quantity, notes}]` (max 100). Prices always come from HotelPOS |
 | GET | `/orders/{id}` | orders.view / pos.access | |
-| PATCH | `/orders/{id}` | orders.create | Header fields |
+| PATCH | `/orders/{id}` | orders.create | `orderType`, `tableId`, `roomNumber`, `guestCount`, `notes`. Only the fields you send change |
 | POST | `/orders/{id}/items` | orders.create | Adds a line; the same product with the same notes merges |
 | PATCH / DELETE | `/orders/{id}/items/{itemId}` | orders.create | Quantity `0` removes the line |
 | POST | `/orders/{id}/request-settlement` | orders.create | Locks the lines and checks stock |
@@ -189,11 +196,21 @@ Use a new UUID per business operation and reuse it only for retries of that oper
 
 Order lifecycle: `OPEN → IN_PROGRESS → AWAITING_SETTLEMENT → SETTLING → COMPLETED`, plus `CHARGE_FAILED`, `VOIDED`, `PARTIALLY_REFUNDED` and `REFUNDED`.
 
+**Where the order is served.** Every order says where it goes:
+
+| `orderType` | Send | Rule |
+|---|---|---|
+| `DINE_IN` | `tableId` | Required. One of the outlet's active tables |
+| `ROOM_SERVICE`, `MINIBAR` | `roomNumber` | Required. Checked with the PMS when the order is created or the room changes: unknown or vacant rooms are refused. A checked-in guest without a chargeable folio may still order and pays directly. If the PMS is down you get `503 PMS_UNAVAILABLE` and no order |
+| `TAKEOUT`, `SPA`, `OTHER` | `tableId` | Optional |
+
+Orders return `tableId`, `roomNumber` and `tableOrLocation` (the table's label, or `Room 205`, as printed on receipts). Older clients that send `tableOrLocation` as text still work: a table's name is matched to the outlet's list, and `Room 205` is read as room 205.
+
 ### Settlement
 
 | | Path | Permission | Notes |
 |---|---|---|---|
-| POST | `/orders/{id}/payments` | payments.process | `paymentMethodId`, `amount`, `tenderedAmount` (cash), `reference`; idempotent. Needs an open shift when the hotel requires one |
+| POST | `/orders/{id}/payments` | payments.process | `paymentMethodId` (Cash, GCash or Maya), `amount`, `tenderedAmount` (cash), `reference` (required for GCash and Maya: the e-wallet reference number); idempotent. Needs an open shift when the hotel requires one |
 | GET | `/payments` | payments.view | `outletId`, `status`, `methodId`, sync params |
 | POST | `/orders/{id}/room-charge/validate` | room_charges.process | `roomNumber` → PMS-validated room, guest **name for display**, folio, and a 5-minute single-use `token` |
 | POST | `/orders/{id}/room-charge` | room_charges.process | `validationToken`; idempotent. `outcome`: `POSTED`, `FAILED`, or `UNKNOWN` |

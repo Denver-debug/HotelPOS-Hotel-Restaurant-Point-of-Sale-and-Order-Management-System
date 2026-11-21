@@ -13,6 +13,7 @@ import * as receiptService from "../services/receiptService.js";
 import * as guestChargeService from "../services/guestChargeService.js";
 import * as inventoryService from "../services/inventoryService.js";
 import { REPORTS } from "../services/reportDefinitions.js";
+import { listTables, tableDto } from "../services/outletTableService.js";
 import * as S from "../services/serializers.js";
 import { listQuery, timeFilter, pageInfo, optionalId, outletFilter } from "../utils/apiList.js";
 import { parseDateRange } from "../utils/dates.js";
@@ -71,6 +72,15 @@ export const openapi = (req, res) => res.json(buildOpenApi({ version: pkg.versio
 export const outlets = async (req, res) => {
   const rows = await Outlet.findAll({ where: { id: { [Op.in]: req.user.outletIds.length ? req.user.outletIds : [-1] } }, order: [["name", "ASC"]] });
   res.json({ ok: true, outlets: rows.map(S.outlet) });
+};
+
+// GET /outlets/{id}/tables?status=ACTIVE — where dine-in orders are served (tableId on orders).
+export const outletTables = async (req, res) => {
+  const outletId = Number(req.params.id);
+  if (!req.user.outletIds.includes(outletId)) throw forbidden("You are not assigned to this outlet.");
+  const status = oneOf(req.query.status, ["ACTIVE", "INACTIVE"], "status");
+  const rows = (await listTables(outletId)).filter((t) => !status || t.status === status);
+  res.json({ ok: true, tables: rows.map(tableDto) });
 };
 
 export const categories = async (req, res) => {

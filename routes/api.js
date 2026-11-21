@@ -28,6 +28,7 @@ router.get("/me", requireAuth, asyncHandler(api.me));
 
 // ── Reference data ───────────────────────────────────────────────────────
 router.get("/outlets", requireAuth, asyncHandler(api.outlets));
+router.get(`/outlets/:id${ID}/tables`, requireAuth, asyncHandler(api.outletTables));
 router.get("/categories", requirePermission("products.view", "products.manage", "pos.access"), asyncHandler(api.categories));
 router.get("/payment-methods", requireAuth, asyncHandler(api.paymentMethods));
 router.get("/products", requirePermission("products.view", "products.manage"), asyncHandler(api.products));

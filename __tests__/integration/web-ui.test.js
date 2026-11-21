@@ -1,6 +1,6 @@
 // Web UI consistency: links inside mounted routers, flash messages, 404s and
 // permission-aware links, checked over HTTP against a fresh test database.
-import { startApp, Client } from "./harness.js";
+import { startApp, SETUP_TIMEOUT_MS, Client } from "./harness.js";
 
 let ctx;
 let cashier;
@@ -18,7 +18,7 @@ beforeAll(async () => {
   cashier = await new Client(ctx.base).login("cashier01");
   manager = await new Client(ctx.base).login("manager01");
   admin = await new Client(ctx.base).login("admin");
-});
+}, SETUP_TIMEOUT_MS);
 
 afterAll(async () => {
   await ctx?.stop();
@@ -27,7 +27,7 @@ afterAll(async () => {
 describe("Web UI consistency", () => {
   test("pagination links on a mounted list page stay on that page", async () => {
     for (let i = 0; i < 6; i++) {
-      const res = await cashier.post("/api/orders", { outletId: ids.rs01, productId: ids.water, quantity: "1" });
+      const res = await cashier.post("/api/orders", { outletId: ids.rs01, roomNumber: "205", productId: ids.water, quantity: "1" });
       expect(res.status).toBe(201);
     }
     const page = await manager.get("/orders?limit=5");

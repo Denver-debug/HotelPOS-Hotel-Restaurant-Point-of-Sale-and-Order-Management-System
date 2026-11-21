@@ -1,6 +1,7 @@
 // Audit logs (read-only), integration status/logs/outbox, and POS settings.
 import { Op, QueryTypes } from "sequelize";
 import { sequelize, AuditLog, User, IntegrationLog, IntegrationEvent, SystemSetting, PaymentMethod, Role, Permission, Outlet } from "../models/index.js";
+import { SUPPORTED_PAYMENT_METHODS } from "../models/salesModel.js";
 import { config } from "../config/env.js";
 import { parsePage, buildPagination, filtersFrom } from "../utils/pagination.js";
 import { parseDateRange } from "../utils/dates.js";
@@ -131,7 +132,8 @@ export const settings = async (req, res) => {
     title: "Settings",
     breadcrumbs: [{ label: "Settings" }],
     posSettings: (await SystemSetting.findAll({ order: [["sortOrder", "ASC"]] })).map((s) => s.get({ plain: true })),
-    methods: await paymentMethods(),
+    // Retired methods (cards, bank transfer…) stay in the database for history only.
+    methods: (await paymentMethods()).filter((m) => SUPPORTED_PAYMENT_METHODS.includes(m.code)),
     env: { appName: config.appName, timezone: config.timezone, currency: config.currencySymbol, environment: config.env, database: config.db.name },
   });
 };
@@ -164,6 +166,9 @@ export const savePaymentMethod = async (req, res) => {
   if (!method) throw notFound("Payment method");
   const status = v.oneOf(req.body.status, "Status", ["ACTIVE", "INACTIVE"]);
   if (method.isCash && status === "INACTIVE") throw new AppError("Cash cannot be deactivated; it is needed for shift reconciliation.", 422);
+  if (status === "ACTIVE" && !SUPPORTED_PAYMENT_METHODS.includes(method.code)) {
+    throw new AppError(`${method.name} is no longer supported. The hotel accepts Cash, GCash and Maya only.`, 422, "PAYMENT_METHOD_UNSUPPORTED");
+  }
   const before = { name: method.name, status: method.status, requiresReference: method.requiresReference, sortOrder: method.sortOrder };
   await method.update({
     name: v.str(req.body.name, "Name", { required: true, max: 60 }),

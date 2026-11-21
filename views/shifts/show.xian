@@ -52,6 +52,23 @@
         {{#if shift.reconciledAt}}<dt>Reconciled</dt><dd>{{datetime shift.reconciledAt}} by {{shift.reconciler.fullName}}</dd>{{/if}}
       </dl>
     </div>
+    {{#if unsettled.length}}
+    <div class="card no-print">
+      <div class="card-header"><h3 class="card-title">Unpaid orders</h3><span class="badge badge-amber">{{unsettled.length}}</span></div>
+      <p class="px-5 pt-3 text-sm text-slate-600">These orders at {{shift.outlet.name}} are not paid yet. Settle or void them before closing, or hand them over to the next shift.</p>
+      <ul class="divide-y divide-slate-200 px-5 py-2">
+        {{#each unsettled}}
+        <li class="flex items-center justify-between gap-3 py-2 text-sm">
+          <span class="min-w-0">
+            <a class="font-mono text-xs text-brand-700 hover:underline" href="/pos/terminal?outletId={{../shift.outletId}}&orderId={{id}}">{{orderNumber}}</a>
+            <span class="block truncate text-slate-600">{{default tableOrLocation (humanize orderType)}} · {{createdBy}}{{#unless ownShift}} · <span class="text-amber-700">earlier shift</span>{{/unless}}</span>
+          </span>
+          <span class="text-right"><span class="block font-medium">{{money totalAmount}}</span>{{statusBadge status}}</span>
+        </li>
+        {{/each}}
+      </ul>
+    </div>
+    {{/if}}
     {{#if canClose}}
     <form class="card no-print" method="POST" action="/shifts/{{shift.id}}/close" data-confirm="Close this shift? You will not be able to take payments on it afterwards." data-confirm-label="Close shift">
       <input type="hidden" name="_csrf" value="{{csrfToken}}">
@@ -61,7 +78,13 @@
           <label class="label" for="actualCash">Counted cash in drawer</label>
           <input class="input text-lg" id="actualCash" name="actualCash" type="number" min="0" step="0.01" required>
         </div>
-        <div><label class="label" for="closingNotes">Notes</label><input class="input" id="closingNotes" name="closingNotes" maxlength="255"></div>
+        {{#if unsettled.length}}
+        <label class="flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          <input type="checkbox" name="handOver" value="1" class="mt-0.5 h-4 w-4 rounded border-slate-300">
+          <span>Hand the {{unsettled.length}} unpaid order(s) over to the next shift. Write who is still dining in the notes.</span>
+        </label>
+        {{/if}}
+        <div><label class="label" for="closingNotes">Notes{{#if unsettled.length}} (required when handing over){{/if}}</label><input class="input" id="closingNotes" name="closingNotes" maxlength="255"></div>
         <button class="btn btn-danger w-full" type="submit">Close shift</button>
       </div>
     </form>

@@ -49,7 +49,7 @@ These act on the selected line, which is highlighted with a green bar. The line 
 |---|---|
 | Shift+F9 | Order note |
 | Alt+T | Order type |
-| Alt+L | Table / room / location |
+| Alt+L | Table (dine-in) or guest room number (room service, minibar) |
 | F7 | Apply a discount |
 | Shift+F7 | Remove the order discount (or the selected line's discount) |
 | F6 | Open orders (resume one) |
