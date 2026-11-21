@@ -1,0 +1,29 @@
+# systemd unit for HotelPOS (docs/DEPLOY-AWS.md, step 8).
+# Install: sudo cp deploy/hotelpos.service /etc/systemd/system/ && sudo systemctl enable --now hotelpos
+[Unit]
+Description=HotelPOS (Node.js)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=hotelpos
+Group=hotelpos
+WorkingDirectory=/opt/hotelpos
+# The app reads /opt/hotelpos/.env itself (config/env.js).
+ExecStart=/usr/bin/node index.js
+Restart=on-failure
+RestartSec=5
+# index.js finishes in-flight requests and closes the DB pool on SIGTERM.
+KillSignal=SIGTERM
+TimeoutStopSec=15
+
+# Hardening: the whole file system is read-only except what the app writes to.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/hotelpos/storage /opt/hotelpos/public/uploads
+
+[Install]
+WantedBy=multi-user.target

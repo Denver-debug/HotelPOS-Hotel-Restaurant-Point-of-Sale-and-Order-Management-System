@@ -106,3 +106,15 @@
 3. The POS terminal's `/api` routes are unchanged apart from these error codes:
    - A product that can't be sold now returns `PRODUCT_UNAVAILABLE` (was `UNAVAILABLE`).
    - Codes that were `APP_ERROR` now return a specific code.
+
+## 7. Follow-up review (2026-11-21)
+
+A second pass looked for faults the test suite did not cover (118 tests before, 130 after).
+
+| # | Finding | Status |
+|---|---|---|
+| R1 | The supervisor override (void, discount, refund) ignored the login lockout and accepted service accounts, so the dialog could be used to guess a supervisor's password without limit | **Fixed.** Overrides share the failed-attempt counter with sign-in, a locked account answers `423 LOCKED`, service accounts are refused |
+| R2 | Report CSV cells starting with `=`, `+`, `-` or `@` (e.g. a product name) ran as formulas when opened in Excel | **Fixed.** Such text is prefixed with `'`; numbers like `-12.50` are unchanged |
+| R3 | Every health check and anonymous `/api` GET created a session row, because the CSRF token was stored on every request | **Fixed.** JSON reads no longer create a token |
+| R4 | `backUrl` accepted a same-host referer whose path starts with `//`, which browsers read as another host | **Fixed** |
+| R5 | No graceful shutdown: a restart or redeploy cut requests mid-payment and left DB connections open | **Fixed.** SIGTERM/SIGINT finish in-flight requests and close the pool |

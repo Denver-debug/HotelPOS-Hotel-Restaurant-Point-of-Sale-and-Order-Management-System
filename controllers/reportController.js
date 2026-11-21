@@ -14,8 +14,11 @@ export const index = (req, res) => {
   });
 };
 
-const csvCell = (v) => {
-  const s = v === null || v === undefined ? "" : String(v);
+// Text starting with = + - @ (or tab / CR) runs as a formula when the file is opened in Excel,
+// so it is prefixed with ' (shown as text). Numbers such as -12.50 are left as they are.
+export const csvCell = (v) => {
+  let s = v === null || v === undefined ? "" : String(v);
+  if (/^[=+\-@\t\r]/.test(s) && !/^-?\d+(\.\d+)?$/.test(s)) s = `'${s}`;
   return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 };
 const csvValue = (col, row) => (col.type === "datetime" ? formatDateTime(row[col.key]) : row[col.key]);

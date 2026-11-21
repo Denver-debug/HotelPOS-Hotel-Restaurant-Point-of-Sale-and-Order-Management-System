@@ -15,6 +15,9 @@ export const csrfProtection = (req, res, next) => {
   // API-key requests are not cookie-authenticated, so CSRF does not apply; creating a token
   // would also start a session (and a Set-Cookie) for every machine call.
   if (req.apiClient) return next();
+  // JSON reads need no token (pages carry it). Creating one would store a new session for
+  // every load-balancer health check and anonymous API poll.
+  if (SAFE_METHODS.has(req.method) && req.originalUrl.startsWith("/api/")) return next();
   if (!req.session.csrfToken) req.session.csrfToken = crypto.randomBytes(32).toString("hex");
   res.locals.csrfToken = req.session.csrfToken;
   if (SAFE_METHODS.has(req.method)) return next();

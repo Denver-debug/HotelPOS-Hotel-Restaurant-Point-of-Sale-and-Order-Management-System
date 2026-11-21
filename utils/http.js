@@ -74,7 +74,8 @@ export const backUrl = (req, fallback = "/dashboard") => {
   if (!ref) return fallback;
   try {
     const url = new URL(ref);
-    return url.host === req.get("host") ? url.pathname + url.search : fallback;
+    // A path starting with "//" would be read by the browser as another host.
+    return url.host === req.get("host") && !url.pathname.startsWith("//") ? url.pathname + url.search : fallback;
   } catch {
     return fallback;
   }

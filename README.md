@@ -65,5 +65,6 @@ After pulling new code, run `npm run migrate` before starting the app.
 - `docs/API.md`: the `/api/v1` integration API for other ERP subsystems (API keys, endpoints, error codes, sync, idempotency, signed events)
 - `docs/POS-SHORTCUTS.md`: every POS terminal keyboard shortcut (also on screen: press F1)
 - `docs/AUDIT.md`: the system audit, what was fixed and what was deferred
+- `docs/DEPLOY-AWS.md`: putting HotelPOS online on AWS (EC2 + RDS MySQL + Nginx + HTTPS)
 
 > **Mock integrations:** the PMS, payment provider, HR system and event bus are simulated by clearly labelled MOCK adapters. No real GCash or Maya payment and no real folio posting happens until the real adapters are configured (`PAYMENT_ADAPTER=paymongo` for GCash and Maya).

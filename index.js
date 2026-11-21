@@ -43,7 +43,8 @@ import { csrfProtection } from "./middleware/csrf.js";
 import { loadCurrentUser } from "./middleware/auth.js";
 import { notFoundHandler, errorHandler } from "./middleware/errorHandler.js";
 import { registerViewHelpers } from "./utils/viewHelpers.js";
-import { startEventDispatcher } from "./integrations/events/dispatcher.js";
+import { startEventDispatcher, stopEventDispatcher } from "./integrations/events/dispatcher.js";
+import { sequelize } from "./models/db.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -169,5 +170,17 @@ const isDirectRun =
   process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 
 if (isDirectRun && !process.env.XIAN_ELECTRON) {
-  startServer();
+  const server = await startServer();
+  // Process managers and AWS (ECS, Elastic Beanstalk, systemd, pm2) stop the app with SIGTERM:
+  // finish the requests in flight, then close the database pool.
+  for (const signal of ["SIGTERM", "SIGINT"]) {
+    process.once(signal, () => {
+      console.log(`${signal} received, shutting down…`);
+      stopEventDispatcher();
+      sessionStore.close();
+      server.close(() => sequelize.close().finally(() => process.exit(0)));
+      server.closeIdleConnections();
+      setTimeout(() => process.exit(1), 10000).unref();
+    });
+  }
 }

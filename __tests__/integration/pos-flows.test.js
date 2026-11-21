@@ -402,6 +402,28 @@ describe("F. Security", () => {
     const [user] = await q("SELECT locked_until FROM users WHERE username = 'staff01'");
     expect(user.locked_until).not.toBeNull();
   });
+
+  test("supervisor overrides count toward lockout, so they cannot be used to guess a password", async () => {
+    const order = await newOrder([[ids.water, 1]], { settle: false });
+    const voidWith = (password) => cashier.post(`/api/orders/${order.id}/void`, { reason: "test", supervisorUsername: "supervisor01", supervisorPassword: password });
+    try {
+      for (let i = 0; i < 5; i++) expect((await voidWith("wrong-password")).data.code).toBe("OVERRIDE_DENIED");
+      const locked = await voidWith("TestPass123");
+      expect(locked.status).toBe(423);
+      expect(locked.data.code).toBe("LOCKED");
+      const [row] = await q("SELECT status FROM orders WHERE id = :id", { id: order.id });
+      expect(row.status).not.toBe("VOIDED");
+    } finally {
+      await ctx.models.sequelize.query("UPDATE users SET failed_login_count = 0, locked_until = NULL WHERE username = 'supervisor01'");
+    }
+  });
+
+  test("health checks and anonymous API reads do not start a session", async () => {
+    for (const url of ["/api/v1/health", "/api/v1/orders"]) {
+      const res = await fetch(ctx.base + url, { headers: { Accept: "application/json" } });
+      expect(res.headers.getSetCookie()).toEqual([]);
+    }
+  });
 });
 
 describe("G. Where the order is served", () => {
