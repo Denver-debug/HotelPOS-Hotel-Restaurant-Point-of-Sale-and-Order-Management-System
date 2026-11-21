@@ -102,7 +102,8 @@ export function getEventPublisher() {
 
 export const backoffMs = (attempts) => Math.min(MAX_BACKOFF_MS, 30000 * 2 ** Math.max(0, attempts - 1));
 
-// Claims due events with FOR UPDATE SKIP LOCKED (two dispatchers never take the same row) and
+// Claims due events with FOR UPDATE SKIP LOCKED (two dispatchers never take the same row; plain
+// FOR UPDATE rather than OF e so MariaDB accepts it, and MySQL never locks the subquery anyway) and
 // leases them by pushing next_attempt_at forward. An event waits while an earlier event of the
 // same aggregate is undelivered, so e.g. OrderRefunded never arrives before OrderCompleted.
 async function claim(limit) {
@@ -116,7 +117,7 @@ async function claim(limit) {
                              AND p.id < e.id AND p.status <> 'PUBLISHED')
         ORDER BY e.id
         LIMIT :limit
-        FOR UPDATE OF e SKIP LOCKED`,
+        FOR UPDATE SKIP LOCKED`,
       { replacements: { limit }, type: QueryTypes.SELECT, transaction }
     );
     const ids = rows.map((r) => r.id);
