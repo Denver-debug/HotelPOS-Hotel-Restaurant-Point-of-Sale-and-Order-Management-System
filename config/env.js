@@ -72,6 +72,14 @@ export const config = {
       apiKey: env.PMS_API_KEY || "",
       timeoutMs: int(env.PMS_TIMEOUT_MS, 8000),
       mockDelayMs: int(env.PMS_MOCK_DELAY_MS, 0),
+      // frontdesk only: request signing secret (the Frontdesk's POS_INBOUND_SECRET), the secret
+      // that signs its webhooks to /webhooks/pms (its POS_WEBHOOK_SECRET), the restaurant_id sent
+      // for every outlet (empty: each outlet's code), and how often charges awaiting front-desk
+      // review are polled when no webhook arrives (0 = webhook and "Check status" only).
+      inboundSecret: env.PMS_INBOUND_SECRET || "",
+      webhookSecret: env.PMS_WEBHOOK_SECRET || "",
+      restaurantId: env.PMS_RESTAURANT_ID || "",
+      reviewPollMs: int(env.PMS_REVIEW_POLL_MS, isTest ? 0 : 120000),
     },
     // "paymongo": GCash and Maya through PayMongo. PAYMENT_API_KEY is the secret key (sk_test_… / sk_live_…).
     payment: {
@@ -97,7 +105,7 @@ export const config = {
 // Adapter names are checked at startup. A typo used to fall back to the mock silently, which
 // in production would mean fake room charges and fake card approvals.
 const SUPPORTED_ADAPTERS = {
-  PMS_ADAPTER: [config.integrations.pms.adapter, ["mock", "http"]],
+  PMS_ADAPTER: [config.integrations.pms.adapter, ["mock", "http", "frontdesk"]],
   PAYMENT_ADAPTER: [config.integrations.payment.adapter, ["mock", "paymongo"]],
   HR_ADAPTER: [config.integrations.hr.adapter, ["mock", "http"]],
   EVENTS_PUBLISHER: [config.events.publisher, ["log", "webhook"]],
@@ -110,6 +118,12 @@ for (const [name, [value, allowed]] of Object.entries(SUPPORTED_ADAPTERS)) {
 if (config.events.publisher === "webhook") {
   if (!config.events.webhookUrl) throw new Error("EVENTS_WEBHOOK_URL must be set when EVENTS_PUBLISHER=webhook.");
   if (config.events.webhookSecret.length < 16) throw new Error("EVENTS_WEBHOOK_SECRET must be at least 16 characters when EVENTS_PUBLISHER=webhook.");
+}
+if (config.integrations.pms.adapter === "frontdesk") {
+  const pms = config.integrations.pms;
+  if (!pms.baseUrl || !pms.apiKey) throw new Error("PMS_BASE_URL and PMS_API_KEY must be set when PMS_ADAPTER=frontdesk.");
+  if (pms.restaurantId && !/^[A-Za-z0-9._:-]{1,40}$/.test(pms.restaurantId)) throw new Error("PMS_RESTAURANT_ID may only use letters, digits and . _ : - (at most 40).");
+  if (!pms.webhookSecret && !isTest) console.warn("⚠️  PMS_WEBHOOK_SECRET is not set: /webhooks/pms is refused and front-desk reviews are picked up by polling only.");
 }
 if (config.integrations.payment.adapter === "paymongo") {
   const key = config.integrations.payment.apiKey;

@@ -48,7 +48,7 @@ export const terminal = async (req, res) => {
       shift: req.openShift ? { id: req.openShift.id, number: req.openShift.shiftNumber, outletId: req.openShift.outletId } : null,
       requireShift,
       mocks: {
-        pms: config.integrations.pms.adapter !== "http",
+        pms: config.integrations.pms.adapter === "mock",
         payment: config.integrations.payment.adapter === "mock",
       },
       // PayMongo: the guest scans a QR code and approves GCash / Maya on their phone.

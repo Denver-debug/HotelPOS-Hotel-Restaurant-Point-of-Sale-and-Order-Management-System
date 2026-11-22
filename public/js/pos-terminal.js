@@ -1034,7 +1034,7 @@
     try {
       const res = await api("POST", `/api/orders/${S.order.id}/room-charge`, { validationToken: S.room.token, idempotencyKey: S.room.key });
       setOrder(res.order);
-      if (res.outcome === "POSTED") {
+      if (res.outcome === "POSTED" || res.outcome === "SUBMITTED") {
         closeModal("modal-room");
         showDone(res);
       } else {
@@ -1059,7 +1059,7 @@
     try {
       const res = await api("POST", `/api/guest-charges/${id}/verify`);
       setOrder(res.order);
-      if (res.outcome === "POSTED") {
+      if (res.outcome === "POSTED" || res.outcome === "SUBMITTED") {
         closeModal("modal-room");
         showDone(res);
       } else {
@@ -1090,7 +1090,9 @@
     const room = o.guestCharge && o.settlementType === "ROOM_CHARGE";
     $("#done-title").textContent = room ? `Charged to Room ${o.guestCharge.roomNumber}` : "Payment complete";
     $("#done-message").textContent = room
-      ? `${o.orderNumber} · ${fmt(o.totalAmount)} posted to folio. PMS reference ${o.guestCharge.pmsTransactionId}. Ask the guest to sign the charge slip.`
+      ? o.guestCharge.status === "AWAITING_REVIEW"
+        ? `${o.orderNumber} · ${fmt(o.totalAmount)} sent to the front desk (reference ${o.guestCharge.pmsTransactionId}); it is added to the guest's bill after review. Ask the guest to sign the charge slip.`
+        : `${o.orderNumber} · ${fmt(o.totalAmount)} posted to folio. PMS reference ${o.guestCharge.pmsTransactionId}. Ask the guest to sign the charge slip.`
       : `${o.orderNumber} · ${fmt(o.totalAmount)} settled.`;
     $("#done-change").classList.toggle("hidden", !(change > 0));
     $("#done-change").textContent = change > 0 ? `Change: ${fmt(change)}` : "";

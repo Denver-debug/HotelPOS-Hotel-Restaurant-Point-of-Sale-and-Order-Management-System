@@ -13,7 +13,7 @@ recorded in `integration_logs` with timing, masked payloads, status and idempote
 
 | Subsystem | Adapter in use | Status |
 |---|---|---|
-| Front Desk / PMS | `MockPmsAdapter` (default) or `HttpPmsAdapter` | **Mock.** The HTTP adapter exists but has never been run against a real PMS |
+| Front Desk / PMS | `MockPmsAdapter` (default), `FrontdeskPmsAdapter` or `HttpPmsAdapter` | **Frontdesk** (`PMS_ADAPTER=frontdesk`) connects to the hotel's Frontdesk system (e.g. `frontdesk.dineai.site`) as described in its guide `POS_ORDERS.docx`. Tested against a simulated Frontdesk, not yet against the live one. The generic HTTP adapter is unused |
 | Payment provider | `MockPaymentAdapter` (default) or `PayMongoAdapter` | **PayMongo** takes real GCash and Maya payments once `PAYMENT_ADAPTER=paymongo` has the hotel's keys. Tested against a simulated PayMongo API, not yet against the PayMongo sandbox |
 | HR and Staff Payroll | `MockHrAdapter` (default) or `HttpHrAdapter` | **Mock.** The HTTP adapter's endpoint is an assumption |
 | ERP events | Outbox table + `logOnlyPublisher` (default) or signed `webhookPublisher` | **Log only** until `EVENTS_PUBLISHER=webhook` points at the ERP. The pull feed `GET /api/v1/events` works either way |
@@ -22,7 +22,7 @@ Configuration comes from environment variables only (`.env`, never committed; se
 
 | Area | Variables |
 |---|---|
-| PMS | `PMS_ADAPTER` (`mock` \| `http`), `PMS_BASE_URL`, `PMS_API_KEY`, `PMS_TIMEOUT_MS`, `PMS_MOCK_DELAY_MS` |
+| PMS | `PMS_ADAPTER` (`mock` \| `frontdesk` \| `http`), `PMS_BASE_URL`, `PMS_API_KEY`, `PMS_TIMEOUT_MS`, `PMS_MOCK_DELAY_MS`; Frontdesk only: `PMS_INBOUND_SECRET`, `PMS_WEBHOOK_SECRET`, `PMS_RESTAURANT_ID`, `PMS_REVIEW_POLL_MS` |
 | Payment | `PAYMENT_ADAPTER` (`mock` \| `paymongo`), `PAYMENT_API_KEY` (PayMongo secret key), `PAYMENT_WEBHOOK_SECRET`, `PAYMENT_RETURN_URL`, `PAYMENT_BASE_URL` (default `https://api.paymongo.com/v1`), `PAYMENT_TIMEOUT_MS` |
 | HR | `HR_ADAPTER` (`mock` \| `http`), `HR_BASE_URL`, `HR_API_KEY`, `HR_TIMEOUT_MS`, `HR_VALIDATE_ON_LOGIN` |
 | Events | `EVENTS_PUBLISHER` (`log` \| `webhook`), `EVENTS_WEBHOOK_URL`, `EVENTS_WEBHOOK_SECRET`, `EVENTS_TIMEOUT_MS`, `EVENTS_DISPATCH_INTERVAL_MS`, `EVENTS_MAX_ATTEMPTS`, `EVENTS_BATCH_SIZE` |
@@ -50,6 +50,58 @@ Contract: `integrations/pms/pmsGateway.js`.
 4. The authentication scheme. The adapter sends `Authorization: Bearer <PMS_API_KEY>`; network access is via the site-to-site VPN (Figure 4).
 
 Then set `PMS_ADAPTER=http`, `PMS_BASE_URL`, `PMS_API_KEY` and run the room-charge scenarios on the POS terminal against a PMS test environment.
+
+### Frontdesk PMS (`PMS_ADAPTER=frontdesk`)
+
+The hotel's Frontdesk system (Member 2) does not post a POS charge straight to the guest's folio. It queues the order, a receptionist checks the guest and adds it to the bill, and the Frontdesk then tells HotelPOS the outcome. Its endpoints are under `https://<frontdesk-host>/api/v1/integrations/pos`:
+
+| HotelPOS step | Frontdesk call |
+|---|---|
+| Cashier enters the room (`getActiveFolio`) | `GET /pos/in-house?room_number=204` → reservation, masked name, `folio_open` |
+| Cashier confirms (`postCharge`) | `POST /pos/orders` with `order_status: COMPLETED`, `payment_status: CHARGE_TO_ROOM`, items and totals, signed |
+| **Check status with PMS** and background polling (`getChargeStatus`) | `GET /pos/orders/{restaurant_id}/{external_order_id}` |
+| Full refund (`reverseCharge`) | `POST /pos/orders` again, same content, `order_status: VOIDED` |
+| Review outcome | Frontdesk → `POST https://<hotelpos-host>/webhooks/pms` (`PosOrderReviewed`) |
+
+How a charge moves:
+
+| Charge status | Meaning | Order |
+|---|---|---|
+| `AWAITING_REVIEW` | The Frontdesk accepted the order (`PENDING_REVIEW` or `NEEDS_GUEST_VERIFICATION`). The receipt prints | **Completed**: the guest has left; the bill is settled at checkout |
+| `POSTED` | A receptionist added it to the folio (`ADDED_TO_FOLIO`) | Completed |
+| `REJECTED` | The front desk rejected it after the sale. The charge page says to **collect the amount from the guest directly** | Completed, not on the folio |
+| `FAILED` | The Frontdesk refused the request itself (validation, signature, conflict) | `CHARGE_FAILED`: try another room or pay directly |
+| `UNKNOWN` | No answer (timeout, 5xx). Nothing is re-sent until **Check status with PMS** asks | Settling |
+
+Details:
+
+- **Ids.** `restaurant_id` is the outlet code (`RS-01`, `REST-01`, …) unless `PMS_RESTAURANT_ID` sets one value for all outlets. `external_order_id` is the room-charge number (`GC-0001`), new for each attempt, so a retry after a rejection is never an `ORDER_CONFLICT`. HotelPOS keeps `reservation_code` as the folio reference, `reservation_id` as the guest reference and `stay_id` as the room reference.
+- **Idempotency.** `Idempotency-Key: pos-{restaurant_id}-{external_order_id}-{COMPLETED|VOIDED}`, stable across retries.
+- **Amounts.** Items are sent with whole quantities (a fractional quantity becomes one line of its amount). `subtotal` = Σ quantity × unit price, `discount` = all discounts, `tax` = exclusive tax only (prices already include VAT), plus `service_charge`; `total` = the order total. HotelPOS refuses to send an order whose totals would not reconcile.
+- **Signing.** With `PMS_INBOUND_SECRET`, every POST carries `X-Timestamp` and `X-Signature: sha256=HMAC(secret, "<timestamp>.<body>")`. Keep the server clock in sync (NTP): the Frontdesk refuses signatures more than 300 s off.
+- **Webhooks.** `/webhooks/pms` checks `X-PMS-Signature` with `PMS_WEBHOOK_SECRET` (±300 s) and acts on `PosOrderReviewed` only. `GuestCheckedIn` / `GuestCheckedOut` are acknowledged and ignored, because every charge is checked live. Repeated deliveries change nothing once a charge is reviewed.
+- **Polling.** If a webhook is missed, charges awaiting review for more than a minute are checked every `PMS_REVIEW_POLL_MS` (default 2 min, `0` turns it off).
+- **Refunds.** A full refund voids the order. Before review the Frontdesk rejects it; after it was added to the folio, the Frontdesk flags it and the front desk corrects the bill. Partial refunds of a Frontdesk room charge are refused, because the Frontdesk has no API for them; the front desk posts a bill adjustment instead. While a charge awaits review, only a full refund is allowed.
+- The guest's name is shown to the cashier and never sent back or stored.
+
+**Setting it up**
+
+1. Ask the Frontdesk administrator for the **POS API key**, the **inbound signing secret** (their `POS_INBOUND_SECRET`, if they turned signing on) and the **webhook secret** (their `POS_WEBHOOK_SECRET`).
+2. Give them:
+   - the webhook URL `https://<hotelpos-host>/webhooks/pms`, for their `POS_WEBHOOK_URL`;
+   - the restaurant ids HotelPOS sends: the codes of the outlets that allow room charges, or your `PMS_RESTAURANT_ID`. These go in their `POS_RESTAURANT_IDS` if they keep an allow-list; otherwise orders are refused with `VALIDATION_ERROR` (unknown restaurant).
+3. Set in HotelPOS:
+
+   ```dotenv
+   PMS_ADAPTER=frontdesk
+   PMS_BASE_URL=https://frontdesk.dineai.site/api/v1/integrations
+   PMS_API_KEY=<POS key from the Frontdesk>
+   PMS_INBOUND_SECRET=<their POS_INBOUND_SECRET, if signing is on>
+   PMS_WEBHOOK_SECRET=<their POS_WEBHOOK_SECRET>
+   ```
+
+4. Run `npm run migrate` (migration `011_frontdesk_review` adds the two charge statuses) and restart.
+5. Test with a checked-in test guest: charge to the room, approve it on the Frontdesk and see the charge become `POSTED`; charge again, reject it, and see `REJECTED`; refund one in full and see it voided on the Frontdesk.
 
 ### Mock PMS scenarios (`PMS_ADAPTER=mock`)
 
@@ -104,7 +156,7 @@ The cashier types the e-wallet reference number. Reference `DECLINE` declines th
 
 ## ERP events
 
-Domain events (`OrderCompleted`, `OrderRefunded`, `OrderVoided`, `PaymentCaptured`, `RoomChargePosted`, `RoomChargeReversed`, `ShiftOpened`/`Closed`/`Reconciled`, `StockMovementRecorded`, `ProductPriceChanged`) are inserted into `integration_events` in the same transaction as the change.
+Domain events (`OrderCompleted`, `OrderRefunded`, `OrderVoided`, `PaymentCaptured`, `RoomChargeSubmitted` (awaiting front-desk review), `RoomChargePosted`, `RoomChargeRejected`, `RoomChargeReversed`, `ShiftOpened`/`Closed`/`Reconciled`, `StockMovementRecorded`, `ProductPriceChanged`) are inserted into `integration_events` in the same transaction as the change.
 
 A background dispatcher, started with the server and the desktop app every `EVENTS_DISPATCH_INTERVAL_MS`, delivers them through the configured publisher:
 

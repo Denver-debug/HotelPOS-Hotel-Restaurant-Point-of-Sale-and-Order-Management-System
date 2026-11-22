@@ -11,6 +11,16 @@
   The PMS did not confirm this charge. It has not been re-sent. Use <strong>Check status with PMS</strong>; it is re-posted with the same idempotency key only if the PMS has no record of it.
 </div>
 {{/if}}
+{{#if (eq charge.status "AWAITING_REVIEW")}}
+<div class="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+  The sale is complete and the Frontdesk has the charge (reference {{charge.pmsTransactionId}}). A receptionist still has to add it to the guest's bill. The result arrives automatically; <strong>Check status with PMS</strong> asks now.
+</div>
+{{/if}}
+{{#if (eq charge.status "REJECTED")}}
+<div class="mb-6 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+  The front desk rejected this charge after the sale: <strong>{{charge.lastError}}</strong> It is not on the guest's bill. Collect {{money charge.amount}} from the guest directly.
+</div>
+{{/if}}
 <div class="grid gap-6 lg:grid-cols-3">
   <div class="card">
     <div class="card-header"><h3 class="card-title">Charge</h3>{{statusBadge charge.status}}</div>

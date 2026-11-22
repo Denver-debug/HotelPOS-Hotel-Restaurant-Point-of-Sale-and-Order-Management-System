@@ -83,7 +83,7 @@ export const REPORTS = {
     ],
     async load(f) {
       const rows = await r.roomChargeReport(f);
-      const posted = rows.filter((x) => ["POSTED", "PARTIALLY_REVERSED", "REVERSED"].includes(x.status));
+      const posted = rows.filter((x) => ["POSTED", "PARTIALLY_REVERSED", "REVERSED", "AWAITING_REVIEW"].includes(x.status));
       return { rows, totals: { created_at: "Posted total", amount: sum(posted, "amount"), reversed_amount: sum(posted, "reversed_amount") } };
     },
   },

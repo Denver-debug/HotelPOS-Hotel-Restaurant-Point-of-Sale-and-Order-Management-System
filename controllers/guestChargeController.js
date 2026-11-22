@@ -5,6 +5,7 @@ import * as orderService from "../services/orderService.js";
 import { parsePage, buildPagination, filtersFrom } from "../utils/pagination.js";
 import { parseDateRange } from "../utils/dates.js";
 import { can } from "../middleware/auth.js";
+import { AppError } from "../utils/http.js";
 
 const withOrder = async (req, res, result) => {
   const order = orderService.toDto(await orderService.getOrder(req, result.charge.orderId));
@@ -49,13 +50,24 @@ export const show = async (req, res) => {
     breadcrumbs: [{ label: "Guest Room Charges", href: "/guest-charges" }, { label: charge.chargeNumber }],
     charge,
     logs: logs.map((l) => l.get({ plain: true })),
-    canVerify: can(req, "room_charges.process") && ["PENDING", "UNKNOWN"].includes(charge.status),
+    canVerify: can(req, "room_charges.process") && ["PENDING", "UNKNOWN", "AWAITING_REVIEW"].includes(charge.status),
   });
 };
 
 export const verify = async (req, res) => {
   const result = await guestChargeService.verifyCharge(req, req.params.id);
-  const kind = { FAILED: "error_msg", POSTED: "success_msg" }[result.outcome] || "warning_msg";
+  const kind = { FAILED: "error_msg", REJECTED: "error_msg", POSTED: "success_msg", SUBMITTED: "success_msg" }[result.outcome] || "warning_msg";
   req.flash(kind, result.message || `Charge is ${result.charge.status}.`);
   res.redirect(`/guest-charges/${req.params.id}`);
+};
+
+// POST /webhooks/pms: Frontdesk events (PosOrderReviewed), signed with PMS_WEBHOOK_SECRET.
+export const pmsWebhook = async (req, res) => {
+  try {
+    const result = await guestChargeService.handlePmsWebhook(req.rawBody ?? "", req.get("X-PMS-Timestamp"), req.get("X-PMS-Signature"));
+    res.json({ ok: true, ignored: Boolean(result.ignored) });
+  } catch (err) {
+    if (!(err instanceof AppError)) console.error(`❌ PMS webhook failed [${req.id || "-"}]:`, err);
+    res.status(err instanceof AppError ? err.status : 500).json({ ok: false, error: err instanceof AppError ? err.message : "Webhook processing failed.", code: err.code, requestId: req.id });
+  }
 };

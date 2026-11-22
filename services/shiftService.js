@@ -61,7 +61,7 @@ export async function shiftSummary(shift) {
         GROUP BY m.id ORDER BY m.sort_order`),
     q(`SELECT status, COUNT(*) AS count, COALESCE(SUM(total_amount), 0) AS amount FROM orders WHERE shift_id = :id GROUP BY status`),
     q(`SELECT COUNT(*) AS count, COALESCE(SUM(gc.amount), 0) AS amount FROM guest_charges gc JOIN orders o ON o.id = gc.order_id
-        WHERE o.shift_id = :id AND gc.status IN ('POSTED','PARTIALLY_REVERSED','REVERSED')`),
+        WHERE o.shift_id = :id AND gc.status IN ('POSTED','PARTIALLY_REVERSED','REVERSED','AWAITING_REVIEW')`),
     q(`SELECT COUNT(*) AS count, COALESCE(SUM(amount), 0) AS amount FROM refunds WHERE shift_id = :id AND status = 'PROCESSED'`),
     q(`SELECT COUNT(*) AS count, COALESCE(SUM(od.amount), 0) AS amount FROM order_discounts od JOIN orders o ON o.id = od.order_id
         WHERE o.shift_id = :id AND o.status IN ('COMPLETED','PARTIALLY_REFUNDED','REFUNDED')`),

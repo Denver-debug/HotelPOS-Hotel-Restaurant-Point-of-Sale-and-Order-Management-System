@@ -24,6 +24,7 @@ import { recordEvent } from "../integrations/events/eventPublisher.js";
 import { config } from "../config/env.js";
 import { getPaymentGateway } from "../integrations/payments/paymentGateway.js";
 import { getPmsGateway } from "../integrations/pms/pmsGateway.js";
+import { pmsChargeArgs } from "./guestChargeService.js";
 import { logged, IntegrationError } from "../integrations/integrationLogger.js";
 
 const OPEN_REFUND_STATUSES = ["REQUESTED", "APPROVED", "FAILED"];
@@ -34,7 +35,7 @@ export async function refundableState(orderId, transaction) {
     include: [
       { model: OrderItem, as: "items" },
       { model: Payment, as: "payments", where: { status: { [Op.in]: ["CAPTURED", "PARTIALLY_REFUNDED"] } }, required: false, include: [{ model: PaymentMethod, as: "method" }] },
-      { model: GuestCharge, as: "guestCharges", where: { status: { [Op.in]: ["POSTED", "PARTIALLY_REVERSED"] } }, required: false },
+      { model: GuestCharge, as: "guestCharges", where: { status: { [Op.in]: ["POSTED", "PARTIALLY_REVERSED", "AWAITING_REVIEW"] } }, required: false },
       { model: Outlet, as: "outlet", attributes: ["id", "code", "name"] },
     ],
     order: [[{ model: OrderItem, as: "items" }, "id", "ASC"]],
@@ -105,6 +106,10 @@ export async function requestRefund(req, rawOrderId, body) {
     if (order.settlementType === "ROOM_CHARGE") {
       const charge = order.guestCharges[0];
       if (!charge) throw new AppError("No posted room charge found for this order.", 409, "NOTHING_TO_REFUND");
+      // Before the front desk has reviewed it, a charge can only be withdrawn as a whole.
+      if (charge.status === "AWAITING_REVIEW" && amount !== toCents(charge.amount)) {
+        throw new AppError("This room charge is still awaiting front-desk review. Refund the whole order, or wait for the review.", 409, "CHARGE_UNDER_REVIEW");
+      }
       guestChargeId = charge.id;
     } else {
       const method = refundMethodId ? await PaymentMethod.findByPk(refundMethodId, { transaction }) : null;
@@ -235,7 +240,7 @@ async function reverseRoomCharge(req, refund) {
   const result = full
     ? await logged(
         { system: "PMS", operation: "reverseCharge", isMock: pms.isMock, idempotencyKey: refund.idempotencyKey, referenceType: "refund", referenceId: refund.id, request: { folioId: charge.externalFolioId, transactionId: charge.pmsTransactionId, amount: refund.amount }, userId: req.user.id },
-        () => pms.reverseCharge({ folioId: charge.externalFolioId, transactionId: charge.pmsTransactionId, amount: refund.amount, reason: refund.reason, idempotencyKey: refund.idempotencyKey })
+        async () => pms.reverseCharge({ ...(await pmsChargeArgs(charge)), transactionId: charge.pmsTransactionId, amount: refund.amount, reason: refund.reason, idempotencyKey: refund.idempotencyKey })
       )
     : await logged(
         { system: "PMS", operation: "postAdjustment", isMock: pms.isMock, idempotencyKey: refund.idempotencyKey, referenceType: "refund", referenceId: refund.id, request: { folioId: charge.externalFolioId, amount: `-${refund.amount}` }, userId: req.user.id },

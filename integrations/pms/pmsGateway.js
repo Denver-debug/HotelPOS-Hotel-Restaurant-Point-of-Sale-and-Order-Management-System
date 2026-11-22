@@ -10,23 +10,29 @@
 //     room?: { id, number }, guest?: { id, displayName }, folio?: { id, status },
 //     stay?: { checkIn, checkOut }, chargeAllowed?: boolean
 //   }
-//   postCharge({ folioId, roomId, guestId, amount, currency, description, reference, idempotencyKey })
+//   postCharge({ folioId, roomId, guestId, roomNumber, amount, currency, description, reference, idempotencyKey, order })
 //       -> { status: "POSTED", transactionId } | { status: "REJECTED", reason }
+//        | { status: "SUBMITTED", transactionId }  (Frontdesk: queued for front-desk review; the
+//          review outcome comes later through getChargeStatus or the PosOrderReviewed webhook)
 //       throws IntegrationError("TIMEOUT" | "NETWORK") when the outcome is unknown
-//   getChargeStatus(idempotencyKey) -> { status: "POSTED", transactionId } | { status: "REJECTED", reason } | { status: "NOT_FOUND" }
-//   reverseCharge({ folioId, transactionId, amount, reason, idempotencyKey }) -> { status: "REVERSED", transactionId } | { status: "REJECTED", reason }
+//   getChargeStatus(idempotencyKey, { restaurantId, externalOrderId })
+//       -> { status: "POSTED" | "SUBMITTED", transactionId } | { status: "REJECTED", reason } | { status: "NOT_FOUND" }
+//   reverseCharge({ folioId, transactionId, amount, reason, idempotencyKey, ...postCharge args }) -> { status: "REVERSED", transactionId } | { status: "REJECTED", reason }
 //   postAdjustment({ folioId, amount, reason, reference, idempotencyKey }) -> { status: "POSTED", transactionId } | { status: "REJECTED", reason }
 // }
 import { config } from "../../config/env.js";
 import { MockPmsAdapter } from "./mockPmsAdapter.js";
 import { HttpPmsAdapter } from "./httpPmsAdapter.js";
+import { FrontdeskPmsAdapter } from "./frontdeskPmsAdapter.js";
+
+const ADAPTERS = { http: HttpPmsAdapter, frontdesk: FrontdeskPmsAdapter };
 
 let instance;
 
 export function getPmsGateway() {
   if (!instance) {
     const cfg = config.integrations.pms;
-    instance = cfg.adapter === "http" ? new HttpPmsAdapter(cfg) : new MockPmsAdapter(cfg);
+    instance = ADAPTERS[cfg.adapter] ? new ADAPTERS[cfg.adapter](cfg) : new MockPmsAdapter(cfg);
   }
   return instance;
 }

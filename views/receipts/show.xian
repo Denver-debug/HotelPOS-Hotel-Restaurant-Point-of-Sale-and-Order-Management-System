@@ -51,7 +51,7 @@
     <table>
       <tr><td>Folio</td><td style="text-align:right">{{s.roomCharge.folio}}</td></tr>
       {{#if s.roomCharge.pmsTransactionId}}<tr><td>PMS ref</td><td style="text-align:right">{{s.roomCharge.pmsTransactionId}}</td></tr>{{/if}}
-      {{#if s.roomCharge.status}}<tr><td>Status</td><td style="text-align:right">{{s.roomCharge.status}} (confirmed by PMS)</td></tr>{{/if}}
+      {{#if s.roomCharge.status}}<tr><td>Status</td><td style="text-align:right">{{#if (eq s.roomCharge.status "AWAITING_REVIEW")}}Sent to the front desk; billed at checkout{{else}}{{s.roomCharge.status}} (confirmed by PMS){{/if}}</td></tr>{{/if}}
       {{#if s.externalReference}}<tr><td>PMS ref</td><td style="text-align:right">{{s.externalReference}}</td></tr>{{/if}}
     </table>
     {{#unless (eq receipt.receiptType "REFUND")}}

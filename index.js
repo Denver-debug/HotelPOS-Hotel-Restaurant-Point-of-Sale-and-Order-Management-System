@@ -44,6 +44,7 @@ import { loadCurrentUser } from "./middleware/auth.js";
 import { notFoundHandler, errorHandler } from "./middleware/errorHandler.js";
 import { registerViewHelpers } from "./utils/viewHelpers.js";
 import { startEventDispatcher, stopEventDispatcher } from "./integrations/events/dispatcher.js";
+import { startReviewPoller, stopReviewPoller } from "./integrations/pms/reviewPoller.js";
 import { sequelize } from "./models/db.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -123,7 +124,7 @@ try {
   console.error("❌ Could not register partials:", err);
 }
 
-// Payment provider webhooks and the guest's post-payment page: public, signed or harmless.
+// Payment provider and Frontdesk PMS webhooks and the guest's post-payment page: public, signed or harmless.
 app.use(webhookRoutes);
 
 // API keys first: a key request gets its service account as req.user and skips the
@@ -158,6 +159,8 @@ export const startServer = (port = PORT) => {
       console.log(`🔥 XianFire running at http://localhost:${port}`);
       // Deliver outbox events to the ERP in the background (EVENTS_DISPATCH_INTERVAL_MS).
       startEventDispatcher();
+      // Frontdesk PMS: pick up front-desk reviews a missed webhook did not deliver.
+      startReviewPoller();
       resolve(server);
     });
     server.on("error", reject);
@@ -177,6 +180,7 @@ if (isDirectRun && !process.env.XIAN_ELECTRON) {
     process.once(signal, () => {
       console.log(`${signal} received, shutting down…`);
       stopEventDispatcher();
+      stopReviewPoller();
       sessionStore.close();
       server.close(() => sequelize.close().finally(() => process.exit(0)));
       server.closeIdleConnections();

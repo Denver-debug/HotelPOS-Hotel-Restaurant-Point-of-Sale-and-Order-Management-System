@@ -28,6 +28,8 @@ Under the app's **Environment variables**, set (no `.env` file on the server):
 | `DB_HOST` / `DB_PORT` | `127.0.0.1` / `3306` (not the `srvNNNN.hstgr.io` host) |
 | `DB_NAME` / `DB_USER` / `DB_PASSWORD` | from step 1, with the `u636932635_` prefix |
 | `PAYMENT_RETURN_URL` | `https://<domain>/pay/complete` |
+| `PMS_ADAPTER` / `PMS_BASE_URL` | `frontdesk` / `https://frontdesk.dineai.site/api/v1/integrations` |
+| `PMS_API_KEY`, `PMS_INBOUND_SECRET`, `PMS_WEBHOOK_SECRET` | from the Frontdesk administrator (see `docs/INTEGRATIONS.md`, Frontdesk PMS) |
 
 Saving them restarts the app.
 

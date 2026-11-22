@@ -61,7 +61,7 @@ export async function lockOrder(req, id, transaction) {
 // Serialized view of an order for the POS terminal.
 export function toDto(order) {
   const o = order.get ? order.get({ plain: true }) : order;
-  const activeCharge = (o.guestCharges || []).find((g) => ["PENDING", "UNKNOWN", "POSTED", "PARTIALLY_REVERSED"].includes(g.status));
+  const activeCharge = (o.guestCharges || []).find((g) => ["PENDING", "UNKNOWN", "POSTED", "PARTIALLY_REVERSED", "AWAITING_REVIEW"].includes(g.status));
   const balance = Math.max(0, toCents(o.totalAmount) - toCents(o.amountPaid));
   return {
     id: o.id,
@@ -490,7 +490,7 @@ export async function voidOrder(req, orderId, body) {
     const order = await lockOrder(req, orderId, transaction);
     if (!VOIDABLE_STATUSES.includes(order.status)) throw new AppError(`A ${order.status.replace(/_/g, " ").toLowerCase()} order cannot be voided. Use a refund instead.`, 409, "NOT_VOIDABLE");
     if (toCents(order.amountPaid) > 0) throw new AppError("Payments were collected on this order; process a refund instead of a void.", 409, "NOT_VOIDABLE");
-    const activeCharge = await GuestCharge.count({ where: { orderId: order.id, status: { [Op.in]: ["PENDING", "UNKNOWN", "POSTED"] } }, transaction });
+    const activeCharge = await GuestCharge.count({ where: { orderId: order.id, status: { [Op.in]: ["PENDING", "UNKNOWN", "POSTED", "AWAITING_REVIEW"] } }, transaction });
     if (activeCharge) throw new AppError("A room charge is pending or posted for this order; it cannot be voided.", 409, "NOT_VOIDABLE");
 
     assertTransition(order.status, "VOIDED");
@@ -527,7 +527,7 @@ export async function completeOrder(order, { req, userId, settledExternally }, t
   for (const d of discounts) await Discount.increment("timesUsed", { by: 1, where: { id: d.discountId }, transaction });
 
   const receipt = await generateSaleReceipt(order.id, { userId }, transaction);
-  const charge = order.settlementType === "ROOM_CHARGE" ? await GuestCharge.findOne({ where: { orderId: order.id, status: "POSTED" }, transaction }) : null;
+  const charge = order.settlementType === "ROOM_CHARGE" ? await GuestCharge.findOne({ where: { orderId: order.id, status: ["POSTED", "AWAITING_REVIEW"] }, transaction }) : null;
   const payments = await Payment.findAll({ where: { orderId: order.id, status: "CAPTURED" }, include: [{ model: PaymentMethod, as: "method", attributes: ["code", "isCash"] }], order: [["id", "ASC"]], transaction });
   // Everything an accounting/GL or BI system needs to post the sale without calling back.
   await recordEvent(

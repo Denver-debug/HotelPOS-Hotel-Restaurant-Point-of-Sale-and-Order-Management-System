@@ -26,7 +26,7 @@ export async function generateSaleReceipt(orderId, { userId }, transaction) {
       { model: OrderItem, as: "items" },
       { model: OrderDiscount, as: "discounts" },
       { model: Payment, as: "payments", where: { status: "CAPTURED" }, required: false, include: [{ model: PaymentMethod, as: "method" }] },
-      { model: GuestCharge, as: "guestCharges", where: { status: "POSTED" }, required: false },
+      { model: GuestCharge, as: "guestCharges", where: { status: ["POSTED", "AWAITING_REVIEW"] }, required: false },
     ],
     order: [[{ model: OrderItem, as: "items" }, "id", "ASC"]],
     transaction,

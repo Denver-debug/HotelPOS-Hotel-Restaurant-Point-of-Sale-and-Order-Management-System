@@ -148,7 +148,7 @@ const SCHEMAS = {
   Event: obj({
     id: { type: "string", format: "uuid", description: "Stable id: de-duplicate on it (also X-HotelPOS-Delivery)." },
     sequence: { type: "integer", description: "Increasing position in the outbox; use as the feed cursor." },
-    type: { enum: ["OrderCompleted", "OrderVoided", "OrderRefunded", "PaymentCaptured", "RoomChargePosted", "RoomChargeReversed", "ShiftOpened", "ShiftClosed", "ShiftReconciled", "StockMovementRecorded", "ProductPriceChanged"] },
+    type: { enum: ["OrderCompleted", "OrderVoided", "OrderRefunded", "PaymentCaptured", "RoomChargeSubmitted", "RoomChargePosted", "RoomChargeRejected", "RoomChargeReversed", "ShiftOpened", "ShiftClosed", "ShiftReconciled", "StockMovementRecorded", "ProductPriceChanged"] },
     schemaVersion: { type: "integer" }, occurredAt: { type: "string", format: "date-time" }, source: { const: "hotelpos" },
     outletId: { type: ["integer", "null"] }, aggregate: obj({ type: { type: "string" }, id: { type: "string" } }), data: { type: "object" },
   }, ["id", "sequence", "type", "occurredAt", "data"]),

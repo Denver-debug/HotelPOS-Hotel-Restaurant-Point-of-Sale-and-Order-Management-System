@@ -6,6 +6,7 @@ import { Op } from "sequelize";
 import {
   sequelize, Outlet, Category, Product, ProductPrice, Tax, Order, Payment, PaymentMethod, GuestCharge, Refund, User, Shift,
 } from "../models/index.js";
+import { CHARGE_STATUSES } from "../models/salesModel.js";
 import { ORDER_DETAIL_INCLUDE, toDto } from "../services/orderService.js";
 import * as shiftService from "../services/shiftService.js";
 import * as refundService from "../services/refundService.js";
@@ -174,7 +175,7 @@ export const payments = async (req, res) => {
 export const guestCharges = async (req, res) => {
   const p = listQuery(req.query);
   const { where, order } = timeFilter(p);
-  const status = oneOf(req.query.status, ["PENDING", "POSTED", "FAILED", "UNKNOWN", "REVERSED", "PARTIALLY_REVERSED"], "status");
+  const status = oneOf(req.query.status, CHARGE_STATUSES, "status");
   if (status) where.status = status;
   if (req.query.externalFolioId) where.externalFolioId = String(req.query.externalFolioId);
   const { rows, count } = await GuestCharge.findAndCountAll({

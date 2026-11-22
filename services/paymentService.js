@@ -118,7 +118,7 @@ export async function processPayment(req, orderId, body) {
       if (!SETTLEABLE_STATUSES.includes(order.status)) {
         throw new AppError(`Order ${order.orderNumber} is ${order.status.replace(/_/g, " ").toLowerCase()}; request settlement first.`, 409, "NOT_SETTLEABLE");
       }
-      const pendingCharge = await GuestCharge.count({ where: { orderId: order.id, status: { [Op.in]: ["PENDING", "UNKNOWN", "POSTED"] } }, transaction });
+      const pendingCharge = await GuestCharge.count({ where: { orderId: order.id, status: { [Op.in]: ["PENDING", "UNKNOWN", "POSTED", "AWAITING_REVIEW"] } }, transaction });
       if (pendingCharge) throw new AppError("A room charge is in progress or posted for this order.", 409, "ROOM_CHARGE_IN_PROGRESS");
       const pendingPayment = await Payment.count({ where: { orderId: order.id, status: "PENDING" }, transaction });
       if (pendingPayment) throw new AppError("Another payment for this order is still being processed. Verify it first.", 409, "SETTLEMENT_IN_PROGRESS");

@@ -36,7 +36,7 @@ export async function salesSummary(filters) {
   const g = scope(filters, "g.posted_at");
   const [room] = await q(
     `SELECT COUNT(*) AS count, COALESCE(SUM(g.amount),0) AS amount FROM guest_charges g JOIN orders o ON o.id = g.order_id
-      WHERE g.status IN ('POSTED','PARTIALLY_REVERSED','REVERSED') AND ${g.where}`,
+      WHERE g.status IN ('POSTED','PARTIALLY_REVERSED','REVERSED','AWAITING_REVIEW') AND ${g.where}`,
     g.params
   );
   const r = scope(filters, "r.processed_at");
@@ -106,7 +106,7 @@ export async function paymentBreakdown(filters) {
     const [room] = await q(
       `SELECT COUNT(*) AS count, COALESCE(SUM(g.amount),0) AS amount, COALESCE(SUM(g.reversed_amount),0) AS refunded
          FROM guest_charges g JOIN orders o ON o.id = g.order_id
-        WHERE g.status IN ('POSTED','PARTIALLY_REVERSED','REVERSED') AND ${g.where}`,
+        WHERE g.status IN ('POSTED','PARTIALLY_REVERSED','REVERSED','AWAITING_REVIEW') AND ${g.where}`,
       g.params
     );
     if (Number(room.count) > 0) methods.push({ method: "Charge to room", ...room });
@@ -140,7 +140,7 @@ export async function recentTransactions(filters, limit = 10) {
   const s = scope({ ...filters, start: new Date(0), end: new Date(Date.now() + 86400000) }, "o.updated_at");
   return q(
     `SELECT o.id, o.order_number, o.status, o.settlement_type, o.total_amount, o.completed_at, o.updated_at, ot.code AS outlet_code,
-            (SELECT g.room_number FROM guest_charges g WHERE g.order_id = o.id AND g.status IN ('POSTED','PARTIALLY_REVERSED','REVERSED') LIMIT 1) AS room_number
+            (SELECT g.room_number FROM guest_charges g WHERE g.order_id = o.id AND g.status IN ('POSTED','PARTIALLY_REVERSED','REVERSED','AWAITING_REVIEW') LIMIT 1) AS room_number
        FROM orders o JOIN outlets ot ON ot.id = o.outlet_id
       WHERE o.status IN ('COMPLETED','PARTIALLY_REFUNDED','REFUNDED','VOIDED') AND ${s.where}
       ORDER BY o.updated_at DESC LIMIT ${Number(limit)}`,
