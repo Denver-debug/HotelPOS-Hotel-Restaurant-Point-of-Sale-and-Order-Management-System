@@ -9,13 +9,21 @@
 import { config } from "../../config/env.js";
 import { MockHrAdapter } from "./mockHrAdapter.js";
 import { HttpHrAdapter } from "./httpHrAdapter.js";
+import { StaffPayHrAdapter } from "./staffpayHrAdapter.js";
 
 let instance;
 
 export function getHrGateway() {
   if (!instance) {
     const cfg = config.integrations.hr;
-    instance = cfg.adapter === "http" ? new HttpHrAdapter(cfg) : new MockHrAdapter();
+    if (cfg.adapter === "staffpay") instance = new StaffPayHrAdapter(cfg);
+    else if (cfg.adapter === "http") instance = new HttpHrAdapter(cfg);
+    else instance = new MockHrAdapter();
   }
   return instance;
+}
+
+// Test hook: swap the adapter without touching business code.
+export function setHrGateway(adapter) {
+  instance = adapter;
 }

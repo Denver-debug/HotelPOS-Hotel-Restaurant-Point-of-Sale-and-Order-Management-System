@@ -15,7 +15,7 @@ recorded in `integration_logs` with timing, masked payloads, status and idempote
 |---|---|---|
 | Front Desk / PMS | `MockPmsAdapter` (default), `FrontdeskPmsAdapter` or `HttpPmsAdapter` | **Frontdesk** (`PMS_ADAPTER=frontdesk`) connects to the hotel's Frontdesk system (e.g. `frontdesk.dineai.site`) as described in its guide `POS_ORDERS.docx`. Tested against a simulated Frontdesk, not yet against the live one. The generic HTTP adapter is unused |
 | Payment provider | `MockPaymentAdapter` (default) or `PayMongoAdapter` | **PayMongo** takes real GCash and Maya payments once `PAYMENT_ADAPTER=paymongo` has the hotel's keys. Tested against a simulated PayMongo API, not yet against the PayMongo sandbox |
-| HR and Staff Payroll | `MockHrAdapter` (default) or `HttpHrAdapter` | **Mock.** The HTTP adapter's endpoint is an assumption |
+| HR and Staff Payroll | `MockHrAdapter` (default), `StaffPayHrAdapter` or `HttpHrAdapter` | **StaffPay** (`HR_ADAPTER=staffpay`) checks employees with the hotel's StaffPay system (`staffpay.ecomap.site`). Ready on the HotelPOS side and tested against a simulated StaffPay; StaffPay must first add the endpoint in [STAFFPAY-API.md](STAFFPAY-API.md). The generic HTTP adapter is unused |
 | ERP events | Outbox table + `logOnlyPublisher` (default) or signed `webhookPublisher` | **Log only** until `EVENTS_PUBLISHER=webhook` points at the ERP. The pull feed `GET /api/v1/events` works either way |
 
 Configuration comes from environment variables only (`.env`, never committed; see `.env.example`):
@@ -24,7 +24,7 @@ Configuration comes from environment variables only (`.env`, never committed; se
 |---|---|
 | PMS | `PMS_ADAPTER` (`mock` \| `frontdesk` \| `http`), `PMS_BASE_URL`, `PMS_API_KEY`, `PMS_TIMEOUT_MS`, `PMS_MOCK_DELAY_MS`; Frontdesk only: `PMS_INBOUND_SECRET`, `PMS_WEBHOOK_SECRET`, `PMS_RESTAURANT_ID`, `PMS_REVIEW_POLL_MS` |
 | Payment | `PAYMENT_ADAPTER` (`mock` \| `paymongo`), `PAYMENT_API_KEY` (PayMongo secret key), `PAYMENT_WEBHOOK_SECRET`, `PAYMENT_RETURN_URL`, `PAYMENT_BASE_URL` (default `https://api.paymongo.com/v1`), `PAYMENT_TIMEOUT_MS` |
-| HR | `HR_ADAPTER` (`mock` \| `http`), `HR_BASE_URL`, `HR_API_KEY`, `HR_TIMEOUT_MS`, `HR_VALIDATE_ON_LOGIN` |
+| HR | `HR_ADAPTER` (`mock` \| `staffpay` \| `http`), `HR_BASE_URL`, `HR_API_KEY`, `HR_TIMEOUT_MS`, `HR_VALIDATE_ON_LOGIN` |
 | Events | `EVENTS_PUBLISHER` (`log` \| `webhook`), `EVENTS_WEBHOOK_URL`, `EVENTS_WEBHOOK_SECRET`, `EVENTS_TIMEOUT_MS`, `EVENTS_DISPATCH_INTERVAL_MS`, `EVENTS_MAX_ATTEMPTS`, `EVENTS_BATCH_SIZE` |
 | Inbound API | `API_CORS_ORIGINS`, `API_RATE_LIMIT_PER_MINUTE`, `TRUST_PROXY` |
 | General | `CURRENCY_CODE` (ISO 4217, sent to the PMS/provider and in events) |
@@ -153,6 +153,19 @@ The cashier types the e-wallet reference number. Reference `DECLINE` declines th
 ## HR and Staff Payroll
 
 `getEmployee(employeeId)` verifies `external_employee_id` when a user is created and at login (when `HR_VALIDATE_ON_LOGIN=true`). If HR is unreachable, login is allowed and an `HR_CHECK_UNAVAILABLE` audit entry is written. The mock treats any `EMP-####` ID as active, except `EMP-9999`, which is inactive.
+
+### StaffPay (`HR_ADAPTER=staffpay`)
+
+StaffPay owns the employee master data. HotelPOS calls `GET {HR_BASE_URL}/employees/{employee_code}` with `Authorization: Bearer <HR_API_KEY>`; `HR_BASE_URL` defaults to `https://staffpay.ecomap.site/api/v1`, and startup stops if `HR_API_KEY` is missing.
+
+| StaffPay answer | HotelPOS |
+|---|---|
+| 200, `active: true` (`active`, `probationary`, `on_leave`) | User can be created; sign-in allowed |
+| 200, `active: false` (`resigned`, `terminated`) | User creation refused (`HR_INACTIVE`); sign-in refused and `LOGIN_BLOCKED` audited |
+| 404 | User creation refused (`HR_NOT_FOUND`); sign-in refused |
+| 401/403, 5xx, timeout, HTML instead of JSON | HR unavailable: user creation refused (`HR_UNAVAILABLE`); sign-in allowed and `HR_CHECK_UNAVAILABLE` audited |
+
+Codes are matched loosely on the StaffPay side (`EMP-0231` = `EMP231`), but each POS user's Employee ID must belong to the same person in StaffPay. The endpoint does not exist in StaffPay yet; [STAFFPAY-API.md](STAFFPAY-API.md) is the specification and a reference implementation for the StaffPay team.
 
 ## ERP events
 

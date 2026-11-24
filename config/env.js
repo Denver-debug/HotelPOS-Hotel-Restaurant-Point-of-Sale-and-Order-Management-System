@@ -92,9 +92,10 @@ export const config = {
       // Signing secret of the PayMongo webhook (whsk_…). Empty: payments are confirmed by polling only.
       webhookSecret: env.PAYMENT_WEBHOOK_SECRET || "",
     },
+    // "staffpay": the hotel's StaffPay HR system (docs/STAFFPAY-API.md).
     hr: {
       adapter: env.HR_ADAPTER || "mock",
-      baseUrl: env.HR_BASE_URL || "",
+      baseUrl: env.HR_BASE_URL || (env.HR_ADAPTER === "staffpay" ? "https://staffpay.ecomap.site/api/v1" : ""),
       apiKey: env.HR_API_KEY || "",
       timeoutMs: int(env.HR_TIMEOUT_MS, 5000),
       validateOnLogin: bool(env.HR_VALIDATE_ON_LOGIN, true),
@@ -107,7 +108,7 @@ export const config = {
 const SUPPORTED_ADAPTERS = {
   PMS_ADAPTER: [config.integrations.pms.adapter, ["mock", "http", "frontdesk"]],
   PAYMENT_ADAPTER: [config.integrations.payment.adapter, ["mock", "paymongo"]],
-  HR_ADAPTER: [config.integrations.hr.adapter, ["mock", "http"]],
+  HR_ADAPTER: [config.integrations.hr.adapter, ["mock", "http", "staffpay"]],
   EVENTS_PUBLISHER: [config.events.publisher, ["log", "webhook"]],
 };
 for (const [name, [value, allowed]] of Object.entries(SUPPORTED_ADAPTERS)) {
@@ -124,6 +125,9 @@ if (config.integrations.pms.adapter === "frontdesk") {
   if (!pms.baseUrl || !pms.apiKey) throw new Error("PMS_BASE_URL and PMS_API_KEY must be set when PMS_ADAPTER=frontdesk.");
   if (pms.restaurantId && !/^[A-Za-z0-9._:-]{1,40}$/.test(pms.restaurantId)) throw new Error("PMS_RESTAURANT_ID may only use letters, digits and . _ : - (at most 40).");
   if (!pms.webhookSecret && !isTest) console.warn("⚠️  PMS_WEBHOOK_SECRET is not set: /webhooks/pms is refused and front-desk reviews are picked up by polling only.");
+}
+if (config.integrations.hr.adapter === "staffpay" && !config.integrations.hr.apiKey) {
+  throw new Error("HR_API_KEY must be set when HR_ADAPTER=staffpay (the key the StaffPay administrator issued to HotelPOS).");
 }
 if (config.integrations.payment.adapter === "paymongo") {
   const key = config.integrations.payment.apiKey;
