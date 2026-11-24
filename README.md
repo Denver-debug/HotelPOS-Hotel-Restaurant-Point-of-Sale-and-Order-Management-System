@@ -17,15 +17,15 @@ npm run xian                         # http://localhost:3000
 
 The seed prints the generated passwords once and also appends them to `storage/seed-credentials.txt` (git-ignored). Set `SEED_ADMIN_PASSWORD` before seeding if you prefer a known password.
 
-| Demo user | Role | Outlets |
-|---|---|---|
-| `admin` | System Administrator | all |
-| `manager01` | POS Manager | all |
-| `supervisor01` | Supervisor | RS-01, REST-01, BAR-01 |
-| `cashier01` | Cashier (HR `EMP-0231`) | RS-01, REST-01 |
-| `staff01` | Restaurant Staff | REST-01 |
-| `inventory01` | Inventory Staff | RS-01, REST-01, BAR-01, MB-01 |
-| `accountant01` | Accountant (read-only) | all |
+| Demo user | Role | Outlets | StaffPay employee |
+|---|---|---|---|
+| `admin` | System Administrator | all | — |
+| `manager01` | POS Manager | all | `EMP013` |
+| `supervisor01` | Supervisor | RS-01, REST-01, BAR-01 | `EMP010` |
+| `cashier01` | Cashier | RS-01, REST-01 | `EMP012` |
+| `staff01` | Restaurant Staff | REST-01 | `EMP011` |
+| `inventory01` | Inventory Staff | RS-01, REST-01, BAR-01, MB-01 | `EMP014` |
+| `accountant01` | Accountant (read-only) | all | `EMP001` |
 
 ### Try the Room 205 scenario (Figures 5 and 12)
 

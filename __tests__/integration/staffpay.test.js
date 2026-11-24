@@ -9,7 +9,7 @@ import { StaffPayHrAdapter } from "../../integrations/hr/staffpayHrAdapter.js";
 const API_KEY = "staffpay-key-for-tests-0123456789";
 
 // ── Fake StaffPay ────────────────────────────────────────────────────────────
-// Same matching as StaffPay's normalizeCode(): "EMP-0231" and "emp231" are both "EMP231".
+// Same matching as StaffPay's normalizeCode(): "EMP012" and "emp-12" are both "EMP12".
 const normalizeCode = (code) => {
   const s = String(code || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
   const m = /^([A-Z]*)0*(\d+)$/.exec(s);
@@ -21,11 +21,11 @@ let fakeServer;
 function resetEmployees() {
   fake.employees = new Map(
     [
-      ["EMP231", "Cashier", "One", "Cashier", "active"],
-      ["EMP102", "Outlet", "Supervisor", "F&B Supervisor", "probationary"],
-      ["EMP7", "Pos", "Manager", "F&B Manager", "on_leave"],
-      ["EMP310", "Restaurant", "Staff", "Waiter", "active"],
-    ].map(([code, first, last, position, status]) => [code, { employee_code: code, full_name: `${first} ${last}`, employment_status: status, active: ["active", "probationary", "on_leave"].includes(status), position, department: "Food & Beverage" }])
+      ["EMP012", "Miguel", "Ramirez", "Bartender", "active"],
+      ["EMP010", "Carlo", "Fernandez", "F&B Supervisor", "probationary"],
+      ["EMP013", "Antonio", "Gonzales", "Executive Chef", "on_leave"],
+      ["EMP011", "Jasmine", "Tan", "Waiter / Waitress", "active"],
+    ].map(([code, first, last, position, status]) => [normalizeCode(code), { employee_code: code, full_name: `${first} ${last}`, employment_status: status, active: ["active", "probationary", "on_leave"].includes(status), position, department: "Food & Beverage" }])
   );
 }
 
@@ -85,14 +85,14 @@ describe("sign-in checks the employee with StaffPay", () => {
     const res = await signIn("cashier01");
     expect(res.status).toBe(302);
     expect(res.location).toMatch(/\/dashboard$/);
-    const log = await ctx.models.IntegrationLog.findOne({ where: { systemName: "HR", referenceId: "EMP-0231" }, order: [["id", "DESC"]] });
+    const log = await ctx.models.IntegrationLog.findOne({ where: { systemName: "HR", referenceId: "EMP012" }, order: [["id", "DESC"]] });
     expect(log).toMatchObject({ operation: "getEmployee", status: "SUCCESS", isMock: false, httpStatus: 200 });
-    expect(JSON.stringify(log.responsePayload)).not.toContain("Cashier One");
+    expect(JSON.stringify(log.responsePayload)).not.toContain("Miguel Ramirez");
   });
 
   test("a cashier terminated in StaffPay can no longer sign in", async () => {
-    fake.employees.get("EMP231").employment_status = "terminated";
-    fake.employees.get("EMP231").active = false;
+    fake.employees.get(normalizeCode("EMP012")).employment_status = "terminated";
+    fake.employees.get(normalizeCode("EMP012")).active = false;
     const res = await signIn("cashier01");
     expect(res.status).toBe(403);
     expect(res.text).toContain("HR reports that this employee is not active");
@@ -100,7 +100,7 @@ describe("sign-in checks the employee with StaffPay", () => {
   });
 
   test("an employee StaffPay does not know cannot sign in", async () => {
-    fake.employees.delete("EMP310");
+    fake.employees.delete(normalizeCode("EMP011"));
     const res = await signIn("staff01");
     expect(res.status).toBe(403);
     expect(res.text).toContain("HR reports that this employee is not active");

@@ -19,7 +19,7 @@
       </div>
       <div>
         <label class="label" for="externalEmployeeId">HR employee ID</label>
-        <input class="input" id="externalEmployeeId" name="externalEmployeeId" value="{{user.externalEmployeeId}}" placeholder="EMP-0231" maxlength="50">
+        <input class="input" id="externalEmployeeId" name="externalEmployeeId" value="{{user.externalEmployeeId}}" placeholder="EMP001" maxlength="50">
         <p class="help">Verified against HR and Staff Payroll when saved.</p>
       </div>
       <div>

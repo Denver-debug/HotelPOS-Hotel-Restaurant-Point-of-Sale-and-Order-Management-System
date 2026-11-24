@@ -5,8 +5,7 @@
 //   GET /employees/{employee_code}   Authorization: Bearer <HR_API_KEY>
 // HR_BASE_URL is https://<staffpay-host>/api/v1.
 //
-// StaffPay matches employee codes loosely, as its attendance import does: "EMP-0231", "emp231"
-// and "EMP 231" are the same person. HotelPOS sends the code exactly as stored on the user.
+// POS users' Employee IDs are StaffPay employee codes (EMP001, ...), sent exactly as stored.
 import { requestJson } from "../httpClient.js";
 import { IntegrationError } from "../integrationLogger.js";
 

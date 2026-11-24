@@ -94,13 +94,14 @@ const RECIPES = {
   "MB-002": [["INV-MB-002", "1"]],
 };
 
+// Employee IDs are StaffPay employee codes (HR and Staff Payroll owns the employee records).
 const DEMO_USERS = [
-  ["cashier01", "Cashier One", "CASHIER", "EMP-0231", ["RS-01", "REST-01"]],
-  ["supervisor01", "Outlet Supervisor", "SUPERVISOR", "EMP-0102", ["RS-01", "REST-01", "BAR-01"]],
-  ["manager01", "POS Manager", "POS_MANAGER", "EMP-0007", []],
-  ["staff01", "Restaurant Staff", "RESTAURANT_STAFF", "EMP-0310", ["REST-01"]],
-  ["inventory01", "Inventory Staff", "INVENTORY_STAFF", "EMP-0405", ["RS-01", "REST-01", "BAR-01", "MB-01"]],
-  ["accountant01", "Accounting Staff", "ACCOUNTANT", "EMP-0050", []],
+  ["cashier01", "Cashier One", "CASHIER", "EMP012", ["RS-01", "REST-01"]],
+  ["supervisor01", "Outlet Supervisor", "SUPERVISOR", "EMP010", ["RS-01", "REST-01", "BAR-01"]],
+  ["manager01", "POS Manager", "POS_MANAGER", "EMP013", []],
+  ["staff01", "Restaurant Staff", "RESTAURANT_STAFF", "EMP011", ["REST-01"]],
+  ["inventory01", "Inventory Staff", "INVENTORY_STAFF", "EMP014", ["RS-01", "REST-01", "BAR-01", "MB-01"]],
+  ["accountant01", "Accounting Staff", "ACCOUNTANT", "EMP001", []],
 ];
 
 const idMap = async (conn, table, keyCol) => {

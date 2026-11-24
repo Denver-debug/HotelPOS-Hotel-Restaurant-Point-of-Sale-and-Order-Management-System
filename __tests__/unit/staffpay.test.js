@@ -31,48 +31,48 @@ afterAll(() => new Promise((r) => server.close(r)));
 beforeEach(() => {
   fake.requests = [];
   fake.reply = null;
-  fake.employees = new Map([["EMP-0231", { ...employee("EMP231", "active"), active: true }]]);
+  fake.employees = new Map([["EMP012", { ...employee("EMP012", "active"), active: true }]]);
 });
 
 describe("StaffPay HR adapter", () => {
   test("asks StaffPay for the employee with the API key and maps its answer", async () => {
-    const emp = await adapter.getEmployee("EMP-0231");
-    expect(emp).toMatchObject({ found: true, employeeId: "EMP-0231", hrEmployeeCode: "EMP231", fullName: "Ana Cruz", active: true, employmentStatus: "active", position: "Cashier", department: "Food & Beverage" });
-    expect(fake.requests[0]).toMatchObject({ method: "GET", path: "/api/v1/employees/EMP-0231" });
+    const emp = await adapter.getEmployee("EMP012");
+    expect(emp).toMatchObject({ found: true, employeeId: "EMP012", hrEmployeeCode: "EMP012", fullName: "Ana Cruz", active: true, employmentStatus: "active", position: "Cashier", department: "Food & Beverage" });
+    expect(fake.requests[0]).toMatchObject({ method: "GET", path: "/api/v1/employees/EMP012" });
     expect(fake.requests[0].headers.authorization).toBe(`Bearer ${API_KEY}`);
   });
 
   test("without an active flag, probationary and on-leave staff count as employed; resigned and terminated do not", async () => {
     const cases = { active: true, probationary: true, on_leave: true, resigned: false, terminated: false };
     for (const [status, active] of Object.entries(cases)) {
-      fake.employees.set("EMP-0310", employee("EMP310", status));
-      expect(await adapter.getEmployee("EMP-0310")).toMatchObject({ found: true, active, employmentStatus: status });
+      fake.employees.set("EMP011", employee("EMP011", status));
+      expect(await adapter.getEmployee("EMP011")).toMatchObject({ found: true, active, employmentStatus: status });
     }
   });
 
   test("StaffPay's own active flag wins over the status", async () => {
-    fake.employees.set("EMP-0310", employee("EMP310", "on_leave", { active: false }));
-    expect((await adapter.getEmployee("EMP-0310")).active).toBe(false);
+    fake.employees.set("EMP011", employee("EMP011", "on_leave", { active: false }));
+    expect((await adapter.getEmployee("EMP011")).active).toBe(false);
   });
 
   test("a bare object without the success envelope is accepted", async () => {
-    fake.reply = [200, employee("EMP231", "active")];
-    expect(await adapter.getEmployee("EMP-0231")).toMatchObject({ found: true, active: true, hrEmployeeCode: "EMP231" });
+    fake.reply = [200, employee("EMP012", "active")];
+    expect(await adapter.getEmployee("EMP012")).toMatchObject({ found: true, active: true, hrEmployeeCode: "EMP012" });
   });
 
   test("an unknown code is not found", async () => {
-    expect(await adapter.getEmployee("EMP-4040")).toMatchObject({ found: false, active: false });
+    expect(await adapter.getEmployee("EMP404")).toMatchObject({ found: false, active: false });
   });
 
   test("a wrong key, an outage, a login page or an empty answer is an integration error", async () => {
     const badKey = new StaffPayHrAdapter({ ...adapter.cfg, apiKey: "wrong" });
-    await expect(badKey.getEmployee("EMP-0231")).rejects.toMatchObject({ kind: "REJECTED", message: expect.stringContaining("HR_API_KEY") });
+    await expect(badKey.getEmployee("EMP012")).rejects.toMatchObject({ kind: "REJECTED", message: expect.stringContaining("HR_API_KEY") });
     fake.reply = [503, { success: false, error: { code: "UNAVAILABLE", message: "Maintenance." } }];
-    await expect(adapter.getEmployee("EMP-0231")).rejects.toMatchObject({ kind: "REJECTED", message: "Maintenance. (UNAVAILABLE)" });
+    await expect(adapter.getEmployee("EMP012")).rejects.toMatchObject({ kind: "REJECTED", message: "Maintenance. (UNAVAILABLE)" });
     // The endpoint is missing and StaffPay serves its HTML login page instead.
     fake.reply = [200, "<!doctype html><title>Login</title>"];
-    await expect(adapter.getEmployee("EMP-0231")).rejects.toMatchObject({ kind: "INVALID_RESPONSE" });
+    await expect(adapter.getEmployee("EMP012")).rejects.toMatchObject({ kind: "INVALID_RESPONSE" });
     fake.reply = [200, { success: true, data: {} }];
-    await expect(adapter.getEmployee("EMP-0231")).rejects.toMatchObject({ kind: "INVALID_RESPONSE" });
+    await expect(adapter.getEmployee("EMP012")).rejects.toMatchObject({ kind: "INVALID_RESPONSE" });
   });
 });

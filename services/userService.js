@@ -47,7 +47,9 @@ const parseUserInput = (body, { creating }) => ({
   fullName: v.str(body.fullName, "Full name", { required: true, max: 120 }),
   email: v.email(body.email)?.toLowerCase() ?? null,
   roleId: v.id(body.roleId, "Role"),
-  externalEmployeeId: v.str(body.externalEmployeeId, "Employee ID", { max: 50 })?.toUpperCase() ?? null,
+  externalEmployeeId: v.str(body.externalEmployeeId?.toUpperCase(), "Employee ID", {
+    max: 50, pattern: /^EMP\d{3,}$/, patternMessage: "Employee ID must be the StaffPay employee code, e.g. EMP001.",
+  }) ?? null,
   status: v.oneOf(body.status, "Status", ["ACTIVE", "INACTIVE", "LOCKED"], { required: false, fallback: "ACTIVE" }),
   outletIds: v.idList(body.outletIds),
   password: creating || body.password ? String(body.password || "") : null,

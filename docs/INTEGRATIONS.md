@@ -152,7 +152,7 @@ The cashier types the e-wallet reference number. Reference `DECLINE` declines th
 
 ## HR and Staff Payroll
 
-`getEmployee(employeeId)` verifies `external_employee_id` when a user is created and at login (when `HR_VALIDATE_ON_LOGIN=true`). If HR is unreachable, login is allowed and an `HR_CHECK_UNAVAILABLE` audit entry is written. The mock treats any `EMP-####` ID as active, except `EMP-9999`, which is inactive.
+`getEmployee(employeeId)` verifies `external_employee_id` when a user is created and at login (when `HR_VALIDATE_ON_LOGIN=true`). If HR is unreachable, login is allowed and an `HR_CHECK_UNAVAILABLE` audit entry is written. Employee IDs are StaffPay employee codes (`EMP001`, `EMP012`, …); the user form accepts only that format. The mock treats any `EMP###` code as active, except `EMP999`, which is inactive.
 
 ### StaffPay (`HR_ADAPTER=staffpay`)
 
@@ -165,7 +165,7 @@ StaffPay owns the employee master data. HotelPOS calls `GET {HR_BASE_URL}/employ
 | 404 | User creation refused (`HR_NOT_FOUND`); sign-in refused |
 | 401/403, 5xx, timeout, HTML instead of JSON | HR unavailable: user creation refused (`HR_UNAVAILABLE`); sign-in allowed and `HR_CHECK_UNAVAILABLE` audited |
 
-Codes are matched loosely on the StaffPay side (`EMP-0231` = `EMP231`), but each POS user's Employee ID must belong to the same person in StaffPay. The endpoint does not exist in StaffPay yet; [STAFFPAY-API.md](STAFFPAY-API.md) is the specification and a reference implementation for the StaffPay team.
+Each POS user's Employee ID must be the same person's StaffPay code. Migration `012` moved the demo users from the old `EMP-####` IDs to StaffPay codes (see the table in the README). The endpoint does not exist in StaffPay yet; [STAFFPAY-API.md](STAFFPAY-API.md) is the specification and a reference implementation for the StaffPay team.
 
 ## ERP events
 

@@ -14,7 +14,7 @@ Authorization: Bearer <API key issued to HotelPOS>
 Accept: application/json
 ```
 
-HotelPOS sends the code as it stores it, for example `EMP-0231`. Match it the way your attendance import already does (`normalizeCode` in `services/importService.js`), so `EMP-0231`, `EMP231` and `emp 231` find the same employee.
+HotelPOS stores StaffPay's own employee codes and sends them unchanged, for example `EMP012`. The reference implementation also matches loosely, the way your attendance import does (`normalizeCode` in `services/importService.js`), so `emp-012` still finds `EMP012`.
 
 ### 200: found
 
@@ -22,11 +22,11 @@ HotelPOS sends the code as it stores it, for example `EMP-0231`. Match it the wa
 {
   "success": true,
   "data": {
-    "employee_code": "EMP231",
-    "full_name": "Ana R. Cruz",
+    "employee_code": "EMP012",
+    "full_name": "Miguel O. Ramirez",
     "employment_status": "active",
     "active": true,
-    "position": "Cashier",
+    "position": "Bartender",
     "department": "Food & Beverage"
   }
 }
@@ -38,7 +38,7 @@ HotelPOS sends the code as it stores it, for example `EMP-0231`. Match it the wa
 | `full_name` | The `Employee.full_name` virtual |
 | `employment_status` | `active`, `probationary`, `on_leave`, `resigned` or `terminated` |
 | `active` | `true` when the status is in `ACTIVE_STATUSES` (`active`, `probationary`, `on_leave`). HotelPOS follows this flag |
-| `position`, `department` | Names, or `null` |
+| `position`, `department` | The position's `title` and the department's `name`, or `null` |
 
 Return nothing else. In particular, leave out salary, email, phone, address and birth date.
 
@@ -102,7 +102,7 @@ router.get('/employees/:code', async (req, res, next) => {
     const employees = await Employee.findAll({
       attributes: ['id', 'employee_code', 'first_name', 'middle_name', 'last_name', 'employment_status'],
       include: [
-        { model: Position, as: 'position', attributes: ['name'] },
+        { model: Position, as: 'position', attributes: ['title'] },
         { model: Department, as: 'department', attributes: ['name'] },
       ],
     });
@@ -115,7 +115,7 @@ router.get('/employees/:code', async (req, res, next) => {
         full_name: e.full_name,
         employment_status: e.employment_status,
         active: ACTIVE_STATUSES.includes(e.employment_status),
-        position: e.position?.name ?? null,
+        position: e.position?.title ?? null,
         department: e.department?.name ?? null,
       },
     });
@@ -149,7 +149,18 @@ curl -H "Authorization: Bearer $POS_API_KEY" https://staffpay.ecomap.site/api/v1
 
 ## Employee codes
 
-A POS user's employee code must be the same person's code in StaffPay. HotelPOS's demo users use `EMP-0231`, `EMP-0102`, `EMP-0007`, `EMP-0310`, `EMP-0405` and `EMP-0050`. Either create matching employees in StaffPay or edit the POS users' Employee ID to StaffPay's codes (`EMP001` …) under **Users** in HotelPOS before switching it over.
+A POS user's Employee ID is that person's StaffPay employee code; HotelPOS accepts only the `EMP001` format. The demo users point at StaffPay's seeded employees:
+
+| HotelPOS user | StaffPay employee |
+|---|---|
+| `cashier01` | `EMP012` Miguel Ramirez, Bartender |
+| `supervisor01` | `EMP010` Carlo Fernandez, F&B Supervisor |
+| `manager01` | `EMP013` Antonio Gonzales, Executive Chef |
+| `staff01` | `EMP011` Jasmine Tan, Waiter / Waitress |
+| `inventory01` | `EMP014` Rosa Pascual, Line Cook |
+| `accountant01` | `EMP001` Andrea Reyes, HR & Payroll Officer |
+
+These employees must exist and be active on the live StaffPay, or those users cannot sign in once HotelPOS switches over. If the live data differs, change the Employee ID under **Users** in HotelPOS.
 
 ## Switching HotelPOS over
 
